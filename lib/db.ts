@@ -1,9 +1,8 @@
 import 'server-only';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Database, Game } from './types';
-const file = path.join(process.cwd(), 'data', 'db.json');
+import { supabaseAdmin } from './supabase-admin';
+
 const seedGames: Game[] = [
   {
     id: 'seed-wuthering-waves',
@@ -68,6 +67,7 @@ const seedGames: Game[] = [
     favorites: 0,
   },
 ];
+
 const empty = (): Database => ({
   users: [],
   games: seedGames,
@@ -87,78 +87,171 @@ const empty = (): Database => ({
   notifications: [],
   contributors: [],
 });
-export async function readDb(): Promise<Database> {
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  try {
-    const raw = JSON.parse(await fs.readFile(file, 'utf8')) as Partial<Database>;
-    return {
-      ...empty(),
-      ...raw,
-      users: (raw.users || []).map((u) => ({
-        ...u,
-        sakuraCoins: u.sakuraCoins || 0,
-        expConverted: u.expConverted || 0,
-      })),
-      shopProducts: raw.shopProducts || [],
-      inventory: raw.inventory || [],
-      coinTransactions: raw.coinTransactions || [],
-      messages: raw.messages || [],
-      notifications: raw.notifications || [],
-      contributors: raw.contributors || [],
-      games: (raw.games || seedGames).map((g) => ({
-        ...g,
-        views: g.views || 0,
-        favorites: g.favorites || 0,
-        updates: g.updates || [],
-        files: g.files || [],
-        guides: g.guides || [],
-      })),
-      comments: raw.comments || [],
-      photos: raw.photos || [],
-      siteSettings: raw.siteSettings || {},
-    };
-  } catch (e) {
-    try {
-      await fs.access(file);
-      throw new Error('data/db.json 无法解析，数据库文件可能损坏。请先备份文件，不要覆盖。');
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('无法解析')) throw err;
-      const db = empty();
-      await writeDb(db);
-      return db;
-    }
-  }
-}
-let queue: Promise<unknown> = Promise.resolve();
-export async function writeDb(db: Database) {
-  const run = async () => {
-    await fs.mkdir(path.dirname(file), { recursive: true });
-    const temp = file + '.' + randomUUID() + '.tmp';
-    await fs.writeFile(temp, JSON.stringify(db, null, 2), 'utf8');
-    await fs.rename(temp, file);
+
+function normalizeDb(raw: Partial<Database> | null | undefined): Database {
+  const defaults = empty();
+
+  return {
+    ...defaults,
+    ...raw,
+    users: (raw?.users || []).map((u) => ({
+      ...u,
+      sakuraCoins: u.sakuraCoins || 0,
+      expConverted: u.expConverted || 0,
+    })),
+    shopProducts: raw?.shopProducts || [],
+    inventory: raw?.inventory || [],
+    coinTransactions: raw?.coinTransactions || [],
+    messages: raw?.messages || [],
+    notifications: raw?.notifications || [],
+    contributors: raw?.contributors || [],
+    games: (raw?.games || seedGames).map((g) => ({
+      ...g,
+      views: g.views || 0,
+      favorites: g.favorites || 0,
+      updates: g.updates || [],
+      files: g.files || [],
+      guides: g.guides || [],
+    })),
+    comments: raw?.comments || [],
+    photos: raw?.photos || [],
+    siteSettings: raw?.siteSettings || {},
   };
-  queue = queue.then(run, run);
-  await queue;
-}
-export async function getGameBySlug(slug: string) {
-  return (await readDb()).games.find((g) => g.slug === slug);
 }
 
-// Serialize read-modify-write operations so wallet and inventory changes cannot overwrite each other.
-export async function mutateDb<T>(mutator: (db: Database) => T | Promise<T>): Promise<T> {
+type DbRow = {
+  data: Partial<Database>;
+  version: number;
+};
+
+async function getRow(): Promise<DbRow> {
+  const { data, error } = await supabaseAdmin
+    .from('app_state')
+    .select('data, version')
+    .eq('id', 'main')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`读取 Supabase 数据库失败：${error.message}`);
+  }
+
+  if (data) {
+    return {
+      data: data.data as Partial<Database>,
+      version: Number(data.version),
+    };
+  }
+
+  // 数据记录不存在时初始化。若多个请求同时初始化，允许其中一个成功。
+  const initial = empty();
+
+  const { error: insertError } = await supabaseAdmin
+    .from('app_state')
+    .insert({
+      id: 'main',
+      data: initial,
+      version: 1,
+    });
+
+  if (insertError) {
+    // 可能是另一个请求抢先创建了记录，重新读取即可。
+    const { data: retryData, error: retryError } = await supabaseAdmin
+      .from('app_state')
+      .select('data, version')
+      .eq('id', 'main')
+      .single();
+
+    if (retryError || !retryData) {
+      throw new Error(`初始化 Supabase 数据库失败：${insertError.message}`);
+    }
+
+    return {
+      data: retryData.data as Partial<Database>,
+      version: Number(retryData.version),
+    };
+  }
+
+  return { data: initial, version: 1 };
+}
+
+async function saveWithVersion(
+  db: Database,
+  expectedVersion: number,
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('app_state')
+    .update({
+      data: db,
+      version: expectedVersion + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', 'main')
+    .eq('version', expectedVersion)
+    .select('version')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`保存 Supabase 数据库失败：${error.message}`);
+  }
+
+  return Boolean(data);
+}
+
+export async function readDb(): Promise<Database> {
+  const row = await getRow();
+  return normalizeDb(row.data);
+}
+
+let queue: Promise<unknown> = Promise.resolve();
+
+export async function writeDb(db: Database): Promise<void> {
   const run = async () => {
-    const db = await readDb();
-    const result = await mutator(db);
-    await fs.mkdir(path.dirname(file), { recursive: true });
-    const temp = file + '.' + randomUUID() + '.tmp';
-    await fs.writeFile(temp, JSON.stringify(db, null, 2), 'utf8');
-    await fs.rename(temp, file);
-    return result;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const row = await getRow();
+      const saved = await saveWithVersion(db, row.version);
+
+      if (saved) return;
+    }
+
+    throw new Error('数据库正在被频繁修改，请稍后重试。');
   };
+
   const next = queue.then(run, run);
   queue = next.then(
     () => undefined,
     () => undefined,
   );
+
+  await next;
+}
+
+export async function getGameBySlug(slug: string) {
+  return (await readDb()).games.find((g) => g.slug === slug);
+}
+
+// 使用版本号进行乐观锁保护，避免多个服务器请求互相覆盖数据。
+export async function mutateDb<T>(
+  mutator: (db: Database) => T | Promise<T>,
+): Promise<T> {
+  const run = async () => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const row = await getRow();
+      const db = normalizeDb(row.data);
+
+      const result = await mutator(db);
+      const saved = await saveWithVersion(db, row.version);
+
+      if (saved) return result;
+    }
+
+    throw new Error('数据库正在被频繁修改，请稍后重试。');
+  };
+
+  const next = queue.then(run, run);
+  queue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+
   return (await next) as T;
 }
