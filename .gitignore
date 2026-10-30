@@ -18,3 +18,12 @@ data/db.json
 
 # TypeScript build cache
 tsconfig.tsbuildinfo
+
+# Local backups
+*.backup
+*.tmp
+
+# Local migration and test scripts
+migrate-*.mjs
+test-supabase-upload.mjs
+restore-missing-image.mjs

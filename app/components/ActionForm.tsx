@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-export function ActionForm({ action, children, button = '提交', className = 'stack-form', successMessage = '操作成功，内容已保存' }: { action: string; children: ReactNode; button?: string; className?: string; successMessage?: string }) {
+export function ActionForm({ action, children, button = '提交', className = 'stack-form', successMessage = '操作成功，内容已保存' }: { action: string; children?: ReactNode; button?: string; className?: string; successMessage?: string }) {
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [busy, setBusy] = useState(false);

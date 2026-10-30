@@ -15,9 +15,9 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
       if (inputRef.current) inputRef.current.value = '';
       return;
     }
-    const invalid = selected.find((f) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type) || f.size > 8 * 1024 * 1024);
+    const invalid = selected.find((f) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type) || f.size > 12 * 1024 * 1024);
     if (invalid) {
-      setError(`${invalid.name} 格式不支持或超过 8 MB`);
+      setError(`${invalid.name} 格式不支持或超过 12 MB`);
       return;
     }
     setBusy(true);
@@ -66,7 +66,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
-      <small className="muted">可按住 Ctrl / Shift 多选，最多 20 张；支持 JPG / PNG / WEBP / GIF，单张最大 8 MB。图片会按图集排版展示。</small>
+      <small className="muted">可按住 Ctrl / Shift 多选，最多 20 张；支持 JPG / PNG / WEBP / GIF，单张最大 12 MB。图片会按图集排版展示。</small>
     </div>
   );
 }
