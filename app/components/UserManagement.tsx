@@ -11,6 +11,8 @@ type U = {
   exp: number;
   lastLoginAt?: string;
   lastLoginIp?: string;
+  badges?: string[];
+  title?: string;
 };
 export function UserManagement({ users }: { users: U[] }) {
   const [query, setQuery] = useState('');
@@ -155,7 +157,13 @@ function UserRow({ user, busy, update, remove }: { user: U; busy: boolean; updat
         </small>
         <small>最近 IP：{user.lastLoginIp || '暂无'}</small>
       </div>
-      <div className="user-row-actions">
+      <div className="user-row-actions user-row-actions-expanded">
+        <label className="user-admin-field">经验值
+          <input aria-label="用户经验值" type="number" min="0" max="1000000" defaultValue={user.exp} onBlur={(e) => { if (Number(e.target.value) !== user.exp) update(user, { exp: e.target.value }); }} disabled={busy} />
+        </label>
+        <label className="user-admin-field">自定义徽章（逗号分隔）
+          <input aria-label="用户徽章" type="text" defaultValue={(user.badges || []).join(', ')} onBlur={(e) => { if (e.target.value !== (user.badges || []).join(', ')) update(user, { badges: e.target.value }); }} disabled={busy} placeholder="例如：开荒先锋, 社区贡献者" />
+        </label>
         <select aria-label="账号角色" defaultValue={user.role} onChange={(e) => update(user, { role: e.target.value })} disabled={busy}>
           <option value="user">普通用户</option>
           <option value="vip">VIP</option>

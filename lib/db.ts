@@ -1,7 +1,6 @@
 import 'server-only';
-import { randomUUID } from 'node:crypto';
 import type { Database, Game } from './types';
-import { supabaseAdmin } from './supabase-admin';
+import { getSupabaseAdmin } from './supabase-admin';
 
 const seedGames: Game[] = [
   {
@@ -80,7 +79,11 @@ const empty = (): Database => ({
   comments: [],
   photos: [],
   siteSettings: {},
-  shopProducts: [],
+  shopProducts: [
+    { id: 'frame-sakura', name: '樱花头像框', description: '柔和的樱花主题头像装饰。', image: '', category: 'avatar-frame', price: 80, active: true, stock: null, effectValue: 'sakura', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'frame-gold', name: '鎏金头像框', description: '金色边框装饰。', image: '', category: 'avatar-frame', price: 160, active: true, stock: null, effectValue: 'gold', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'frame-glass', name: '星璃头像框', description: '玻璃质感头像装饰。', image: '', category: 'avatar-frame', price: 220, active: true, stock: null, effectValue: 'glass', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  ],
   inventory: [],
   coinTransactions: [],
   messages: [],
@@ -96,10 +99,10 @@ function normalizeDb(raw: Partial<Database> | null | undefined): Database {
     ...raw,
     users: (raw?.users || []).map((u) => ({
       ...u,
-      sakuraCoins: u.sakuraCoins || 0,
-      expConverted: u.expConverted || 0,
+      sakuraCoins: Math.max(0, Number(u.sakuraCoins) || 0),
+      expConverted: Math.max(0, Number(u.expConverted) || 0),
     })),
-    shopProducts: raw?.shopProducts || [],
+    shopProducts: raw?.shopProducts?.length ? raw.shopProducts : defaults.shopProducts,
     inventory: raw?.inventory || [],
     coinTransactions: raw?.coinTransactions || [],
     messages: raw?.messages || [],
@@ -125,6 +128,8 @@ type DbRow = {
 };
 
 async function getRow(): Promise<DbRow> {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data, error } = await supabaseAdmin
     .from('app_state')
     .select('data, version')
@@ -178,6 +183,8 @@ async function saveWithVersion(
   db: Database,
   expectedVersion: number,
 ): Promise<boolean> {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data, error } = await supabaseAdmin
     .from('app_state')
     .update({

@@ -2,9 +2,17 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { readDb, writeDb, mutateDb } from '@/lib/db';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
-import type { Collection, Feedback, Guide, Notice, Resource, Game, User } from '@/lib/types';
+import type {
+  Collection,
+  Feedback,
+  Guide,
+  Resource,
+  Game,
+  Database,
+  ShopProduct,
+} from '@/lib/types';
 const err = (e: unknown) => NextResponse.json({ error: e instanceof Error ? e.message : '操作失败' }, { status: e instanceof Error && e.message === 'FORBIDDEN' ? 403 : 401 });
-function pushNotification(db: any, userId: string, type: 'message' | 'comment' | 'feedback' | 'badge' | 'level' | 'system', title: string, body: string, href: string, actorId?: string) {
+function pushNotification(db: Database, userId: string, type: 'message' | 'comment' | 'feedback' | 'badge' | 'level' | 'system', title: string, body: string, href: string, actorId?: string) {
   if (!userId) return;
   db.notifications = db.notifications || [];
   db.notifications.unshift({
@@ -24,7 +32,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
     const ct = req.headers.get('content-type') || '';
     const raw = ct.includes('application/json') ? await req.json() : Object.fromEntries((await req.formData()).entries());
-    const b: any = { ...raw };
+    const b: Record<string, unknown> = { ...raw };
     if (typeof b.exp === 'string' && b.exp.trim()) b.exp = Number(b.exp);
     if (typeof b.pinned === 'string') b.pinned = b.pinned === 'true';
     if (typeof b.published === 'string') b.published = b.published === 'true';
@@ -55,7 +63,9 @@ export async function POST(req: Request) {
       const result = await mutateDb((fresh) => {
         const u = fresh.users.find((x) => x.id === user.id);
         if (!u) return false;
-        if (['light', 'dark'].includes(b.themeMode)) u.themeMode = b.themeMode;
+        if (b.themeMode === 'light' || b.themeMode === 'dark') {
+  u.themeMode = b.themeMode;
+}
         if (typeof b.themeColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(b.themeColor)) u.themeColor = b.themeColor;
         if (typeof b.sakuraEnabled === 'boolean') u.sakuraEnabled = b.sakuraEnabled;
         return true;
@@ -69,7 +79,13 @@ export async function POST(req: Request) {
       u.nickname = b.nickname.trim();
       u.avatar = typeof b.avatar === 'string' ? b.avatar.slice(0, 500) : u.avatar;
       u.selectedBadge = typeof b.selectedBadge === 'string' && (u.badges || []).includes(b.selectedBadge) ? b.selectedBadge : '';
-      u.avatarFrame = ['none', 'sakura', 'gold', 'glass'].includes(b.avatarFrame) ? b.avatarFrame : 'none';
+      u.avatarFrame =
+  b.avatarFrame === 'none' ||
+  b.avatarFrame === 'sakura' ||
+  b.avatarFrame === 'gold' ||
+  b.avatarFrame === 'glass'
+    ? b.avatarFrame
+    : 'none';
       u.cardBackground = typeof b.cardBackground === 'string' && (/^https:\/\//i.test(b.cardBackground) || b.cardBackground.startsWith('/uploads/') || b.cardBackground === '') ? b.cardBackground.slice(0, 1000) : u.cardBackground;
       await writeDb(db);
       return NextResponse.json({ ok: true });
@@ -132,9 +148,17 @@ export async function POST(req: Request) {
     if (b.action === 'comment-save') {
       if (!['game', 'guide', 'resource'].includes(String(b.targetType)) || !b.targetId || typeof b.content !== 'string' || b.content.trim().length < 1 || b.content.trim().length > 2000)
         return NextResponse.json({ error: '评论内容需为 1-2000 字' }, { status: 400 });
+      if (
+  b.targetType !== 'game' &&
+  b.targetType !== 'guide' &&
+  b.targetType !== 'resource'
+) {
+  return NextResponse.json({ error: '无效的评论目标类型' }, { status: 400 });
+}
+    const targetType = b.targetType as Collection['targetType'];
       const c = {
         id: randomUUID(),
-        targetType: b.targetType,
+        targetType,
         targetId: String(b.targetId),
         userId: user.id,
         content: b.content.trim(),
@@ -374,7 +398,7 @@ export async function POST(req: Request) {
         cover: String(b.cover || ''),
         bodyImage: String(b.bodyImage || ''),
         bodyImages: (() => {
-          let images: any = b.bodyImages;
+          let images: unknown = b.bodyImages;
           if (typeof images === 'string') {
             try {
               images = JSON.parse(images);
@@ -382,7 +406,11 @@ export async function POST(req: Request) {
               images = [];
             }
           }
-          return Array.isArray(images) ? images.filter((x: any) => typeof x === 'string' && x).slice(0, 20) : [b.image1, b.image2, b.image3, b.image4, b.image5].filter((x: any) => typeof x === 'string' && x);
+          return Array.isArray(images)
+  ? images.filter((x): x is string => typeof x === 'string' && Boolean(x)).slice(0, 20)
+  : [b.image1, b.image2, b.image3, b.image4, b.image5].filter(
+      (x): x is string => typeof x === 'string' && Boolean(x)
+    );
         })(),
       };
       if (b.action === 'guide-edit') {
@@ -429,7 +457,7 @@ export async function POST(req: Request) {
         name,
         description: String(b.description || '').slice(0, 2000),
         image,
-        category: category as any,
+        category: category as ShopProduct['category'],
         price,
         effectValue,
         active: b.active !== 'false',
@@ -462,7 +490,12 @@ export async function POST(req: Request) {
         cover: String(b.cover || ''),
         genre: String(b.genre || ''),
         platforms: Array.isArray(b.platforms) ? b.platforms : [],
-        status: b.status || '运营中',
+        status:
+  b.status === '运营中' ||
+  b.status === '测试中' ||
+  b.status === '已停更'
+    ? b.status
+    : '运营中',
         latestVersion: String(b.latestVersion || ''),
         updatedAt: String(b.updatedAt || now.slice(0, 10)),
         description: String(b.description || ''),
@@ -472,7 +505,16 @@ export async function POST(req: Request) {
         guides: old?.guides || [],
         views: old?.views || 0,
         favorites: old?.favorites || 0,
-        config: b.config || old?.config,
+        config: {
+  minimum:
+    typeof b.minimum === 'string'
+      ? b.minimum
+      : old?.config?.minimum || '',
+  recommended:
+    typeof b.recommended === 'string'
+      ? b.recommended
+      : old?.config?.recommended || '',
+},
       };
       if (!game.name || !/^[a-z0-9-]+$/.test(game.slug)) return NextResponse.json({ error: '名称必填，slug 只能使用小写英文、数字和连字符' }, { status: 400 });
       if (db.games.some((g) => g.slug === game.slug && g.id !== game.id)) return NextResponse.json({ error: 'slug 已存在' }, { status: 409 });
@@ -522,7 +564,7 @@ export async function POST(req: Request) {
     if (b.action === 'resource-save') {
       await requireAdmin();
       const r: Resource = {
-        id: b.id || randomUUID(),
+        id: typeof b.id === 'string' && b.id ? b.id : randomUUID(),
         title: String(b.title || ''),
         cover: String(b.cover || ''),
         gameId: String(b.gameId || ''),
@@ -593,7 +635,7 @@ export async function POST(req: Request) {
     if (b.action === 'review-guide' || b.action === 'review-feedback') {
       await requireAdmin();
       const list = b.action === 'review-guide' ? db.guides : db.feedback;
-      const item = list.find((x: any) => x.id === b.id) as Guide | Feedback | undefined;
+      const item = list.find((x) => x.id === b.id);
       if (!item) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
       const accepted = b.status === 'accepted';
       if (b.action === 'review-guide') (item as Guide).status = accepted ? 'approved' : 'rejected';
@@ -627,7 +669,8 @@ export async function POST(req: Request) {
       if (!/^[A-Za-z0-9_]{3,24}$/.test(username)) return NextResponse.json({ error: '用户名需为 3-24 位字母、数字或下划线' }, { status: 400 });
       if (password.length < 8) return NextResponse.json({ error: '初始密码至少 8 位' }, { status: 400 });
       if (db.users.some((x) => x.username.toLowerCase() === username.toLowerCase())) return NextResponse.json({ error: '用户名已存在' }, { status: 409 });
-      const role = ['user', 'vip'].includes(String(b.role)) ? b.role : 'user';
+      const role: 'user' | 'vip' =
+  b.role === 'user' || b.role === 'vip' ? b.role : 'user';
       db.users.unshift({
         id: randomUUID(),
         username,
@@ -651,11 +694,63 @@ export async function POST(req: Request) {
       if (target.id === user.id && b.role && b.role !== 'admin') return NextResponse.json({ error: '不能降低当前管理员自己的权限' }, { status: 400 });
       if (target.role === 'admin' && target.id !== user.id && b.role && b.role !== 'admin') return NextResponse.json({ error: '不能在此降级其他管理员' }, { status: 403 });
       if (target.role === 'admin' && target.id !== user.id && b.status === 'banned') return NextResponse.json({ error: '不能封禁其他管理员账号' }, { status: 403 });
-      if (['user', 'vip', 'admin'].includes(String(b.role))) target.role = b.role;
-      if (['active', 'banned'].includes(String(b.status))) target.status = b.status;
+      if (
+  b.role === 'user' ||
+  b.role === 'vip' ||
+  b.role === 'admin'
+) {
+  target.role = b.role;
+}
+
+if (b.status === 'active' || b.status === 'banned') {
+  target.status = b.status;
+}
       if (typeof b.nickname === 'string' && b.nickname.trim()) target.nickname = b.nickname.trim().slice(0, 24);
+      const oldExp = Math.max(0, Number(target.exp) || 0);
+      const oldBadges = [...(target.badges || [])];
+      if (b.exp !== undefined && Number.isFinite(Number(b.exp))) target.exp = Math.max(0, Math.min(1000000, Math.floor(Number(b.exp))));
+      if (typeof b.title === 'string') target.title = b.title.trim().slice(0, 40);
+      if (typeof b.badges === 'string') {
+  target.badges = [...new Set<string>(
+    b.badges.split(',').map((x: string) => x.trim()).filter(Boolean)
+  )].slice(0, 30);
+} else if (Array.isArray(b.badges)) {
+  const badgeList = b.badges.filter(
+    (x: unknown): x is string => typeof x === 'string'
+  );
+
+  target.badges = [...new Set<string>(
+    badgeList.map((x: string) => x.trim()).filter(Boolean)
+  )].slice(0, 30);
+}
+      if (target.selectedBadge && !(target.badges || []).includes(target.selectedBadge)) target.selectedBadge = '';
+      if (target.exp > oldExp) {
+        const gainedExp = target.exp - oldExp;
+        pushNotification(
+          db,
+          target.id,
+          'system',
+          '获得经验值',
+          `管理员为你增加了 ${gainedExp} EXP，当前经验为 ${target.exp} EXP。`,
+          `/users/${target.id}`,
+          user.id,
+        );
+      }
+      if (levelOf(target.exp) > levelOf(oldExp)) {
+        pushNotification(
+          db,
+          target.id,
+          'level',
+          '等级提升啦！',
+          `管理员调整经验后，你已达到 Lv.${levelOf(target.exp)}。`,
+          `/users/${target.id}`,
+        );
+      }
+      for (const badge of target.badges || []) {
+        if (!oldBadges.includes(badge)) pushNotification(db, target.id, 'badge', '获得新徽章', `管理员授予你徽章：${badge}`, `/users/${target.id}`, user.id);
+      }
       await writeDb(db);
-      return NextResponse.json({ ok: true, message: '账号资料已更新' });
+      return NextResponse.json({ ok: true, message: '账户资料、经验与徽章已更新' });
     }
     if (b.action === 'admin-user-delete') {
       await requireAdmin();
@@ -699,6 +794,9 @@ export async function POST(req: Request) {
         .filter(Boolean)
         .slice(0, 40);
       db.siteSettings = db.siteSettings || {};
+      if (typeof b.contributorBackground === 'string') {
+        db.siteSettings.contributorBackground = b.contributorBackground.slice(0, 1000);
+      }
       db.siteSettings.contributor = {
         nickname: String(b.nickname || '开发者').slice(0, 40),
         avatar: String(b.developerAvatar || '').slice(0, 1000),
@@ -725,8 +823,17 @@ export async function POST(req: Request) {
         name: name.slice(0, 60),
         role: String(b.role || '社区贡献者').slice(0, 80),
         description: description.slice(0, 1000),
-        kind: ['volunteer', 'content', 'financial', 'technical'].includes(b.kind) ? b.kind : 'volunteer',
+        kind:
+        b.kind === 'volunteer' ||
+        b.kind === 'content' ||
+        b.kind === 'financial' ||
+        b.kind === 'technical'
+    ? b.kind
+    : 'volunteer',
         userId: String(b.userId || '') || undefined,
+        avatar: String(b.avatar || '').slice(0, 1000),
+        exp: Math.max(0, Math.min(1000000, Math.floor(Number(b.exp) || 0))),
+        badges: [...new Set(String(b.badges || '').split(',').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30),
         createdAt: now,
       });
       await writeDb(db);
@@ -745,8 +852,17 @@ export async function POST(req: Request) {
       const oldExp = u.exp;
       const oldStatus = u.status;
       const oldBadges = [...(u.badges || [])];
-      if (['user', 'vip', 'admin'].includes(b.role)) u.role = b.role;
-      if (['active', 'banned'].includes(b.status)) u.status = b.status;
+      if (
+  b.role === 'user' ||
+  b.role === 'vip' ||
+  b.role === 'admin'
+) {
+  u.role = b.role;
+}
+
+if (b.status === 'active' || b.status === 'banned') {
+  u.status = b.status;
+}
       if (typeof b.exp === 'number' && Number.isFinite(b.exp)) u.exp = Math.max(0, Math.min(1000000, Math.floor(b.exp)));
       if (typeof b.title === 'string') u.title = b.title.slice(0, 40);
       if (Array.isArray(b.badges)) u.badges = b.badges.filter((x: unknown) => typeof x === 'string').slice(0, 20);

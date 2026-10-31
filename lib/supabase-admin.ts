@@ -2,21 +2,29 @@
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabaseAdmin: ReturnType<typeof createClient<any>> | null = null;
 
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error('Supabase 服务端环境变量未配置');
-}
+export function getSupabaseAdmin() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  serviceRoleKey,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Supabase 服务端环境变量未配置');
   }
-);
+
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(
+      supabaseUrl,
+      serviceRoleKey,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      }
+    );
+  }
+
+  return supabaseAdmin;
+}

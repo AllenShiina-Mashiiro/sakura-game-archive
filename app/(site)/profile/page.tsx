@@ -82,9 +82,9 @@ export default async function Profile() {
             当前余额：<b className="coin-profile-balance">✿ {user.sakuraCoins || 0}</b> · 可兑换经验：
             {Math.floor(Math.max(0, (user.exp || 0) - (user.expConverted || 0)) / 10) * 10} EXP
           </p>
-          <small className="muted">兑换比例 10 EXP = 1 樱花币；兑换和消费均不影响等级经验。</small>
+          <small className="muted">兑换比例 10 EXP = 1 樱花币；兑换不扣除经验，也不影响等级；只允许兑换尚未兑换过的新增经验。</small>
         </div>
-        <span className="tag">商城暂未开放</span>
+        <Link className="primary-btn" href="/shop">进入樱花商店 →</Link>
       </section>
       <section className="detail-section">
         <h2>修改资料</h2>
@@ -99,7 +99,7 @@ export default async function Profile() {
         <h2>个人徽章</h2>
         <div className="tag-row">
           {owned.map((b) => (
-            <span className={`tag ${user.selectedBadge === b ? 'badge-equipped' : ''}`} key={b}>
+            <span className={`tag profile-badge-chip ${user.selectedBadge === b ? 'badge-equipped' : ''}`} key={b}>
               {user.selectedBadge === b ? '✓ ' : ''}
               {b}
             </span>

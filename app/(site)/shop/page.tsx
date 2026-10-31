@@ -1,19 +1,14 @@
 import { getSessionUser } from '@/lib/auth';
+import { readDb } from '@/lib/db';
 import { redirect } from 'next/navigation';
+import { ShopClient } from '@/app/components/ShopClient';
 export const dynamic = 'force-dynamic';
 export default async function ShopPage() {
-  const user = await getSessionUser();
-  if (!user) redirect('/login');
-  return (
-    <div className="page-wrap">
-      <header className="topbar">
-        <div>
-          <div className="eyebrow">SAKURA MARKET</div>
-          <h1>商城暂未开放</h1>
-          <p className="subtitle">商城商品展示与购买功能暂时隐藏，已有账户数据会保留。</p>
-        </div>
-      </header>
-      <div className="empty-state">商城正在维护中，后续开放时会另行通知。你的樱花币与购买记录不会因本次隐藏而删除。</div>
-    </div>
-  );
+  const user = await getSessionUser(); if (!user) redirect('/login');
+  const db = await readDb();
+  const products = (db.shopProducts || []).filter((p) => p.active && p.category !== 'vip');
+  return <div className="page-wrap">
+    <header className="topbar"><div><div className="eyebrow">SAKURA MARKET</div><h1>樱花商店</h1><p className="subtitle">把社区贡献转化为装饰与收藏。经验不会因兑换而减少。</p></div></header>
+    <ShopClient exp={user.exp || 0} expConverted={user.expConverted || 0} coins={user.sakuraCoins || 0} products={products} />
+  </div>;
 }

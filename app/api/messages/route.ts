@@ -1,10 +1,11 @@
+import type { User } from '@/lib/types';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { mutateDb, readDb } from '@/lib/db';
 import type { DirectMessage, UserNotification } from '@/lib/types';
 export const dynamic = 'force-dynamic';
-const publicUser = (u: any) => ({
+const publicUser = (u: User) => ({
   id: u.id,
   nickname: u.nickname,
   username: u.username,
@@ -28,7 +29,9 @@ export async function GET(req: Request) {
       for (const n of db.notifications || []) if (n.userId === user.id && n.type === 'message' && n.actorId === withId && !n.readAt) n.readAt = new Date().toISOString();
       return {
         peer: publicUser(peer),
-        me: publicUser(db.users.find((u) => u.id === user.id)),
+        me: db.users.find((u) => u.id === user.id)
+  ? publicUser(db.users.find((u) => u.id === user.id)!)
+  : null,
         messages,
       };
     });

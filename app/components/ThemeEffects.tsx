@@ -7,11 +7,6 @@ export function ThemeEffects({ initialMode, initialColor, initialPetals }: { ini
   const [petals, setPetals] = useState(initialPetals);
   const [open, setOpen] = useState(false);
   useEffect(() => {
-    setMode(initialMode);
-    setColor(initialColor || '#ec8eb8');
-    setPetals(initialPetals);
-  }, [initialMode, initialColor, initialPetals]);
-  useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = mode;
     root.style.setProperty('--accent', color);

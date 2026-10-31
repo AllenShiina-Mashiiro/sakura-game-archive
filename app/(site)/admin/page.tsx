@@ -11,7 +11,9 @@ import { ImageViewer } from '@/app/components/ImageViewer';
 import { AdminDeleteButton } from '@/app/components/AdminDeleteButton';
 import { GuideEditForm } from '@/app/components/GuideEditForm';
 export const dynamic = 'force-dynamic';
-export default async function Admin() {
+export default async function Admin({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
+  const params = await searchParams;
+  const section = params.section || '';
   const user = await getSessionUser();
   if (user?.role !== 'admin') redirect('/');
   const db = await readDb();
@@ -24,23 +26,39 @@ export default async function Admin() {
           <p className="subtitle">采用分区导航管理内容，不再把所有表单堆在同一屏。</p>
         </div>
       </header>
-      <section className="admin-overview">
+      {!section && <section className="admin-overview">
         <Stat label="用户" value={db.users.length} />
         <Stat label="待审核教程" value={db.guides.filter((g) => g.status === 'pending').length} />
         <Stat label="待处理反馈" value={db.feedback.filter((f) => f.status === 'pending').length} />
         <Stat label="游戏档案" value={db.games.length} />
-      </section>
-      <nav className="admin-tabs">
-        <a href="#users">账户</a>
-        <a href="#reviews">内容审核</a>
-        <a href="#guide-management">教程管理</a>
-        <a href="#games">游戏档案</a>
-        <a href="#resources">拓展资源</a>
-        <a href="#notices">公告牌</a>
-        <a href="#photos">照片墙</a>
-        <a href="#appearance">站点外观</a>
-        <a href="#contributors">贡献者中心</a>
-      </nav>
+      </section>}
+      {section ? (
+        <div className="admin-page-heading">
+          <a className="back-link" href="/admin">← 返回管理后台</a>
+          <h2>{({ users: '账户管理', reviews: '内容审核', tutorials: '教程管理', games: '游戏档案', resources: '拓展资源', notices: '公告牌', photos: '照片墙', appearance: '站点外观', contributors: '贡献者中心' } as Record<string, string>)[section] || '管理分区'}</h2>
+        </div>
+      ) : (
+        <nav className="admin-module-grid">
+          {[
+            ['users', '账户', '用户资料、经验、徽章与登录记录', '♙'],
+            ['reviews', '内容审核', '处理教程投稿与问题反馈', '✓'],
+            ['tutorials', '教程管理', '编辑、维护和删除教程内容', '▤'],
+            ['games', '游戏档案', '维护游戏资料与版本记录', '◈'],
+            ['resources', '拓展资源', '发布补丁、工具和扩展内容', '⌘'],
+            ['notices', '公告牌', '发布和维护社区公告', '▣'],
+            ['photos', '照片墙', '管理壁纸与社区图片', '▧'],
+            ['appearance', '站点外观', '配置全站背景、主题与品牌', '✧'],
+            ['contributors', '贡献者中心', '维护开发者资料与专属背景', '✿'],
+          ].map(([key, title, description, icon]) => (
+            <a className="admin-module-card" href={`/admin/${key}`} key={key}>
+              <span>{icon}</span>
+              <div><b>{title}</b><small>{description}</small></div>
+              <i>→</i>
+            </a>
+          ))}
+        </nav>
+      )}
+      {section === "users" && (
       <section id="users" className="admin-section">
         <h2>账户管理</h2>
         <UserManagement
@@ -52,11 +70,27 @@ export default async function Admin() {
             status: u.status,
             createdAt: u.createdAt,
             exp: u.exp,
+            badges: u.badges || [],
+            title: u.title || '',
             lastLoginAt: u.lastLoginAt,
             lastLoginIp: u.lastLoginIp,
           }))}
         />
+        <details className="admin-form-panel">
+          <summary>最近登录记录（最多保留 5000 条）</summary>
+          <div className="table-card login-log-table">
+            {(db.loginLogs || []).slice(0, 200).map((log) => (
+              <div className="admin-row" key={log.id}>
+                <div><b>{log.username}</b><small>{log.date}</small></div>
+                <code>{log.ip || 'unknown'}</code>
+              </div>
+            ))}
+            {!(db.loginLogs || []).length && <p className="muted">暂无登录记录。</p>}
+          </div>
+        </details>
       </section>
+      )}
+      {section === "reviews" && (
       <section id="reviews" className="admin-section">
         <h2>内容审核</h2>
         <h3>教程投稿</h3>
@@ -92,6 +126,8 @@ export default async function Admin() {
           ))}
         {!db.feedback.some((f) => f.status === 'pending') && <p className="muted">暂无待处理反馈。</p>}
       </section>
+      )}
+      {section === "tutorials" && (
       <section id="guide-management" className="admin-section">
         <h2>教程管理</h2>
         <p className="muted">管理员可以修改所有状态的教程；教程作者可以在已发布教程详情页修改自己的教程。</p>
@@ -111,6 +147,8 @@ export default async function Admin() {
           {!db.guides.length && <p className="muted">暂无教程。</p>}
         </div>
       </section>
+      )}
+      {section === "games" && (
       <section id="games" className="admin-section">
         <h2>游戏档案</h2>
         <details open className="admin-form-panel">
@@ -255,6 +293,8 @@ export default async function Admin() {
           ))}
         </div>
       </section>
+      )}
+      {section === "resources" && (
       <section id="resources" className="admin-section">
         <h2>拓展资源</h2>
         <details open className="admin-form-panel">
@@ -320,6 +360,8 @@ export default async function Admin() {
           ))}
         </div>
       </section>
+      )}
+      {section === "notices" && (
       <section id="notices" className="admin-section">
         <h2>公告牌</h2>
         <details open className="admin-form-panel">
@@ -363,6 +405,8 @@ export default async function Admin() {
           ))}
         </div>
       </section>
+      )}
+      {section === "photos" && (
       <section id="photos" className="admin-section">
         <h2>照片墙</h2>
         <details open className="admin-form-panel">
@@ -389,6 +433,8 @@ export default async function Admin() {
           ))}
         </div>
       </section>
+      )}
+      {section === "appearance" && (
       <section id="appearance" className="admin-section">
         <h2>站点外观</h2>
         <p className="muted">管理 Logo、首页背景、默认主题色和樱花粒子。用户可以在右下角单独覆盖主题。</p>
@@ -438,6 +484,8 @@ export default async function Admin() {
           </label>
         </ActionForm>
       </section>
+      )}
+      {section === "contributors" && (
       <section id="contributors" className="admin-section">
         <h2>贡献者中心管理</h2>
         <p className="muted">维护开发者介绍、捐赠二维码和贡献者榜单。捐赠信息请保持自愿、透明。</p>
@@ -472,6 +520,7 @@ export default async function Admin() {
             <textarea name="intro" rows={3} defaultValue={db.siteSettings?.contributor?.intro || ''} />
           </label>
           <ImageUploadField name="donationQr" label="捐赠二维码图片" folder="contributors" initial={db.siteSettings?.contributor?.donationQr || ''} />
+          <ImageUploadField name="contributorBackground" label="贡献者中心专属背景" folder="backgrounds" initial={db.siteSettings?.contributorBackground || ''} />
           <label>
             项目贡献（每行一项）
             <textarea name="contributions" rows={6} defaultValue={(db.siteSettings?.contributor?.contributions || []).join('\n')} />
@@ -501,6 +550,15 @@ export default async function Admin() {
               贡献说明
               <textarea name="description" rows={3} required />
             </label>
+            <ImageUploadField name="avatar" label="贡献者头像" folder="contributors" />
+            <label>
+              经验值
+              <input name="exp" type="number" min="0" max="1000000" defaultValue="0" />
+            </label>
+            <label>
+              徽章（逗号分隔）
+              <input name="badges" placeholder="例如：技术支持, 内容贡献者" />
+            </label>
             <label>
               关联用户 ID（可选）
               <input name="userId" />
@@ -517,6 +575,7 @@ export default async function Admin() {
                 <small>
                   {c.kind} · {c.description}
                 </small>
+                <small>Lv.{levelForContributor(c.exp || 0)} · {c.exp || 0} EXP · {(c.badges || []).join(' / ') || '暂无徽章'}</small>
               </div>
               <ActionForm action="contributor-delete" button="移除" className="inline-action-form">
                 <input type="hidden" name="id" value={c.id} />
@@ -524,9 +583,14 @@ export default async function Admin() {
             </div>
           ))}
         </div>
-      </section>
+      </section>      )}
+
     </div>
   );
+}
+function levelForContributor(exp: number) {
+  const thresholds = [0,50,120,220,350,500,680,880,1100,1350,1650,2000,2400,2850,3350,3900,4500,5150,5850,6600,7400,8250,9150,10100,11100,12200,13400,14700,16100,17600];
+  let level = 1; thresholds.forEach((n, i) => { if (exp >= n) level = i + 1; }); return level;
 }
 function Stat({ label, value }: { label: string; value: number }) {
   return (

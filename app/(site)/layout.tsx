@@ -12,7 +12,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <div className="app-shell">
       <Sidebar user={activeUser} logo={db.siteSettings?.logo} />
-      <main className="main-content">{children}</main>
+      <main
+        className="main-content"
+        style={db.siteSettings?.background
+          ? { backgroundImage: `linear-gradient(rgba(8, 10, 16, 0.42), rgba(8, 10, 16, 0.58)), url("${db.siteSettings.background}")`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }
+          : undefined}
+      >{children}</main>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export const runtime = 'nodejs';
 
@@ -107,8 +107,10 @@ export async function POST(req: Request) {
     const name = `${Date.now()}-${randomUUID()}.${ext}`;
     const storagePath = `${folder}/${name}`;
 
-    const { error } = await supabaseAdmin.storage
-      .from('uploads')
+    const supabaseAdmin = getSupabaseAdmin();
+
+const { error } = await supabaseAdmin.storage
+  .from('uploads')
       .upload(
         storagePath,
         Buffer.from(await file.arrayBuffer()),

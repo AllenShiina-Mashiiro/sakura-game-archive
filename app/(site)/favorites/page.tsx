@@ -1,10 +1,18 @@
 import Link from 'next/link';
 import { readDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { SearchBar } from '@/app/components/SearchBar';
 export const dynamic = 'force-dynamic';
-export default async function Favorites() {
+export default async function Favorites({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const sp = await searchParams;
   const [db, user] = await Promise.all([readDb(), getSessionUser()]);
-  const items = db.collections.filter((c) => c.userId === user?.id);
+  const keyword = (sp.q || '').trim().toLocaleLowerCase();
+  const items = db.collections.filter((c) => {
+    if (c.userId !== user?.id) return false;
+    const target = c.targetType === 'game' ? db.games.find((x) => x.id === c.targetId) : c.targetType === 'guide' ? db.guides.find((x) => x.id === c.targetId) : db.resources.find((x) => x.id === c.targetId);
+    const title = target ? ('name' in target ? target.name : target.title) : '已删除内容';
+    return !keyword || [title, c.targetType, c.targetId].join(' ').toLocaleLowerCase().includes(keyword);
+  });
   return (
     <div className="page-wrap">
       <header className="topbar">
@@ -14,6 +22,7 @@ export default async function Favorites() {
           <p className="subtitle">你收藏的游戏、教程和拓展资源。</p>
         </div>
       </header>
+      <SearchBar action="/favorites" q={sp.q} />
       <div className="content-grid">
         {items.map((c) => {
           const target = c.targetType === 'game' ? db.games.find((x) => x.id === c.targetId) : c.targetType === 'guide' ? db.guides.find((x) => x.id === c.targetId) : db.resources.find((x) => x.id === c.targetId);

@@ -7,7 +7,7 @@ export default async function Home() {
   const updates = db.games.reduce((n, g) => n + g.updates.length, 0);
   const notices = db.notices.filter((n) => n.published).slice(0, 3);
   return (
-    <div className="page-wrap home-page" style={db.siteSettings?.background ? { backgroundImage: `url("${db.siteSettings.background}")` } : undefined}>
+    <div className="page-wrap home-page">
       <header className="topbar">
         <div>
           <div className="eyebrow">GAME ARCHIVE / COMMUNITY</div>

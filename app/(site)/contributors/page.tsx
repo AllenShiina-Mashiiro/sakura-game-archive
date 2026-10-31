@@ -17,7 +17,19 @@ export default async function ContributorsPage() {
   const contributors = db.contributors || [];
   const kindName = (k: string) => ({ volunteer: '志愿者', content: '内容贡献', financial: '资金支持', technical: '技术贡献' })[k] || '社区贡献';
   return (
-    <div className="page-wrap contributor-page">
+    <div
+      className="page-wrap contributor-page"
+      style={
+        db.siteSettings?.contributorBackground
+          ? {
+              backgroundImage: `linear-gradient(rgba(8, 10, 16, 0.42), rgba(8, 10, 16, 0.58)), url("${db.siteSettings.contributorBackground}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
+            }
+          : undefined
+      }
+    >
       <header className="topbar">
         <div>
           <div className="eyebrow">OPEN SOURCE & COMMUNITY</div>
@@ -74,12 +86,12 @@ export default async function ContributorsPage() {
         <div className="contributor-grid">
           {contributors.map((x) => (
             <article className="contributor-card" key={x.id}>
-              <span className="contributor-avatar">✿</span>
+              <span className="contributor-avatar contributor-avatar-large">{x.avatar ? <img src={x.avatar} alt={`${x.name}头像`} loading="lazy" /> : '✿'}</span>
               <div>
                 <b>{x.name}</b>
-                <small>
-                  {kindName(x.kind)} · {x.role}
-                </small>
+                <small>{kindName(x.kind)} · {x.role}</small>
+                <div className="contributor-meta"><span className="tag">Lv.{levelForContributor(x.exp || 0)}</span><span className="muted">{x.exp || 0} EXP</span></div>
+                <div className="contributor-badges">{(x.badges || []).map((badge) => <span className="contributor-badge" key={badge}>{badge}</span>)}</div>
                 <p>{x.description}</p>
                 {x.userId && <Link href={`/users/${x.userId}`}>查看主页 →</Link>}
               </div>
@@ -94,4 +106,9 @@ export default async function ContributorsPage() {
 }
 function safeUrl(v: string) {
   return /^https:\/\//i.test(v) ? v : `https://${v}`;
+}
+
+function levelForContributor(exp: number) {
+  const thresholds = [0,50,120,220,350,500,680,880,1100,1350,1650,2000,2400,2850,3350,3900,4500,5150,5850,6600,7400,8250,9150,10100,11100,12200,13400,14700,16100,17600];
+  let level = 1; thresholds.forEach((n, i) => { if (exp >= n) level = i + 1; }); return level;
 }

@@ -60,18 +60,27 @@ export function MessagesClient() {
     [loadContacts],
   );
   useEffect(() => {
-    loadContacts();
-  }, [loadContacts]);
+  const run = async () => {
+    await loadContacts();
+  };
+
+  void run();
+}, [loadContacts]);
   useEffect(() => {
-    if (selected) {
-      loadThread(selected);
-      const t = setInterval(() => loadThread(selected), 5000);
-      return () => clearInterval(t);
-    } else {
-      setPeer(null);
-      setMessages([]);
-    }
-  }, [selected, loadThread]);
+  if (!selected) return;
+
+  const run = async () => {
+    await loadThread(selected);
+  };
+
+  void run();
+
+  const t = setInterval(() => {
+    void run();
+  }, 5000);
+
+  return () => clearInterval(t);
+}, [selected, loadThread]);
   const ordered = useMemo(() => contacts, [contacts]);
   async function send(e: FormEvent) {
     e.preventDefault();

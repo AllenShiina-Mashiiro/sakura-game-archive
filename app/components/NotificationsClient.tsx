@@ -15,15 +15,26 @@ export function NotificationsClient() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function load() {
+  try {
     const r = await fetch('/api/notifications', { cache: 'no-store' });
     if (r.ok) {
       const d = await r.json();
       setItems(d.items || []);
-    } else setError('通知加载失败');
+      setError('');
+    } else {
+      setError('通知加载失败');
+    }
+  } catch {
+    setError('通知加载失败');
   }
+}
   useEffect(() => {
-    load();
-  }, []);
+  const run = async () => {
+    await load();
+  };
+
+  void run();
+}, []);
   async function mark(id?: string) {
     setBusy(true);
     try {
@@ -37,11 +48,11 @@ export function NotificationsClient() {
       setBusy(false);
     }
   }
-  const icon = (type: string) => ({ message: '✉', comment: '▤', feedback: '◉', badge: '✿', level: '★', system: '⚙' })[type] || '•';
+  const icon = (type: string) => ({ message: '✉', comment: '▤', feedback: '◉', badge: '✿', level: '★', system: '✦' })[type] || '•';
   return (
     <div className="notification-center">
       <div className="notification-toolbar">
-        <p className="muted">帖子互动、反馈处理、等级徽章和系统消息都会显示在这里。</p>
+        <p className="muted">帖子互动、反馈处理、经验奖励、等级徽章和系统消息都会显示在这里。</p>
         <button className="outline-btn" disabled={busy || !items.some((n) => !n.readAt)} onClick={() => mark()}>
           全部标记已读
         </button>

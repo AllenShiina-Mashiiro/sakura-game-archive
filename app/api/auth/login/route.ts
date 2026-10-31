@@ -15,10 +15,13 @@ import {
 
 export async function POST(req: Request) {
   // 获取客户端 IP
-  const ip =
+  // Netlify 提供的客户端 IP 头优先；本地开发环境再回退到代理头。
+  const rawIp =
+    req.headers.get('x-nf-client-connection-ip') ||
     req.headers.get('x-real-ip') ||
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     'unknown';
+  const ip = rawIp.replace(/[^0-9a-fA-F:.]/g, '').slice(0, 64) || 'unknown';
 
   // 检查是否超过登录失败次数限制
   if (await isLoginBlocked(ip)) {

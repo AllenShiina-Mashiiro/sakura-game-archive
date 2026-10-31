@@ -50,6 +50,7 @@ export type Guide = {
   gameName?: string;
   title: string;
   category: string;
+  tags?: string[];
   date: string;
   content: string;
   cover?: string;
@@ -219,6 +220,9 @@ export type Contributor = {
   description: string;
   kind: 'volunteer' | 'content' | 'financial' | 'technical';
   userId?: string;
+  avatar?: string;
+  exp?: number;
+  badges?: string[];
   createdAt: string;
 };
 export type ContributorProfile = {
@@ -231,6 +235,7 @@ export type ContributorProfile = {
   email: string;
   intro: string;
   donationQr: string;
+  background?: string;
   contributions: string[];
 };
 export type Database = {
@@ -258,6 +263,7 @@ export type Database = {
     defaultThemeMode?: 'light' | 'dark';
     sakuraEnabled?: boolean;
     contributor?: ContributorProfile;
+    contributorBackground?: string;
   };
   messages?: DirectMessage[];
   notifications?: UserNotification[];

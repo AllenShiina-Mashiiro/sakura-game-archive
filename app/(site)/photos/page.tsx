@@ -1,8 +1,14 @@
 import { readDb } from '@/lib/db';
 import Link from 'next/link';
+import { SearchBar } from '@/app/components/SearchBar';
 export const dynamic = 'force-dynamic';
-export default async function Photos() {
-  const photos = (await readDb()).photos;
+export default async function Photos({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const sp = await searchParams;
+  const allPhotos = (await readDb()).photos;
+  const keyword = (sp.q || '').trim().toLocaleLowerCase();
+  const photos = allPhotos.filter((photo) =>
+    !keyword || [photo.title, photo.description, ...(photo.tags || [])].join(' ').toLocaleLowerCase().includes(keyword),
+  );
   return (
     <div className="page-wrap">
       <header className="topbar">
@@ -12,6 +18,8 @@ export default async function Photos() {
           <p className="subtitle">浏览、欣赏并下载社区整理的壁纸与图片；照片墙保留原始分辨率，支持 4K 原图。</p>
         </div>
       </header>
+      <SearchBar action="/photos" q={sp.q} />
+      <p className="muted">显示 {photos.length} / {allPhotos.length} 张图片</p>
       <div className="photo-wall">
         {photos.map((p) => (
           <article className="photo-card" key={p.id}>
