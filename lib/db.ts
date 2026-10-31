@@ -5,9 +5,9 @@ import { getSupabaseAdmin } from './supabase-admin';
 export function createDefaultShopProducts(): ShopProduct[] {
   const now = new Date().toISOString();
   return [
-    { id: 'frame-sakura', name: '樱花头像框', description: '柔和的樱花主题头像装饰。', image: '', category: 'avatar-frame', price: 80, active: true, stock: null, effectValue: 'sakura', createdAt: now, updatedAt: now },
-    { id: 'frame-gold', name: '鎏金头像框', description: '金色边框装饰。', image: '', category: 'avatar-frame', price: 160, active: true, stock: null, effectValue: 'gold', createdAt: now, updatedAt: now },
-    { id: 'frame-glass', name: '星璃头像框', description: '玻璃质感头像装饰。', image: '', category: 'avatar-frame', price: 220, active: true, stock: null, effectValue: 'glass', createdAt: now, updatedAt: now },
+    { id: 'frame-sakura', name: '樱花头像框', description: '柔和的樱花主题头像装饰。', image: '', category: 'avatar-frame', price: 50, active: true, stock: null, effectValue: 'sakura', createdAt: now, updatedAt: now },
+    { id: 'frame-gold', name: '鎏金头像框', description: '金色边框装饰。', image: '', category: 'avatar-frame', price: 100, active: true, stock: null, effectValue: 'gold', createdAt: now, updatedAt: now },
+    { id: 'frame-glass', name: '星璃头像框', description: '玻璃质感头像装饰。', image: '', category: 'avatar-frame', price: 150, active: true, stock: null, effectValue: 'glass', createdAt: now, updatedAt: now },
   ];
 }
 
