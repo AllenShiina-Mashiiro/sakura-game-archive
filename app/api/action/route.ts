@@ -78,19 +78,30 @@ export async function POST(req: Request) {
       });
     }
 
-    // 管理员专用：重置业务数据，保留管理员账号和站点外观设置。
+    // 旧重置动作已停用，避免误删普通用户账号。
     if (b.action === 'admin-reset-database') {
+      await requireAdmin();
+      return NextResponse.json({
+        ok: false,
+        error: '旧版重置动作已停用。请在 Storage 图片清理成功后，使用 admin-reset-database-preserve-users。',
+      }, { status: 410 });
+    }
+
+    // 管理员专用：清空业务数据，但完整保留全部用户对象及站点外观设置。
+    if (b.action === 'admin-reset-database-preserve-users') {
       await requireAdmin();
 
       const result = await mutateDb((fresh) => {
-        const admins = (fresh.users || []).filter((u) => u.role === 'admin');
+        const preservedUsers = fresh.users || [];
+        const preservedAdmins = preservedUsers.filter((u) => u.role === 'admin').length;
+        if (preservedAdmins < 1) {
+          throw new Error('没有找到管理员账号，已停止重置。');
+        }
         const preservedSiteSettings = fresh.siteSettings || {};
-
         const removedCounts = {
-          users: Math.max(0, (fresh.users || []).length - admins.length),
           games: (fresh.games || []).length,
-          guides: (fresh.guides || []).length +
-            (fresh.games || []).reduce((sum, game) => sum + (game.guides || []).length, 0),
+          nestedGameGuides: (fresh.games || []).reduce((sum, game) => sum + (game.guides || []).length, 0),
+          guides: (fresh.guides || []).length,
           resources: (fresh.resources || []).length,
           feedback: (fresh.feedback || []).length,
           notices: (fresh.notices || []).length,
@@ -106,7 +117,8 @@ export async function POST(req: Request) {
           coinTransactions: (fresh.coinTransactions || []).length,
         };
 
-        fresh.users = admins;
+        // 不筛选、不重建 users：账号资料、角色、密码 hash、经验、樱花币及资产字段全部原样保留。
+        fresh.users = preservedUsers;
         fresh.games = [];
         fresh.resources = [];
         fresh.guides = [];
@@ -125,15 +137,22 @@ export async function POST(req: Request) {
         fresh.coinTransactions = [];
 
         return {
-          preservedAdmins: admins.length,
+          preservedUsers: preservedUsers.length,
+          preservedAdmins,
           preservedSiteSettings: Object.keys(preservedSiteSettings).length > 0,
           removedCounts,
+          retainedShopProducts: fresh.shopProducts.map((product) => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            effectValue: product.effectValue,
+          })),
         };
       });
 
       return NextResponse.json({
         ok: true,
-        message: '数据库业务数据已重置；管理员账号、网站外观设置及三个默认商城商品已保留。Storage 文件未删除。',
+        message: '数据库业务数据已重置；所有用户账号及其字段、网站外观设置和三个默认头像框商品已保留。',
         details: result,
       });
     }
