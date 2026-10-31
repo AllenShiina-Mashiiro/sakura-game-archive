@@ -49,6 +49,66 @@ export async function POST(req: Request) {
     if (typeof b.minimum === 'string' || typeof b.recommended === 'string') b.config = { minimum: b.minimum || '', recommended: b.recommended || '' };
     const db = await readDb();
     const now = new Date().toISOString();
+
+    // 管理员专用：重置业务数据，保留管理员账号和站点外观设置。
+    if (b.action === 'admin-reset-database') {
+      await requireAdmin();
+
+      const result = await mutateDb((fresh) => {
+        const admins = (fresh.users || []).filter((u) => u.role === 'admin');
+        const preservedSiteSettings = fresh.siteSettings || {};
+
+        const removedCounts = {
+          users: Math.max(0, (fresh.users || []).length - admins.length),
+          games: (fresh.games || []).length,
+          guides: (fresh.guides || []).length +
+            (fresh.games || []).reduce((sum, game) => sum + (game.guides || []).length, 0),
+          resources: (fresh.resources || []).length,
+          feedback: (fresh.feedback || []).length,
+          notices: (fresh.notices || []).length,
+          collections: (fresh.collections || []).length,
+          comments: (fresh.comments || []).length,
+          photos: (fresh.photos || []).length,
+          loginLogs: (fresh.loginLogs || []).length,
+          messages: (fresh.messages || []).length,
+          notifications: (fresh.notifications || []).length,
+          contributors: (fresh.contributors || []).length,
+          shopProducts: (fresh.shopProducts || []).length,
+          inventory: (fresh.inventory || []).length,
+          coinTransactions: (fresh.coinTransactions || []).length,
+        };
+
+        fresh.users = admins;
+        fresh.games = [];
+        fresh.resources = [];
+        fresh.guides = [];
+        fresh.feedback = [];
+        fresh.notices = [];
+        fresh.collections = [];
+        fresh.loginLogs = [];
+        fresh.comments = [];
+        fresh.photos = [];
+        fresh.siteSettings = preservedSiteSettings;
+        fresh.messages = [];
+        fresh.notifications = [];
+        fresh.contributors = [];
+        fresh.shopProducts = [];
+        fresh.inventory = [];
+        fresh.coinTransactions = [];
+
+        return {
+          preservedAdmins: admins.length,
+          preservedSiteSettings: Object.keys(preservedSiteSettings).length > 0,
+          removedCounts,
+        };
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: '数据库业务数据已重置；管理员账号和网站外观设置已保留。Storage 文件未删除。',
+        details: result,
+      });
+    }
     if (b.action === 'checkin') {
       if (user.lastCheckIn === now.slice(0, 10)) return NextResponse.json({ error: '今天已经签到过了' }, { status: 409 });
       const u = db.users.find((x) => x.id === user.id)!;
