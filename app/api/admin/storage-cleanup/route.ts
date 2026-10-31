@@ -29,7 +29,7 @@ function storagePathFromPhotoUrl(value: string, supabaseUrl: string): string | n
   }
 }
 
-async function listAllFiles(bucket: ReturnType<ReturnType<typeof getSupabaseAdmin>['storage']['from']>) {
+async function listAllFiles(bucket: any) {
   const allFiles: string[] = [];
   const foldersToVisit = [''];
   while (foldersToVisit.length) {
@@ -116,10 +116,18 @@ export async function POST() {
           failedBatch: batch,
         }, { status: 500 });
       }
-      const removed = new Set((data || []).map((item) => item.name));
-      // Storage 返回的 name 通常是对象名；以批次全路径核对成功数量。
-      const confirmed = batch.filter((path) => removed.has(path) || removed.has(path.split('/').pop() || ''));
-      deleted.push(...(confirmed.length ? confirmed : batch));
+      const removed = new Set((data || []).map((item: { name: string }) => item.name));
+      const confirmed = batch.filter((path) => removed.has(path));
+      if (confirmed.length !== batch.length) {
+        return NextResponse.json({
+          ok: false,
+          error: 'Storage 返回的删除结果与请求数量不一致，已停止后续删除；数据库尚未重置。',
+          deletedCount: deleted.length + confirmed.length,
+          expectedDeleteCount: deleteImages.length,
+          unconfirmedBatchPaths: batch.filter((path) => !removed.has(path)),
+        }, { status: 500 });
+      }
+      deleted.push(...confirmed);
     }
 
     return NextResponse.json({
