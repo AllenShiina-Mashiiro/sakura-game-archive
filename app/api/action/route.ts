@@ -50,6 +50,34 @@ export async function POST(req: Request) {
     const db = await readDb();
     const now = new Date().toISOString();
 
+    // 管理员专用：将现有三个头像框商品价格同步为最新定价，不影响库存、图片或用户数据。
+    if (b.action === 'admin-update-frame-prices') {
+      await requireAdmin();
+      const prices: Record<string, number> = {
+        'frame-sakura': 50,
+        'frame-gold': 100,
+        'frame-glass': 150,
+      };
+      const result = await mutateDb((fresh) => {
+        const updated: Array<{ id: string; name: string; price: number }> = [];
+        for (const product of fresh.shopProducts || []) {
+          const price = prices[product.id];
+          if (price !== undefined) {
+            product.price = price;
+            product.updatedAt = new Date().toISOString();
+            updated.push({ id: product.id, name: product.name, price: product.price });
+          }
+        }
+        return updated;
+      });
+      return NextResponse.json({
+        ok: true,
+        message: '三个头像框商品价格已更新',
+        products: result,
+        updatedCount: result.length,
+      });
+    }
+
     // 管理员专用：重置业务数据，保留管理员账号和站点外观设置。
     if (b.action === 'admin-reset-database') {
       await requireAdmin();
