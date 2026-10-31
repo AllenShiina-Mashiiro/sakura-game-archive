@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { readDb, writeDb, mutateDb } from '@/lib/db';
+import { readDb, writeDb, mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
 import type {
   Collection,
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         fresh.messages = [];
         fresh.notifications = [];
         fresh.contributors = [];
-        fresh.shopProducts = [];
+        fresh.shopProducts = createDefaultShopProducts();
         fresh.inventory = [];
         fresh.coinTransactions = [];
 
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         ok: true,
-        message: '数据库业务数据已重置；管理员账号和网站外观设置已保留。Storage 文件未删除。',
+        message: '数据库业务数据已重置；管理员账号、网站外观设置及三个默认商城商品已保留。Storage 文件未删除。',
         details: result,
       });
     }
