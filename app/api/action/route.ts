@@ -641,65 +641,47 @@ export async function POST(req: Request) {
     }
     if (b.action === 'game-record') {
       await requireAdmin();
-      const game = db.games.find((g) => g.id === String(b.gameId || ''));
-      if (!game) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
       const recordId = String(b.id || '') || randomUUID();
-      if (b.kind === 'update') {
-        if (!b.title || !b.version || !b.date) return NextResponse.json({ error: '版本号、标题和日期必填' }, { status: 400 });
-        const old = game.updates.find((item) => item.id === recordId);
-        if (b.id && !old) return NextResponse.json({ error: '版本记录不存在，请刷新后重试' }, { status: 404 });
-        const next = {
-          id: recordId,
-          contributorId: old?.contributorId || user.id,
-          contributorName: old?.contributorName || user.nickname,
-          date: String(b.date),
-          version: String(b.version),
-          title: String(b.title),
-          notes: String(b.notes || ''),
-        };
-        if (old) game.updates[game.updates.indexOf(old)] = next;
-        else game.updates.unshift(next);
-        if (!old || game.latestVersion === old.version) {
-          game.latestVersion = next.version;
-          game.updatedAt = next.date;
+      if (b.kind === 'update' && (!b.title || !b.version || !b.date)) return NextResponse.json({ error: '版本号、标题和日期必填' }, { status: 400 });
+      if (b.kind === 'file' && (!b.name || !b.date)) return NextResponse.json({ error: '资源名称和日期必填' }, { status: 400 });
+      if (b.kind !== 'update' && b.kind !== 'file') return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
+      const result = await mutateDb((fresh) => {
+        const game = fresh.games.find((g) => g.id === String(b.gameId || ''));
+        if (!game) return { error: '游戏不存在' as const };
+        if (b.kind === 'update') {
+          const old = game.updates.find((item) => item.id === recordId);
+          if (b.id && !old) return { error: '版本记录不存在，请刷新后重试' as const };
+          const next = { id: recordId, contributorId: old?.contributorId || user.id, contributorName: old?.contributorName || user.nickname, date: String(b.date), version: String(b.version), title: String(b.title), notes: String(b.notes || '') };
+          if (old) game.updates[game.updates.indexOf(old)] = next; else game.updates.unshift(next);
+          if (!old || game.latestVersion === old.version) { game.latestVersion = next.version; game.updatedAt = next.date; }
+        } else {
+          const old = game.files.find((item) => item.id === recordId);
+          if (b.id && !old) return { error: '资源文件记录不存在，请刷新后重试' as const };
+          const next = { id: recordId, name: String(b.name), version: String(b.version || ''), size: String(b.size || ''), checksum: String(b.checksum || ''), date: String(b.date), notes: String(b.notes || ''), url: String(b.url || '') };
+          if (old) game.files[game.files.indexOf(old)] = next; else game.files.unshift(next);
         }
-      } else if (b.kind === 'file') {
-        if (!b.name || !b.date) return NextResponse.json({ error: '资源名称和日期必填' }, { status: 400 });
-        const old = game.files.find((item) => item.id === recordId);
-        if (b.id && !old) return NextResponse.json({ error: '资源文件记录不存在，请刷新后重试' }, { status: 404 });
-        const next = {
-          id: recordId,
-          name: String(b.name),
-          version: String(b.version || ''),
-          size: String(b.size || ''),
-          checksum: String(b.checksum || ''),
-          date: String(b.date),
-          notes: String(b.notes || ''),
-          url: String(b.url || ''),
-        };
-        if (old) game.files[game.files.indexOf(old)] = next;
-        else game.files.unshift(next);
-      } else return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
-      await writeDb(db);
+        return { ok: true as const };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
       return NextResponse.json({ ok: true, message: b.id ? '记录修改成功' : '记录添加成功' });
     }
     if (b.action === 'game-delete') {
       await requireAdmin();
-      const oldGame = db.games.find((g) => g.id === String(b.id));
-      if (!oldGame) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
-      db.games = db.games.filter((g) => g.id !== String(b.id));
-      // Keep linked resources and tutorials, but detach them from the deleted game.
-      db.resources = db.resources.map((resource) =>
-        resource.gameId === oldGame.id ? { ...resource, gameId: '', gameName: '通用资源' } : resource,
-      );
-      db.guides = db.guides.map((guide) =>
-        guide.gameId === oldGame.id ? { ...guide, gameId: undefined, gameName: undefined } : guide,
-      );
-      db.collections = db.collections.filter((item) => !(item.targetType === 'game' && item.targetId === oldGame.id));
-      db.comments = db.comments.filter((item) => !(item.targetType === 'game' && item.targetId === oldGame.id));
-      await writeDb(db);
-      await deleteUnreferencedStorageImages([oldGame]);
-      return NextResponse.json({ ok: true });
+      const result = await mutateDb((fresh) => {
+        const oldGame = fresh.games.find((g) => g.id === String(b.id || ''));
+        if (!oldGame) return { error: '游戏不存在' as const };
+        fresh.games = fresh.games.filter((g) => g.id !== oldGame.id);
+        fresh.resources = fresh.resources.map((resource) => resource.gameId === oldGame.id ? { ...resource, gameId: '', gameName: '通用资源' } : resource);
+        fresh.guides = fresh.guides.map((guide) => guide.gameId === oldGame.id ? { ...guide, gameId: undefined, gameName: undefined } : guide);
+        fresh.collections = fresh.collections.filter((item) => !(item.targetType === 'game' && item.targetId === oldGame.id));
+        fresh.comments = fresh.comments.filter((item) => !(item.targetType === 'game' && item.targetId === oldGame.id));
+        return { oldGame };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages([result.oldGame]); }
+      catch (cleanupError) { console.error('游戏已删除，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, warning: warning || undefined });
     }
     if (b.action === 'resource-save') {
       await requireAdmin();
