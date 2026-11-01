@@ -100,7 +100,7 @@ export function Sidebar({ user, logo }: { user: User; logo?: string }) {
           </div>
         )}
         <button type="button" className="profile-mini profile-menu-trigger" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-          <span className={`avatar avatar-frame-${user.avatarFrame || 'none'}`}>{user.avatar ? <img src={user.avatar} alt="" /> : user.nickname.slice(0, 1)}</span>
+          <span className={`avatar avatar-frame-${user.avatarFrame || 'none'}`}>{user.avatar ? <img src={mediaUrl(user.avatar)} alt="" /> : user.nickname.slice(0, 1)}</span>
           <span>
             <b>{user.nickname}</b>
             <small>
@@ -109,7 +109,7 @@ export function Sidebar({ user, logo }: { user: User; logo?: string }) {
           </span>
           <i>{open ? '⌄' : '⌃'}</i>
         </button>
-        <p>资料与交流 · 本地 JSON 存储</p>
+        <p>资料与交流 · Supabase 云端存储</p>
       </div>
     </aside>
   );

@@ -59,7 +59,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} required />
       </label>
       <label>
-        头像图片（JPG / PNG / WEBP / GIF，最大 2 MB）
+        头像图片（JPG / PNG / WEBP / GIF，最大 4 MB）
         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => setFile(e.target.files?.[0] || null)} />
       </label>
       <div className="avatar-preview-row">
