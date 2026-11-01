@@ -112,6 +112,7 @@ export type Feedback = {
   gameId: string;
   description: string;
   image: string;
+  images?: string[];
   status: 'pending' | 'accepted' | 'rejected' | 'processing' | 'fixed' | 'failed';
   reply: string;
   createdAt: string;

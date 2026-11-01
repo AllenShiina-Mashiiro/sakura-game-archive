@@ -489,6 +489,7 @@ export async function POST(req: Request) {
       item.gameId = String(b.gameId || '').slice(0, 100);
       item.description = b.description.trim().slice(0, 10000);
       if (typeof b.image === 'string') item.image = b.image.slice(0, 1000);
+      item.images = (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0,20) : item.images || []; })();
       await writeDb(db);
       return NextResponse.json({ ok: true, message: '反馈已更新' });
     }
@@ -510,6 +511,7 @@ export async function POST(req: Request) {
         gameId: String(b.gameId || ''),
         description: b.description.trim().slice(0, 10000),
         image: String(b.image || '').slice(0, 1000),
+        images: (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0,20) : []; })(),
         status: 'pending',
         reply: '',
         createdAt: now,

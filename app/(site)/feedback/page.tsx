@@ -1,7 +1,7 @@
 import { readDb } from '@/lib/db';
 import { ActionForm } from '../../components/ActionForm';
 import { getSessionUser } from '@/lib/auth';
-import { ImageUploadField } from '@/app/components/ImageUploadField';
+import { MultiImageUploadField } from '@/app/components/MultiImageUploadField';
 export const dynamic = 'force-dynamic';
 export default async function Feedback() {
   const [db, user] = await Promise.all([readDb(), getSessionUser()]);
@@ -49,7 +49,7 @@ export default async function Feedback() {
             详细描述
             <textarea name="description" rows={6} required minLength={5} />
           </label>
-          <ImageUploadField name="image" label="上传问题截图（可选）" folder="feedback" />
+          <MultiImageUploadField name="images" label="问题截图（支持多图）" folder="feedback" />
         </ActionForm>
       </section>
       <section id="my-feedback" className="detail-section">
@@ -74,6 +74,7 @@ export default async function Feedback() {
                   <label>修改标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
                   <label>修改类型<select name="type" defaultValue={f.type}><option>游戏 Bug</option><option>游戏运行问题</option><option>游戏内容问题</option><option>网站 Bug</option><option>功能建议</option><option>其他</option></select></label>
                   <label>修改描述<textarea name="description" rows={4} required minLength={5} defaultValue={f.description} /></label>
+                  <MultiImageUploadField name="images" label="修改问题截图" folder="feedback" initial={f.images || (f.image ? [f.image] : [])} />
                   <input type="hidden" name="gameId" value={f.gameId} />
                 </ActionForm>
               )}

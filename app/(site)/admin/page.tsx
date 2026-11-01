@@ -131,7 +131,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <a href={`/users/${encodeURIComponent(f.userId)}`}>{f.username}</a> · {f.createdAt}
               </small>
               <details open><summary>反馈详情与处理记录（{f.status === 'pending' ? '待处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '已拒绝'}）</summary><p className="multiline">{f.description}</p><p><b>管理员回复：</b>{f.reply || '暂无回复'}</p><div className="feedback-progress-timeline">{(f.statusHistory || []).map((step,index)=><div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div></details>
-              {f.image && <ImageViewer src={f.image} alt="反馈附件" className="review-image" />}
+              {(f.images?.length ? f.images : f.image ? [f.image] : []).length > 0 && <div className="review-image-grid">{(f.images?.length ? f.images : f.image ? [f.image] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={'反馈附件 ' + (index+1)} className="review-image" />)}</div>}
               <ActionForm action="feedback-update" button="保存反馈修改" successMessage="反馈内容已更新">
                 <input type="hidden" name="id" value={f.id} />
                 <label>反馈标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
