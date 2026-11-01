@@ -1,8 +1,10 @@
 import { readDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 export default async function ContributorsPage() {
-  const db = await readDb();
+  const [db, user] = await Promise.all([readDb(), getSessionUser()]);
+  const isAdmin = user?.role === 'admin';
   const c = db.siteSettings?.contributor || {
     nickname: '开发者',
     level: '',
@@ -75,6 +77,7 @@ export default async function ContributorsPage() {
           </div>
         )}
       </section>
+      {isAdmin && <div className="detail-actions"><Link className="outline-btn" href="/admin?section=contributors">管理开发者资料与贡献者名单 ↗</Link></div>}
       <section className="contributors-section">
         <div className="section-head">
           <div>
