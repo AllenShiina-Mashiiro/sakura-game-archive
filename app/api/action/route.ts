@@ -497,7 +497,8 @@ export async function POST(req: Request) {
       await writeDb(db);
       return NextResponse.json({ ok: true });
     }
-    if (b.action === 'guide' || b.action === 'guide-edit') {
+    if (b.action === 'guide' || b.action === 'guide-edit' || b.action === 'guide-admin-create') {
+      if (b.action === 'guide-admin-create') await requireAdmin();
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.content !== 'string' || b.content.trim().length < 20) return NextResponse.json({ error: '教程标题至少 3 字，正文至少 20 字' }, { status: 400 });
       const values = {
         author: user.nickname,
@@ -542,14 +543,16 @@ export async function POST(req: Request) {
         id: randomUUID(),
         userId: user.id,
         ...values,
-        status: 'pending',
+        status: b.action === 'guide-admin-create' ? 'approved' : 'pending',
         views: 0,
         favorites: 0,
       });
-      for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
-        pushNotification(db, admin.id, 'system', '收到新的教程投稿', `${user.nickname} 投稿了《${values.title}》，等待审核。`, '/admin#reviews', user.id);
+      if (b.action === 'guide') {
+        for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
+          pushNotification(db, admin.id, 'system', '收到新的教程投稿', user.nickname + ' 投稿了《' + values.title + '》，等待审核。', '/admin#reviews', user.id);
+      }
       await writeDb(db);
-      return NextResponse.json({ ok: true, message: '教程已提交审核' });
+      return NextResponse.json({ ok: true, message: b.action === 'guide-admin-create' ? '教程已发布并关联游戏' : '教程已提交审核' });
     }
     await requireAdmin();
     if (b.action === 'shop-product-save') {
@@ -633,10 +636,11 @@ export async function POST(req: Request) {
       };
       if (!game.name || !/^[a-z0-9-]+$/.test(game.slug)) return NextResponse.json({ error: '名称必填，slug 只能使用小写英文、数字和连字符' }, { status: 400 });
       if (db.games.some((g) => g.slug === game.slug && g.id !== game.id)) return NextResponse.json({ error: 'slug 已存在' }, { status: 409 });
-      if (old) db.games[db.games.indexOf(old)] = game;
+      if (old) db.games[db.games.indexOf(old)] = { ...game, updates: old.updates || [], files: old.files || [], guides: old.guides || [], views: old.views || 0, favorites: old.favorites || 0 };
       else db.games.unshift(game);
       await writeDb(db);
-      return NextResponse.json({ ok: true, id: game.id });
+      if (old && old.cover !== game.cover) await deleteUnreferencedStorageImages([old.cover]);
+      return NextResponse.json({ ok: true, id: game.id, message: old ? '游戏档案修改成功' : '游戏档案创建成功' });
     }
     if (b.action === 'game-record') {
       await requireAdmin();
@@ -681,27 +685,30 @@ export async function POST(req: Request) {
     }
     if (b.action === 'resource-save') {
       await requireAdmin();
+      const old = db.resources.find((x) => x.id === String(b.id || ''));
       const r: Resource = {
-        id: typeof b.id === 'string' && b.id ? b.id : randomUUID(),
-        title: String(b.title || ''),
+        id: old?.id || randomUUID(),
+        title: String(b.title || '').trim(),
         cover: String(b.cover || ''),
         gameId: String(b.gameId || ''),
-        gameName: db.games.find((g) => g.id === b.gameId)?.name || '',
+        gameName: db.games.find((g) => g.id === String(b.gameId || ''))?.name || '',
         version: String(b.version || ''),
         description: String(b.description || ''),
         scope: String(b.scope || ''),
         install: String(b.install || ''),
         url: String(b.url || ''),
         tutorial: String(b.tutorial || ''),
-        tags: Array.isArray(b.tags) ? b.tags : [],
+        tags: Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : [],
         updatedAt: now.slice(0, 10),
-        views: 0,
-        favorites: 0,
+        views: old?.views || 0,
+        favorites: old?.favorites || 0,
       };
       if (!r.title) return NextResponse.json({ error: '资源名称必填' }, { status: 400 });
-      db.resources.unshift(r);
+      if (old) db.resources[db.resources.indexOf(old)] = r;
+      else db.resources.unshift(r);
       await writeDb(db);
-      return NextResponse.json({ ok: true });
+      if (old && old.cover !== r.cover) await deleteUnreferencedStorageImages([old.cover]);
+      return NextResponse.json({ ok: true, message: old ? '资源修改成功' : '资源发布成功' });
     }
     if (b.action === 'notice-save') {
       await requireAdmin();
@@ -906,6 +913,7 @@ if (b.status === 'active' || b.status === 'banned') {
     }
     if (b.action === 'contributor-settings') {
       await requireAdmin();
+      const oldContributorImages = [db.siteSettings?.contributor?.avatar, db.siteSettings?.contributor?.donationQr, db.siteSettings?.contributorBackground];
       const contributions = String(b.contributions || '')
         .split('\n')
         .map((x: string) => x.trim())
@@ -928,39 +936,55 @@ if (b.status === 'active' || b.status === 'banned') {
         contributions,
       };
       await writeDb(db);
+      await deleteUnreferencedStorageImages(oldContributorImages);
       return NextResponse.json({ ok: true, message: '开发者资料已保存' });
     }
-    if (b.action === 'contributor-add') {
+    if (b.action === 'contributor-settings-delete') {
       await requireAdmin();
-      const name = String(b.name || '').trim(),
-        description = String(b.description || '').trim();
+      const oldImages = [db.siteSettings?.contributor?.avatar, db.siteSettings?.contributor?.donationQr, db.siteSettings?.contributorBackground];
+      db.siteSettings = db.siteSettings || {};
+      delete db.siteSettings.contributor;
+      delete db.siteSettings.contributorBackground;
+      await writeDb(db);
+      await deleteUnreferencedStorageImages(oldImages);
+      return NextResponse.json({ ok: true, message: '开发者资料已删除，贡献者名单未受影响' });
+    }
+    if (b.action === 'contributor-add' || b.action === 'contributor-update') {
+      await requireAdmin();
+      const name = String(b.name || '').trim(), description = String(b.description || '').trim();
       if (!name || !description) return NextResponse.json({ error: '贡献者昵称和贡献说明必填' }, { status: 400 });
       db.contributors = db.contributors || [];
-      db.contributors.unshift({
-        id: randomUUID(),
+      const old = b.action === 'contributor-update' ? db.contributors.find((x) => x.id === String(b.id)) : undefined;
+      if (b.action === 'contributor-update' && !old) return NextResponse.json({ error: '贡献者记录不存在' }, { status: 404 });
+      const kind: 'volunteer' | 'technical' | 'content' | 'financial' =
+        b.kind === 'volunteer' || b.kind === 'content' || b.kind === 'financial' || b.kind === 'technical'
+          ? b.kind
+          : 'volunteer';
+      const item = {
+        id: old?.id || randomUUID(),
         name: name.slice(0, 60),
         role: String(b.role || '社区贡献者').slice(0, 80),
         description: description.slice(0, 1000),
-        kind:
-        b.kind === 'volunteer' ||
-        b.kind === 'content' ||
-        b.kind === 'financial' ||
-        b.kind === 'technical'
-    ? b.kind
-    : 'volunteer',
+        kind,
         userId: String(b.userId || '') || undefined,
         avatar: String(b.avatar || '').slice(0, 1000),
         exp: Math.max(0, Math.min(1000000, Math.floor(Number(b.exp) || 0))),
         badges: [...new Set(String(b.badges || '').split(',').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30),
-        createdAt: now,
-      });
+        createdAt: old?.createdAt || now,
+      };
+      if (old) db.contributors[db.contributors.indexOf(old)] = item;
+      else db.contributors.unshift(item);
       await writeDb(db);
-      return NextResponse.json({ ok: true, message: '贡献者已添加' });
+      if (old && old.avatar !== item.avatar) await deleteUnreferencedStorageImages([old.avatar]);
+      return NextResponse.json({ ok: true, message: old ? '贡献者资料修改成功' : '贡献者已添加' });
     }
     if (b.action === 'contributor-delete') {
       await requireAdmin();
+      const old = (db.contributors || []).find((x) => x.id === String(b.id));
+      if (!old) return NextResponse.json({ error: '贡献者记录不存在' }, { status: 404 });
       db.contributors = (db.contributors || []).filter((x) => x.id !== String(b.id));
       await writeDb(db);
+      await deleteUnreferencedStorageImages([old.avatar]);
       return NextResponse.json({ ok: true, message: '贡献者记录已移除' });
     }
     if (b.action === 'user-update') {
