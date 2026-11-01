@@ -1,7 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
 import { mediaUrl } from '@/lib/media';
-import { mediaUrl } from '@/lib/media';
 
 export function MultiImageUploadField({ name = 'bodyImages', label = '教程正文图片', folder = 'tutorials', initial = [] }: { name?: string; label?: string; folder?: string; initial?: string[] }) {
   const [urls, setUrls] = useState<string[]>(initial.filter(Boolean).slice(0, 20));
