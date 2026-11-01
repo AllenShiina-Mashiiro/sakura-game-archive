@@ -478,19 +478,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: result.message });
     }
     if (b.action === 'feedback-update') {
-      const item = db.feedback.find((x) => x.id === String(b.id));
-      if (!item) return NextResponse.json({ error: '反馈记录不存在' }, { status: 404 });
-      const isAdmin = user.role === 'admin';
-      if (item.userId !== user.id && !isAdmin) return NextResponse.json({ error: '只有反馈提交者或管理员可以修改' }, { status: 403 });
-      if (!isAdmin && !['pending', 'processing', 'failed'].includes(item.status)) return NextResponse.json({ error: '已修复或已采纳的反馈不可由提交者修改' }, { status: 409 });
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.description !== 'string' || b.description.trim().length < 5) return NextResponse.json({ error: '请填写标题和详细描述' }, { status: 400 });
-      item.title = b.title.trim().slice(0, 100);
-      item.type = String(b.type || item.type).slice(0, 40);
-      item.gameId = String(b.gameId || '').slice(0, 100);
-      item.description = b.description.trim().slice(0, 10000);
-      if (typeof b.image === 'string') item.image = b.image.slice(0, 1000);
-      item.images = (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0,20) : item.images || []; })();
-      await writeDb(db);
+      const result = await mutateDb((fresh) => {
+        const item = fresh.feedback.find((x) => x.id === String(b.id || ''));
+        if (!item) return { error: '反馈记录不存在', status: 404 };
+        const isAdmin = user.role === 'admin';
+        if (item.userId !== user.id && !isAdmin) return { error: '只有反馈提交者或管理员可以修改', status: 403 };
+        if (!isAdmin && !['pending', 'processing', 'failed'].includes(item.status)) return { error: '已修复或已采纳的反馈不可由提交者修改', status: 409 };
+        item.title = b.title.trim().slice(0, 100);
+        item.type = String(b.type || item.type).slice(0, 40);
+        item.gameId = String(b.gameId || '').slice(0, 100);
+        item.description = b.description.trim().slice(0, 10000);
+        if (typeof b.image === 'string') item.image = b.image.slice(0, 1000);
+        item.images = (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : item.images || []; })();
+        return { ok: true };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json({ ok: true, message: '反馈已更新' });
     }
     if (b.action === 'feedback-delete') {
