@@ -58,7 +58,7 @@ export function Comments({ targetType, targetId, items, me, admin }: { targetTyp
     return (
       <article className={`comment-card ${c.pinned ? 'comment-pinned' : ''}`} key={c.id}>
         <div className="comment-head">
-          <span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={mediaUrl(c.avatar)} alt="" /> : c.nickname.slice(0, 1)}</span>
+          <Link href={`/users/${encodeURIComponent(c.userId)}`} className="comment-author-avatar" aria-label={`查看${c.nickname}的主页`}><span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={mediaUrl(c.avatar)} alt="" /> : c.nickname.slice(0, 1)}</span></Link>
           <div>
             <b><Link href={`/users/${encodeURIComponent(c.userId)}`}>{c.nickname}</Link></b>
             <small>
