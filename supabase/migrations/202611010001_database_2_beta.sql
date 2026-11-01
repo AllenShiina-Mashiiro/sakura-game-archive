@@ -58,50 +58,50 @@ alter table public.archive_site_settings enable row level security;
 do $$
 declare
   source_data jsonb;
-  spec text[];
+  spec record;
   item jsonb;
   entity_id text;
   owner text;
   created timestamptz;
-  specs constant text[][] := array[
-    ['users','archive_users','id','createdAt'],
-    ['games','archive_games','id','updatedAt'],
-    ['resources','archive_resources','id','updatedAt'],
-    ['guides','archive_guides','id','date'],
-    ['feedback','archive_feedback','id','createdAt'],
-    ['notices','archive_notices','id','updatedAt'],
-    ['collections','archive_collections','id','createdAt'],
-    ['loginLogs','archive_login_logs','id','date'],
-    ['comments','archive_comments','id','createdAt'],
-    ['photos','archive_photos','id','createdAt'],
-    ['shopProducts','archive_shop_products','id','createdAt'],
-    ['inventory','archive_inventory','id','purchasedAt'],
-    ['coinTransactions','archive_coin_transactions','id','createdAt'],
-    ['messages','archive_messages','id','createdAt'],
-    ['friendships','archive_friendships','id','createdAt'],
-    ['notifications','archive_notifications','id','createdAt'],
-    ['contributors','archive_contributors','id','createdAt']
-  ];
+  
 begin
   select data into source_data from public.app_state where id = 'main';
   if source_data is null then
     raise exception 'app_state/main not found; refusing to migrate an empty source';
   end if;
 
-  foreach spec slice 1 in array specs loop
+  for spec in select * from (values
+    ('users','archive_users','id','createdAt'),
+    ('games','archive_games','id','updatedAt'),
+    ('resources','archive_resources','id','updatedAt'),
+    ('guides','archive_guides','id','date'),
+    ('feedback','archive_feedback','id','createdAt'),
+    ('notices','archive_notices','id','updatedAt'),
+    ('collections','archive_collections','id','createdAt'),
+    ('loginLogs','archive_login_logs','id','date'),
+    ('comments','archive_comments','id','createdAt'),
+    ('photos','archive_photos','id','createdAt'),
+    ('shopProducts','archive_shop_products','id','createdAt'),
+    ('inventory','archive_inventory','id','purchasedAt'),
+    ('coinTransactions','archive_coin_transactions','id','createdAt'),
+    ('messages','archive_messages','id','createdAt'),
+    ('friendships','archive_friendships','id','createdAt'),
+    ('notifications','archive_notifications','id','createdAt'),
+    ('contributors','archive_contributors','id','createdAt')
+  ) as mapping(array_key, table_name, id_key, date_key) loop
     for item in
       select value from jsonb_array_elements(
-        case when jsonb_typeof(source_data -> spec[1]) = 'array'
-          then source_data -> spec[1] else '[]'::jsonb end
+        case when jsonb_typeof(source_data -> spec.array_key) = 'array'
+          then source_data -> spec.array_key else '[]'::jsonb end
       )
     loop
-      entity_id := coalesce(item ->> spec[3], item ->> 'username', item ->> 'slug');
+      entity_id := coalesce(item ->> spec.id_key, item ->> 'username', item ->> 'slug');
       if entity_id is null or entity_id = '' then
         raise exception 'Missing entity id in app_state key %', spec[1];
       end if;
       owner := coalesce(item ->> 'userId', item ->> 'ownerId', item ->> 'requesterId');
       begin
-        created := nullif(coalesce(item ->> spec[4], item ->> 'created_at'), '')::timestamptz;
+        created := nullif(coalesce(item ->> spec.date_key, item ->> 'created_at'), '')::timestamptz;
       exception when others then
         created := null;
       end;
@@ -109,7 +109,7 @@ begin
         'insert into public.%I (id, owner_id, created_at, row_data) values ($1,$2,$3,$4)
          on conflict (id) do update set owner_id=excluded.owner_id,
            created_at=excluded.created_at, row_data=excluded.row_data, migrated_at=now()',
-        spec[2]
+        spec.table_name
       ) using entity_id, owner, created, item;
     end loop;
   end loop;
