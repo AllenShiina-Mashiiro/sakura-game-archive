@@ -30,7 +30,7 @@ export default async function MyFeedback() {
           <MultiImageUploadField name="images" label="修改问题截图" folder="feedback" initial={f.images || (f.image ? [f.image] : [])} />
           <input type="hidden" name="gameId" value={f.gameId} />
         </ActionForm>}
-        <ActionForm action="feedback-delete" button="删除这条反馈" successMessage="反馈已删除"><input type="hidden" name="id" value={f.id} /></ActionForm>
+        {f.status === 'pending' && <ActionForm action="feedback-delete" button="撤回这条待处理反馈" successMessage="反馈已撤回"><input type="hidden" name="id" value={f.id} /></ActionForm>}
       </article>)}
       {!mine.length && <div className="empty-state">你还没有提交过反馈。<p><Link href="/feedback/submit">现在提交第一条反馈</Link></p></div>}
     </div></section>

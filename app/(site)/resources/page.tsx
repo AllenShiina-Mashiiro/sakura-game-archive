@@ -36,7 +36,7 @@ export default async function Resources({ searchParams }: { searchParams: Promis
               </Link>
             )}
             <small>
-              {r.gameName} · {r.version}
+              {r.gameName} · {r.version}{r.userId && <> · 贡献者：<Link href={'/users/' + encodeURIComponent(r.userId)}>{r.username || '查看主页'}</Link></>}
             </small>
             <h3>
               <Link href={`/resources/${r.id}`}>{r.title}</Link>

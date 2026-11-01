@@ -504,11 +504,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: '反馈已更新' });
     }
     if (b.action === 'feedback-delete') {
-      const item = db.feedback.find((x) => x.id === String(b.id) && x.userId === user.id);
-      if (!item) return NextResponse.json({ error: '反馈记录不存在' }, { status: 404 });
-      db.feedback = db.feedback.filter((x) => x.id !== item.id);
-      await writeDb(db);
-      return NextResponse.json({ ok: true, message: '反馈已删除' });
+      const result = await mutateDb((fresh) => {
+        const item = fresh.feedback.find((x) => x.id === String(b.id) && x.userId === user.id);
+        if (!item) return { error: '反馈记录不存在', status: 404 };
+        if (item.status !== 'pending') return { error: '只有尚未处理的反馈可以撤回', status: 409 };
+        fresh.feedback = fresh.feedback.filter((x) => x.id !== item.id);
+        return { ok: true };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json({ ok: true, message: '反馈已撤回' });
     }
     if (b.action === 'feedback') {
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.description !== 'string' || b.description.trim().length < 5) return NextResponse.json({ error: '请填写标题和详细描述' }, { status: 400 });
