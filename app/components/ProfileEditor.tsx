@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mediaUrl } from '@/lib/media';
 export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, cardBackground, badges }: { nickname: string; avatar: string; selectedBadge: string; avatarFrame: string; cardBackground: string; badges: string[] }) {
   const [name, setName] = useState(nickname);
   const [image, setImage] = useState(avatar || '');
@@ -62,7 +63,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => setFile(e.target.files?.[0] || null)} />
       </label>
       <div className="avatar-preview-row">
-        <span className={`avatar avatar-large avatar-frame-${frame}`}>{image ? <img src={image} alt="头像预览" /> : name.slice(0, 1)}</span>
+        <span className={`avatar avatar-large avatar-frame-${frame}`}>{image ? <img src={mediaUrl(image)} alt="头像预览" /> : name.slice(0, 1)}</span>
         <small>{file ? `待上传：${file.name}` : image ? '当前头像' : '尚未设置头像'}</small>
       </div>
       <label>
@@ -113,7 +114,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
       </label>
       {background && (
         <div className="upload-preview">
-          <img src={background} alt="名片背景预览" />
+          <img src={mediaUrl(background)} alt="名片背景预览" />
         </div>
       )}
       {error && <div className="error-box">{error}</div>}
