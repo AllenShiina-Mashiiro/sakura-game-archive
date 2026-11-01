@@ -12,7 +12,7 @@ import type {
   Database,
   ShopProduct,
 } from '@/lib/types';
-const err = (e: unknown) => NextResponse.json({ error: e instanceof Error ? e.message : '操作失败' }, { status: e instanceof Error && e.message === 'FORBIDDEN' ? 403 : 401 });
+const err = (e: unknown) => NextResponse.json({ error: e instanceof Error ? e.message : '操作失败' }, { status: e instanceof Error && e.message === 'FORBIDDEN' ? 403 : 500 });
 function pushNotification(db: Database, userId: string, type: 'message' | 'comment' | 'feedback' | 'badge' | 'level' | 'system', title: string, body: string, href: string, actorId?: string) {
   if (!userId) return;
   db.notifications = db.notifications || [];
