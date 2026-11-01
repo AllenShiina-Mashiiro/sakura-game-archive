@@ -46,7 +46,19 @@ export async function POST(req: Request) {
           relation.requesterId = user.id;
           relation.addresseeId = targetId;
           relation.status = 'pending';
+          relation.createdAt = now;
           relation.updatedAt = now;
+          db.notifications = db.notifications || [];
+          db.notifications.unshift({
+            id: randomUUID(),
+            userId: targetId,
+            type: 'system',
+            title: '收到好友请求',
+            body: user.nickname + ' 想添加你为好友',
+            href: '/notifications',
+            createdAt: now,
+            actorId: user.id,
+          });
           return { ok: true, message: '好友请求已重新发送' };
         }
         if (relation?.status === 'pending') {
