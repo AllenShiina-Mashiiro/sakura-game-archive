@@ -29,7 +29,6 @@ export function MessagesClient() {
   const params = useSearchParams();
   const initial = params.get('with') || '';
   const [contacts, setContacts] = useState<Person[]>([]);
-  const [users, setUsers] = useState<Person[]>([]);
   const [peer, setPeer] = useState<Person | null>(null);
   const [myself, setMyself] = useState<Person | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,13 +36,11 @@ export function MessagesClient() {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [showUsers, setShowUsers] = useState(false);
   const loadContacts = useCallback(async () => {
     const r = await fetch('/api/messages', { cache: 'no-store' });
     if (r.ok) {
       const d = await r.json();
       setContacts(d.contacts || []);
-      setUsers(d.users || []);
     }
   }, []);
   const loadThread = useCallback(
@@ -106,7 +103,6 @@ export function MessagesClient() {
   }
   const choose = (id: string) => {
     setSelected(id);
-    setShowUsers(false);
     history.replaceState(null, '', `/messages?with=${encodeURIComponent(id)}`);
   };
   const avatar = (p: Person) => <span className={`avatar avatar-frame-${p.avatarFrame || 'none'}`}>{p.avatar ? <img src={mediaUrl(p.avatar)} alt="" /> : p.nickname.slice(0, 1)}</span>;
@@ -115,20 +111,7 @@ export function MessagesClient() {
       <aside className="conversation-list">
         <div className="conversation-list-head">
           <h2>私信</h2>
-          <button className="outline-btn" onClick={() => setShowUsers((v) => !v)}>
-            ＋ 新建
-          </button>
         </div>
-        {showUsers && (
-          <div className="people-picker">
-            {users.map((p) => (
-              <div className="people-picker-row" key={p.id}>
-                <Link href={`/users/${p.id}`}>{avatar(p)}</Link>
-                <button onClick={() => choose(p.id)}>{p.nickname}</button>
-              </div>
-            ))}
-          </div>
-        )}
         {ordered.map((p) => (
           <div key={p.id} className={`conversation-person ${selected === p.id ? 'active' : ''}`}>
             <Link className="conversation-avatar" href={`/users/${p.id}`} title="查看用户主页">
@@ -143,7 +126,7 @@ export function MessagesClient() {
             </button>
           </div>
         ))}
-        {!ordered.length && !showUsers && <p className="muted">还没有好友会话。请先打开对方的个人主页并发送好友请求；成为好友后即可私信。</p>}
+        {!ordered.length && <p className="muted">还没有好友会话。请先打开对方的个人主页并发送好友请求；成为好友后即可私信。</p>}
       </aside>
       <section className="chat-panel">
         {peer ? (
@@ -189,9 +172,6 @@ export function MessagesClient() {
             <span>✉</span>
             <h2>选择一个会话</h2>
             <p>仅好友之间可以私信。请先从成员个人主页添加好友。</p>
-            <button className="primary-btn" onClick={() => setShowUsers(true)}>
-              开始新对话
-            </button>
           </div>
         )}
       </section>
