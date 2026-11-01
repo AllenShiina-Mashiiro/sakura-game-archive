@@ -114,7 +114,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
                 <span>
                   <b>{file.name}</b>
                   <small><LinkifiedText text={file.notes || ''} /></small>
-                  {file.url && /^https?:\\/\\//i.test(file.url) && <a className="resource-download-link" href={file.url} target="_blank" rel="noopener noreferrer">打开下载链接 ↗</a>}
+                  {file.url && /^https?:\/\//i.test(file.url) && <a className="resource-download-link" href={file.url} target="_blank" rel="noopener noreferrer">打开下载链接 ↗</a>}
                   {file.checksum && file.checksum !== '待填写' && <code className="checksum">SHA / MD5: {file.checksum}</code>}
                 </span>
                 <code>{file.version || '—'}</code>
