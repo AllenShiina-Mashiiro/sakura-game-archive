@@ -650,6 +650,7 @@ export async function POST(req: Request) {
       if (b.kind === 'update') {
         if (!b.title || !b.version || !b.date) return NextResponse.json({ error: '版本号、标题和日期必填' }, { status: 400 });
         const old = game.updates.find((item) => item.id === recordId);
+        if (b.id && !old) return NextResponse.json({ error: '版本记录不存在，请刷新后重试' }, { status: 404 });
         const next = {
           id: recordId,
           date: String(b.date),
@@ -666,6 +667,7 @@ export async function POST(req: Request) {
       } else if (b.kind === 'file') {
         if (!b.name || !b.date) return NextResponse.json({ error: '资源名称和日期必填' }, { status: 400 });
         const old = game.files.find((item) => item.id === recordId);
+        if (b.id && !old) return NextResponse.json({ error: '资源文件记录不存在，请刷新后重试' }, { status: 404 });
         const next = {
           id: recordId,
           name: String(b.name),
@@ -1062,11 +1064,18 @@ if (b.status === 'active' || b.status === 'banned') {
         if (!g) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
         if (b.kind === 'update') {
           const old = g.updates.find((x) => x.id === String(b.id));
-          if (old) removedImages.push(old);
+          if (!old) return NextResponse.json({ error: '版本记录不存在' }, { status: 404 });
+          removedImages.push(old);
           g.updates = g.updates.filter((x) => x.id !== String(b.id));
+          if (g.latestVersion === old.version) {
+            const latest = [...g.updates].sort((a, b) => b.date.localeCompare(a.date))[0];
+            g.latestVersion = latest?.version || '';
+            g.updatedAt = latest?.date || '';
+          }
         } else if (b.kind === 'file') {
           const old = g.files.find((x) => x.id === String(b.id));
-          if (old) removedImages.push(old);
+          if (!old) return NextResponse.json({ error: '资源文件记录不存在' }, { status: 404 });
+          removedImages.push(old);
           g.files = g.files.filter((x) => x.id !== String(b.id));
         } else return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
       }
