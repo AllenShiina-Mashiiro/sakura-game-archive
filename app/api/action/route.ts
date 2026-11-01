@@ -703,33 +703,19 @@ export async function POST(req: Request) {
     }
     if (b.action === 'resource-save') {
       await requireAdmin();
-      const old = db.resources.find((x) => x.id === String(b.id || ''));
-      const r: Resource = {
-        id: old?.id || randomUUID(),
-        userId: old?.userId || user.id,
-        username: old?.username || user.nickname,
-        title: String(b.title || '').trim(),
-        cover: String(b.cover || ''),
-        images: (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : old?.images || []; })(),
-        gameId: String(b.gameId || ''),
-        gameName: db.games.find((g) => g.id === String(b.gameId || ''))?.name || '',
-        version: String(b.version || ''),
-        description: String(b.description || ''),
-        scope: String(b.scope || ''),
-        install: String(b.install || ''),
-        url: String(b.url || ''),
-        tutorial: String(b.tutorial || ''),
-        tags: Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : [],
-        updatedAt: now.slice(0, 10),
-        views: old?.views || 0,
-        favorites: old?.favorites || 0,
-      };
-      if (!r.title) return NextResponse.json({ error: '资源名称必填' }, { status: 400 });
-      if (old) db.resources[db.resources.indexOf(old)] = r;
-      else db.resources.unshift(r);
-      await writeDb(db);
-      if (old && (old.cover !== r.cover || JSON.stringify(old.images || []) !== JSON.stringify(r.images || []))) await deleteUnreferencedStorageImages([old.cover, old.images || []]);
-      return NextResponse.json({ ok: true, message: old ? '资源修改成功' : '资源发布成功' });
+      const parsedImages = (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : undefined; })();
+      const result = await mutateDb((fresh) => {
+        const old = fresh.resources.find((x) => x.id === String(b.id || ''));
+        const r: Resource = { id: old?.id || randomUUID(), userId: old?.userId || user.id, username: old?.username || user.nickname, title: String(b.title || '').trim(), cover: String(b.cover || ''), images: parsedImages ?? old?.images ?? [], gameId: String(b.gameId || ''), gameName: fresh.games.find((g) => g.id === String(b.gameId || ''))?.name || '', version: String(b.version || ''), description: String(b.description || ''), scope: String(b.scope || ''), install: String(b.install || ''), url: String(b.url || ''), tutorial: String(b.tutorial || ''), tags: Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : [], updatedAt: now.slice(0, 10), views: old?.views || 0, favorites: old?.favorites || 0 };
+        if (!r.title) return { error: '资源名称必填' as const };
+        if (old) fresh.resources[fresh.resources.indexOf(old)] = r; else fresh.resources.unshift(r);
+        return { old, resource: r, updated: Boolean(old) };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 400 });
+      let warning = '';
+      try { if (result.old && (result.old.cover !== result.resource.cover || JSON.stringify(result.old.images || []) !== JSON.stringify(result.resource.images || []))) await deleteUnreferencedStorageImages([result.old.cover, result.old.images || []]); }
+      catch (cleanupError) { console.error('资源已保存，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, message: (result.updated ? '资源修改成功' : '资源发布成功') + warning, warning: warning || undefined });
     }
     if (b.action === 'notice-save') {
       await requireAdmin();
