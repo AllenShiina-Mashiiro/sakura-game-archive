@@ -719,52 +719,21 @@ export async function POST(req: Request) {
     }
     if (b.action === 'notice-save') {
       await requireAdmin();
-      const title = String(b.title || '').trim(),
-        content = String(b.content || '').trim();
+      const title = String(b.title || '').trim(), content = String(b.content || '').trim();
       if (!title || !content) return NextResponse.json({ error: '公告标题和正文必填' }, { status: 400 });
-      const old = db.notices.find((x) => x.id === b.id);
-      if (old) {
-        old.history = old.history || [];
-        old.history.unshift({
-          id: randomUUID(),
-          date: now,
-          title: old.title,
-          subtitle: old.subtitle,
-          cover: old.cover,
-          content: old.content,
-        });
-        Object.assign(old, {
-          title,
-          subtitle: String(b.subtitle || ''),
-          cover: String(b.cover || ''),
-          content,
-          date: old.date || now.slice(0, 10),
-          updatedAt: now,
-          pinned: Boolean(b.pinned),
-          published: Boolean(b.published),
-          updatedBy: user.nickname,
-          updatedById: user.id,
-        });
-      } else
-        db.notices.unshift({
-          id: randomUUID(),
-          title,
-          subtitle: String(b.subtitle || ''),
-          cover: String(b.cover || ''),
-          content,
-          date: now.slice(0, 10),
-          updatedAt: now,
-          pinned: Boolean(b.pinned),
-          published: Boolean(b.published),
-          updatedBy: user.nickname,
-          updatedById: user.id,
-          history: [],
-        });
-      if (!old && b.published) {
-        for (const recipient of db.users.filter((x) => x.status === 'active')) pushNotification(db, recipient.id, 'system', '网站发布了新公告', title, `/notices`, user.id);
-      }
-      await writeDb(db);
-      return NextResponse.json({ ok: true, message: old ? '公告修改成功' : '公告发布成功' });
+      const result = await mutateDb((fresh) => {
+        const old = fresh.notices.find((x) => x.id === String(b.id || ''));
+        if (old) {
+          old.history = old.history || [];
+          old.history.unshift({ id: randomUUID(), date: now, title: old.title, subtitle: old.subtitle, cover: old.cover, content: old.content });
+          Object.assign(old, { title, subtitle: String(b.subtitle || ''), cover: String(b.cover || ''), content, date: old.date || now.slice(0, 10), updatedAt: now, pinned: Boolean(b.pinned), published: Boolean(b.published), updatedBy: user.nickname, updatedById: user.id });
+        } else {
+          fresh.notices.unshift({ id: randomUUID(), title, subtitle: String(b.subtitle || ''), cover: String(b.cover || ''), content, date: now.slice(0, 10), updatedAt: now, pinned: Boolean(b.pinned), published: Boolean(b.published), updatedBy: user.nickname, updatedById: user.id, history: [] });
+          if (b.published) for (const recipient of fresh.users.filter((x) => x.status === 'active')) pushNotification(fresh, recipient.id, 'system', '网站发布了新公告', title, '/notices', user.id);
+        }
+        return { updated: Boolean(old) };
+      });
+      return NextResponse.json({ ok: true, message: result.updated ? '公告修改成功' : '公告发布成功' });
     }
     if (b.action === 'review-guide' || b.action === 'review-feedback') {
       await requireAdmin();
