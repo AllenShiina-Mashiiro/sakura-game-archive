@@ -7,7 +7,7 @@ import { SocialIndicators } from './SocialIndicators';
 
 export function Sidebar({ user, logo }: { user: User; logo?: string }) {
   const [open, setOpen] = useState(false);
-  const [pinned, setPinned] = useState(false);
+  const [pinned, setPinned] = useState(true);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
   const links = [
