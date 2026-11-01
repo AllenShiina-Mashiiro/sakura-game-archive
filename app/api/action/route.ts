@@ -515,6 +515,7 @@ export async function POST(req: Request) {
         status: 'pending',
         reply: '',
         createdAt: now,
+        statusHistory: [{ status: 'pending', reply: '反馈已提交，等待管理员处理', at: now, by: user.nickname }],
       });
       for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
         pushNotification(db, admin.id, 'feedback', '收到新的问题反馈', `${user.nickname} 提交了：${b.title.trim().slice(0, 80)}`, '/admin#reviews', user.id);
