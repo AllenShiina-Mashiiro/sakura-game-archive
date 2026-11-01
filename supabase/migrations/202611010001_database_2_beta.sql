@@ -158,12 +158,12 @@ begin
   execute format('delete from public.%I', p_table);
   execute format(
     'insert into public.%I (id, owner_id, created_at, row_data)
-     select coalesce(x->>''id'', x->>''username'', x->>''slug''),
-            coalesce(x->>$1, x->>''ownerId'', x->>''requesterId''),
-            case when coalesce(x->>$2, x->>''created_at'') ~ ''^[0-9]{4}-[0-9]{2}-[0-9]{2}''
-              then (coalesce(x->>$2, x->>''created_at''))::timestamptz else null end,
-            x
-     from jsonb_array_elements(case when jsonb_typeof($3) = ''array'' then $3 else ''[]''::jsonb end) x',
+     select coalesce(items.value->>''id'', items.value->>''username'', items.value->>''slug''),
+            coalesce(items.value->>$1, items.value->>''ownerId'', items.value->>''requesterId''),
+            case when coalesce(items.value->>$2, items.value->>''created_at'') ~ ''^[0-9]{4}-[0-9]{2}-[0-9]{2}''
+              then (coalesce(items.value->>$2, items.value->>''created_at''))::timestamptz else null end,
+            items.value
+     from jsonb_array_elements(case when jsonb_typeof($3) = ''array'' then $3 else ''[]''::jsonb end) as items(value)',
     p_table
   ) using p_owner_key, p_date_key, p_rows;
 end;
@@ -234,12 +234,12 @@ begin
 
   delete from public.archive_game_guides;
   insert into public.archive_game_guides(id, owner_id, row_data)
-  select (g->>'id') || ':' || coalesce(guide->>'id', guide->>'title'),
-         guide->>'userId', jsonb_build_object('gameId', g->>'id', 'guide', guide)
-  from jsonb_array_elements(coalesce(p_data->'games','[]'::jsonb)) g
+  select (games.game->>'id') || ':' || coalesce(nested.guide->>'id', nested.guide->>'title'),
+         nested.guide->>'userId', jsonb_build_object('gameId', games.game->>'id', 'guide', nested.guide)
+  from jsonb_array_elements(coalesce(p_data->'games','[]'::jsonb)) as games(game)
   cross join lateral jsonb_array_elements(
-    case when jsonb_typeof(g->'guides')='array' then g->'guides' else '[]'::jsonb end
-  ) guide;
+    case when jsonb_typeof(games.game->'guides')='array' then games.game->'guides' else '[]'::jsonb end
+  ) as nested(guide);
 
   insert into public.archive_site_settings(id,row_data)
   values ('main',coalesce(p_data->'siteSettings','{}'::jsonb))
