@@ -6,6 +6,7 @@ import { getSessionUser } from '@/lib/auth';
 import { CommentSection } from '@/app/components/CommentSection';
 import { FavoriteButton } from '@/app/components/ActionForm';
 import { GuideEditForm } from '@/app/components/GuideEditForm';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 export default async function TutorialDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,7 +19,7 @@ export default async function TutorialDetail({ params }: { params: Promise<{ id:
       <Link className="back-link" href="/tutorials">
         ← 返回教程中心
       </Link>
-      {g.cover && <img className="article-cover" src={g.cover} alt="" />}
+      {g.cover && <img className="article-cover" src={mediaUrl(g.cover)} alt="" />}
       <div className="eyebrow">TUTORIAL / {g.category}</div>
       <h1>{g.title}</h1>
       <p className="subtitle">
