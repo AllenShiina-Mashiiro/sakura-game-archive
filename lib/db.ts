@@ -83,6 +83,21 @@ async function getRow(): Promise<DbRow> {
   }
 
   if (data) {
+    if (process.env.DATABASE_V2_ENABLED === 'true') {
+      const { data: migration, error: migrationError } = await supabaseAdmin
+        .from('archive_schema_migrations')
+        .select('version')
+        .eq('version', '2.23.0-beta.1')
+        .maybeSingle();
+      if (migrationError || !migration) {
+        throw new Error('数据库 2.0 Beta 尚未迁移。请先备份并执行 supabase/migrations/202611010001_database_2_beta.sql，再开启 DATABASE_V2_ENABLED。');
+      }
+      const { data: normalized, error: normalizedError } = await supabaseAdmin.rpc('archive_load_snapshot');
+      if (normalizedError || !normalized) {
+        throw new Error(`读取数据库 2.0 Beta 失败：${normalizedError?.message || 'empty result'}`);
+      }
+      return { data: normalized as Partial<Database>, version: Number(data.version) };
+    }
     return {
       data: data.data as Partial<Database>,
       version: Number(data.version),
@@ -126,6 +141,15 @@ async function saveWithVersion(
   expectedVersion: number,
 ): Promise<boolean> {
   const supabaseAdmin = getSupabaseAdmin();
+
+  if (process.env.DATABASE_V2_ENABLED === 'true') {
+    const { data, error } = await supabaseAdmin.rpc('archive_save_snapshot', {
+      p_data: db,
+      p_expected_version: expectedVersion,
+    });
+    if (error) throw new Error(`保存数据库 2.0 Beta 失败：${error.message}`);
+    return data === true;
+  }
 
   const { data, error } = await supabaseAdmin
     .from('app_state')
