@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { readDb } from '@/lib/db';
 import { SearchBar } from '@/app/components/SearchBar';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 export default async function Tutorials({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const sp = await searchParams;
@@ -26,7 +27,7 @@ export default async function Tutorials({ searchParams }: { searchParams: Promis
       <section className="content-grid">
         {guides.map((g) => (
           <Link className="content-card article-tile" href={`/tutorials/${g.id}`} key={g.id}>
-            {g.cover && <img className="wide-cover" src={g.cover} alt="" />}
+            {g.cover && <img className="wide-cover" src={mediaUrl(g.cover)} alt="" />}
             <div className="tag-row">
               <span className="tag">{g.category}</span>
               <small>{g.gameName || '综合教程'}</small>
