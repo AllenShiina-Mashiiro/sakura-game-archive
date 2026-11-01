@@ -1026,8 +1026,19 @@ if (b.status === 'active' || b.status === 'banned') {
         return { ok: true as const, profileImages };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
-      await deleteUnreferencedStorageImages(result.profileImages);
-      return NextResponse.json({ ok: true, message: '账号已删除；相关好友关系、私信及个人记录已清理，已发布内容保留并解除账号关联' });
+      let cleanupWarning = '';
+      try {
+        await deleteUnreferencedStorageImages(result.profileImages);
+      } catch (cleanupError) {
+        // Account deletion is already committed; never report the primary operation as failed.
+        console.error('账号已删除，但个人图片清理失败:', cleanupError);
+        cleanupWarning = '；个人头像或背景图片清理失败，需稍后由管理员处理';
+      }
+      return NextResponse.json({
+        ok: true,
+        message: `账号已删除；相关好友关系、私信及个人记录已清理，已发布内容保留并解除账号关联${cleanupWarning}`,
+        warning: cleanupWarning ? 'PROFILE_IMAGE_CLEANUP_FAILED' : undefined,
+      });
     }
     if (b.action === 'site-background' || b.action === 'site-branding') {
       await requireAdmin();
