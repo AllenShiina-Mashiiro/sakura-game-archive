@@ -2,6 +2,7 @@ import { readDb } from '@/lib/db';
 import { ActionForm } from '../../components/ActionForm';
 import { getSessionUser } from '@/lib/auth';
 import { MultiImageUploadField } from '@/app/components/MultiImageUploadField';
+import { ImageViewer } from '@/app/components/ImageViewer';
 export const dynamic = 'force-dynamic';
 export default async function Feedback() {
   const [db, user] = await Promise.all([readDb(), getSessionUser()]);
@@ -63,6 +64,7 @@ export default async function Feedback() {
               <details className="feedback-detail">
                 <summary>查看反馈详情与处理进度</summary>
                 <p className="multiline">{f.description}</p>
+                {(f.images?.length ? f.images : f.image ? [f.image] : []).length > 0 && <div className="review-image-grid">{(f.images?.length ? f.images : f.image ? [f.image] : []).map((src, index) => <ImageViewer key={src + '-' + index} src={src} alt={'反馈附件 ' + (index + 1)} className="review-image" />)}</div>}
                 <p><b>当前状态：</b>{f.status === 'pending' ? '等待管理员处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '未采纳'}</p>
                 <p><b>管理员回复：</b>{f.reply || '管理员暂未回复'}</p>
                 <div className="feedback-progress-timeline">{(f.statusHistory || []).map((step, index) => <div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status === 'processing' ? '处理中' : step.status === 'fixed' ? '已修复' : step.status === 'failed' ? '修复失败' : step.status === 'accepted' ? '已采纳' : step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div>

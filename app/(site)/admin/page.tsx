@@ -137,6 +137,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <label>反馈标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
                 <label>反馈类型<input name="type" required defaultValue={f.type} /></label>
                 <label>反馈描述<textarea name="description" rows={4} required minLength={5} defaultValue={f.description} /></label>
+                <MultiImageUploadField name="images" label="反馈附件图片" folder="feedback" initial={f.images || (f.image ? [f.image] : [])} />
                 <input type="hidden" name="gameId" value={f.gameId} />
               </ActionForm>
               <Review id={f.id} action="review-feedback" />
