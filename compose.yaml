@@ -1,0 +1,29 @@
+services:
+  sakura-game-archive:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sakura-game-archive:2.23.0
+    container_name: sakura-game-archive
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in the deployment environment}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in the deployment environment}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY in the deployment environment}
+      DATABASE_V2_ENABLED: ${DATABASE_V2_ENABLED:-false}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000').then(r => process.exit(r.ok || r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
