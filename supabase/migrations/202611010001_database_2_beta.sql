@@ -8,6 +8,7 @@ create table if not exists public.archive_schema_migrations (
   applied_at timestamptz not null default now(),
   notes text
 );
+alter table public.archive_schema_migrations enable row level security;
 
 create or replace function public.archive_create_entity_table(p_table text)
 returns void language plpgsql security definer set search_path = public
