@@ -3891,3 +3891,43 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
     padding: 14px;
   }
 }
+
+
+/* v2.23 social controls */
+.friend-action {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.friend-action small {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+.chat-emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.chat-emoji-picker button {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel2);
+  color: var(--text);
+  cursor: pointer;
+}
+.chat-emoji-picker button:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.chat-compose {
+  min-width: 0;
+}
+.chat-compose textarea {
+  width: 100%;
+  min-width: 0;
+}
