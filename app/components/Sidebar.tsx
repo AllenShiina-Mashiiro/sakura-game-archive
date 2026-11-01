@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
+import { mediaUrl } from '@/lib/media';
 import { SocialIndicators } from './SocialIndicators';
 
 export function Sidebar({ user, logo }: { user: User; logo?: string }) {
@@ -39,7 +40,7 @@ export function Sidebar({ user, logo }: { user: User; logo?: string }) {
       <Link className="brand" href="/">
         {logo ? (
           <span className="brand-mark brand-image">
-            <img src={logo} alt="网站 Logo" />
+            <img src={mediaUrl(logo)} alt="网站 Logo" />
           </span>
         ) : (
           <span className="brand-mark">G</span>
@@ -65,7 +66,7 @@ export function Sidebar({ user, logo }: { user: User; logo?: string }) {
         {open && (
           <div className="account-menu" data-theme-surface="true">
             <div className="account-menu-head">
-              <span className={`avatar avatar-frame-${user.avatarFrame || 'none'}`}>{user.avatar ? <img src={user.avatar} alt="" /> : user.nickname.slice(0, 1)}</span>
+              <span className={`avatar avatar-frame-${user.avatarFrame || 'none'}`}>{user.avatar ? <img src={mediaUrl(user.avatar)} alt="" /> : user.nickname.slice(0, 1)}</span>
               <div>
                 <b>{user.nickname}</b>
                 <small>
