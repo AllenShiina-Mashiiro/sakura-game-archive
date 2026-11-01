@@ -71,6 +71,7 @@ export function clientUser(user: User) {
   return safe;
 }
 export async function bootstrapAdmin() {
+  if ((await readDb()).users.some((u) => u.role === 'admin')) return;
   const password = process.env.ADMIN_PASSWORD;
   if (!password || password.length < 10) return;
   const passwordHash = await hashPassword(password);
