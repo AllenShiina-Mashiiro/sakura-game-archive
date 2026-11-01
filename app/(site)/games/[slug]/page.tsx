@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { LinkifiedText } from '@/app/components/LinkifiedText';
 import { FavoriteButton } from '../../../components/ActionForm';
 import { CommentSection } from '@/app/components/CommentSection';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 export default async function GameDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,7 +22,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
         ← 返回游戏档案
       </Link>
       <section className="detail-hero">
-        <img src={game.cover || '/placeholder-cover.svg'} alt={`${game.name}封面`} />
+        <img src={mediaUrl(game.cover || '/placeholder-cover.svg')} alt={`${game.name}封面`} />
         <div className="detail-shade" />
         <div className="detail-hero-content">
           <span className="overline">GAME PROFILE / {game.slug.toUpperCase()}</span>
