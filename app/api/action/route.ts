@@ -1069,35 +1069,24 @@ export async function POST(req: Request) {
     }
     if (b.action === 'user-update') {
       await requireAdmin();
-      const u = db.users.find((x) => x.id === b.id);
-      if (!u) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
-      const oldExp = u.exp;
-      const oldStatus = u.status;
-      const oldBadges = [...(u.badges || [])];
-      if (
-  b.role === 'user' ||
-  b.role === 'vip' ||
-  b.role === 'admin'
-) {
-  u.role = b.role;
-}
-
-if (b.status === 'active' || b.status === 'banned') {
-  u.status = b.status;
-}
-      if (typeof b.exp === 'number' && Number.isFinite(b.exp)) u.exp = Math.max(0, Math.min(1000000, Math.floor(b.exp)));
-      if (typeof b.title === 'string') u.title = b.title.slice(0, 40);
-      if (Array.isArray(b.badges)) u.badges = b.badges.filter((x: unknown) => typeof x === 'string').slice(0, 20);
-      if (typeof b.badges === 'string')
-        u.badges = b.badges
-          .split(',')
-          .map((x: string) => x.trim())
-          .filter(Boolean)
-          .slice(0, 20);
-      if (levelOf(u.exp) > levelOf(oldExp)) pushNotification(db, u.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(u.exp)}。`, `/users/${u.id}`);
-      if (oldStatus !== 'banned' && u.status === 'banned') pushNotification(db, u.id, 'system', '账号状态发生变化', '你的账号已被管理员封禁。请联系管理员了解详情。', '/profile');
-      for (const badge of u.badges || []) if (!oldBadges.includes(badge)) pushNotification(db, u.id, 'badge', '获得新徽章', `你获得了徽章：${badge}`, `/users/${u.id}`);
-      await writeDb(db);
+      const result = await mutateDb((fresh) => {
+        const u = fresh.users.find((x) => x.id === String(b.id || ''));
+        if (!u) return { error: '用户不存在' as const };
+        const oldExp = u.exp;
+        const oldStatus = u.status;
+        const oldBadges = [...(u.badges || [])];
+        if (b.role === 'user' || b.role === 'vip' || b.role === 'admin') u.role = b.role;
+        if (b.status === 'active' || b.status === 'banned') u.status = b.status;
+        if (typeof b.exp === 'number' && Number.isFinite(b.exp)) u.exp = Math.max(0, Math.min(1000000, Math.floor(b.exp)));
+        if (typeof b.title === 'string') u.title = b.title.slice(0, 40);
+        if (Array.isArray(b.badges)) u.badges = b.badges.filter((x: unknown) => typeof x === 'string').slice(0, 20);
+        if (typeof b.badges === 'string') u.badges = b.badges.split(',').map((x: string) => x.trim()).filter(Boolean).slice(0, 20);
+        if (levelOf(u.exp) > levelOf(oldExp)) pushNotification(fresh, u.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(u.exp) + '。', '/users/' + u.id);
+        if (oldStatus !== 'banned' && u.status === 'banned') pushNotification(fresh, u.id, 'system', '账号状态发生变化', '你的账号已被管理员封禁。请联系管理员了解详情。', '/profile');
+        for (const badge of u.badges || []) if (!oldBadges.includes(badge)) pushNotification(fresh, u.id, 'badge', '获得新徽章', '你获得了徽章：' + badge, '/users/' + u.id);
+        return { ok: true as const };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'resource-delete' || b.action === 'notice-delete' || b.action === 'guide-delete' || b.action === 'game-record-delete') {
