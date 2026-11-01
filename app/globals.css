@@ -685,16 +685,21 @@ textarea {
   width: auto;
 }
 .detail-hero {
-  height: 300px;
+  min-height: 300px;
+  height: auto;
   position: relative;
   border-radius: 16px;
   overflow: hidden;
   background: #1a2330;
+  isolation: isolate;
 }
 .detail-hero > img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: -2;
 }
 .detail-shade {
   position: absolute;
@@ -702,10 +707,12 @@ textarea {
   background: linear-gradient(90deg, #080b10ed, #080b1099, transparent);
 }
 .detail-hero-content {
-  position: absolute;
-  left: 36px;
-  bottom: 30px;
-  max-width: 600px;
+  position: relative;
+  left: auto;
+  bottom: auto;
+  max-width: 850px;
+  padding: 36px;
+  overflow-wrap: anywhere;
 }
 .detail-hero-content h1 {
   font-size: 40px;
@@ -714,6 +721,10 @@ textarea {
 .detail-hero-content p {
   color: #c3cbd6;
   line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: none;
+  display: block;
 }
 .detail-meta-grid {
   display: grid;
