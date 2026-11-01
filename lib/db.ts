@@ -27,6 +27,7 @@ const empty = (): Database => ({
   inventory: [],
   coinTransactions: [],
   messages: [],
+  friendships: [],
   notifications: [],
   contributors: [],
 });
@@ -46,6 +47,7 @@ function normalizeDb(raw: Partial<Database> | null | undefined): Database {
     inventory: raw?.inventory || [],
     coinTransactions: raw?.coinTransactions || [],
     messages: raw?.messages || [],
+    friendships: raw?.friendships || [],
     notifications: raw?.notifications || [],
     contributors: raw?.contributors || [],
     games: (raw?.games ?? []).map((g) => ({
