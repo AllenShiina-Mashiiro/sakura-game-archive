@@ -13,7 +13,7 @@ export function ImageViewer({ src, alt = '图片预览', className = '' }: { src
           <button type="button" className="image-viewer-close" onClick={() => setOpen(false)}>
             ×
           </button>
-          <img src={src} alt={alt} onClick={(e) => e.stopPropagation()} />
+          <img src={mediaUrl(src)} alt={alt} onClick={(e) => e.stopPropagation()} />
           <small>点击空白处关闭 · 原图查看</small>
         </div>
       )}
