@@ -497,7 +497,8 @@ export async function POST(req: Request) {
       await writeDb(db);
       return NextResponse.json({ ok: true });
     }
-    if (b.action === 'guide' || b.action === 'guide-edit') {
+    if (b.action === 'guide' || b.action === 'guide-edit' || b.action === 'guide-admin-create') {
+      if (b.action === 'guide-admin-create') await requireAdmin();
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.content !== 'string' || b.content.trim().length < 20) return NextResponse.json({ error: '教程标题至少 3 字，正文至少 20 字' }, { status: 400 });
       const values = {
         author: user.nickname,
@@ -542,14 +543,16 @@ export async function POST(req: Request) {
         id: randomUUID(),
         userId: user.id,
         ...values,
-        status: 'pending',
+        status: b.action === 'guide-admin-create' ? 'approved' : 'pending',
         views: 0,
         favorites: 0,
       });
-      for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
-        pushNotification(db, admin.id, 'system', '收到新的教程投稿', `${user.nickname} 投稿了《${values.title}》，等待审核。`, '/admin#reviews', user.id);
+      if (b.action === 'guide') {
+        for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
+          pushNotification(db, admin.id, 'system', '收到新的教程投稿', user.nickname + ' 投稿了《' + values.title + '》，等待审核。', '/admin#reviews', user.id);
+      }
       await writeDb(db);
-      return NextResponse.json({ ok: true, message: '教程已提交审核' });
+      return NextResponse.json({ ok: true, message: b.action === 'guide-admin-create' ? '教程已发布并关联游戏' : '教程已提交审核' });
     }
     await requireAdmin();
     if (b.action === 'shop-product-save') {
@@ -935,6 +938,16 @@ if (b.status === 'active' || b.status === 'banned') {
       await writeDb(db);
       await deleteUnreferencedStorageImages(oldContributorImages);
       return NextResponse.json({ ok: true, message: '开发者资料已保存' });
+    }
+    if (b.action === 'contributor-settings-delete') {
+      await requireAdmin();
+      const oldImages = [db.siteSettings?.contributor?.avatar, db.siteSettings?.contributor?.donationQr, db.siteSettings?.contributorBackground];
+      db.siteSettings = db.siteSettings || {};
+      delete db.siteSettings.contributor;
+      delete db.siteSettings.contributorBackground;
+      await writeDb(db);
+      await deleteUnreferencedStorageImages(oldImages);
+      return NextResponse.json({ ok: true, message: '开发者资料已删除，贡献者名单未受影响' });
     }
     if (b.action === 'contributor-add' || b.action === 'contributor-update') {
       await requireAdmin();
