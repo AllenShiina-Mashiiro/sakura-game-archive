@@ -999,39 +999,34 @@ export async function POST(req: Request) {
       await requireAdmin();
       const name = String(b.name || '').trim(), description = String(b.description || '').trim();
       if (!name || !description) return NextResponse.json({ error: '贡献者昵称和贡献说明必填' }, { status: 400 });
-      db.contributors = db.contributors || [];
-      const old = b.action === 'contributor-update' ? db.contributors.find((x) => x.id === String(b.id)) : undefined;
-      if (b.action === 'contributor-update' && !old) return NextResponse.json({ error: '贡献者记录不存在' }, { status: 404 });
-      const kind: 'volunteer' | 'technical' | 'content' | 'financial' =
-        b.kind === 'volunteer' || b.kind === 'content' || b.kind === 'financial' || b.kind === 'technical'
-          ? b.kind
-          : 'volunteer';
-      const item = {
-        id: old?.id || randomUUID(),
-        name: name.slice(0, 60),
-        role: String(b.role || '社区贡献者').slice(0, 80),
-        description: description.slice(0, 1000),
-        kind,
-        userId: String(b.userId || '') || undefined,
-        avatar: String(b.avatar || '').slice(0, 1000),
-        exp: Math.max(0, Math.min(1000000, Math.floor(Number(b.exp) || 0))),
-        badges: [...new Set(String(b.badges || '').split(',').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30),
-        createdAt: old?.createdAt || now,
-      };
-      if (old) db.contributors[db.contributors.indexOf(old)] = item;
-      else db.contributors.unshift(item);
-      await writeDb(db);
-      if (old && old.avatar !== item.avatar) await deleteUnreferencedStorageImages([old.avatar]);
-      return NextResponse.json({ ok: true, message: old ? '贡献者资料修改成功' : '贡献者已添加' });
+      const kind: 'volunteer' | 'technical' | 'content' | 'financial' = b.kind === 'volunteer' || b.kind === 'content' || b.kind === 'financial' || b.kind === 'technical' ? b.kind : 'volunteer';
+      const result = await mutateDb((fresh) => {
+        fresh.contributors = fresh.contributors || [];
+        const old = b.action === 'contributor-update' ? fresh.contributors.find((x) => x.id === String(b.id || '')) : undefined;
+        if (b.action === 'contributor-update' && !old) return { error: '贡献者记录不存在' as const };
+        const item = { id: old?.id || randomUUID(), name: name.slice(0, 60), role: String(b.role || '社区贡献者').slice(0, 80), description: description.slice(0, 1000), kind, userId: String(b.userId || '') || undefined, avatar: String(b.avatar || '').slice(0, 1000), exp: Math.max(0, Math.min(1000000, Math.floor(Number(b.exp) || 0))), badges: [...new Set(String(b.badges || '').split(',').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30), createdAt: old?.createdAt || now };
+        if (old) fresh.contributors[fresh.contributors.indexOf(old)] = item; else fresh.contributors.unshift(item);
+        return { oldAvatar: old?.avatar, avatar: item.avatar, updated: Boolean(old) };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      let warning = '';
+      try { if (result.updated && result.oldAvatar !== result.avatar) await deleteUnreferencedStorageImages([result.oldAvatar]); }
+      catch (cleanupError) { console.error('贡献者资料已保存，但旧头像清理失败:', cleanupError); warning = '；旧头像清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, message: (result.updated ? '贡献者资料修改成功' : '贡献者已添加') + warning, warning: warning || undefined });
     }
     if (b.action === 'contributor-delete') {
       await requireAdmin();
-      const old = (db.contributors || []).find((x) => x.id === String(b.id));
-      if (!old) return NextResponse.json({ error: '贡献者记录不存在' }, { status: 404 });
-      db.contributors = (db.contributors || []).filter((x) => x.id !== String(b.id));
-      await writeDb(db);
-      await deleteUnreferencedStorageImages([old.avatar]);
-      return NextResponse.json({ ok: true, message: '贡献者记录已移除' });
+      const result = await mutateDb((fresh) => {
+        const old = (fresh.contributors || []).find((x) => x.id === String(b.id || ''));
+        if (!old) return { error: '贡献者记录不存在' as const };
+        fresh.contributors = (fresh.contributors || []).filter((x) => x.id !== old.id);
+        return { avatar: old.avatar };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages([result.avatar]); }
+      catch (cleanupError) { console.error('贡献者已删除，但旧头像清理失败:', cleanupError); warning = '；旧头像清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, message: '贡献者记录已移除' + warning, warning: warning || undefined });
     }
     if (b.action === 'user-update') {
       await requireAdmin();
