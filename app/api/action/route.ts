@@ -645,7 +645,7 @@ export async function POST(req: Request) {
         slug: String(b.slug || '').trim(),
         cover: String(b.cover || ''),
         genre: String(b.genre || ''),
-        platforms: Array.isArray(b.platforms) ? b.platforms : [],
+        platforms: Array.isArray(b.platforms) ? b.platforms : typeof b.platforms === 'string' ? b.platforms.split(',').map((x: string) => x.trim()).filter(Boolean) : old?.platforms || [],
         status:
   b.status === '运营中' ||
   b.status === '测试中' ||
@@ -655,7 +655,7 @@ export async function POST(req: Request) {
         latestVersion: String(b.latestVersion || ''),
         updatedAt: String(b.updatedAt || now.slice(0, 10)),
         description: String(b.description || ''),
-        tags: Array.isArray(b.tags) ? b.tags : [],
+        tags: Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : old?.tags || [],
         updates: old?.updates || [],
         files: old?.files || [],
         guides: old?.guides || [],
