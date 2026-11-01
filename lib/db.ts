@@ -144,23 +144,28 @@ async function saveWithVersion(
   return Boolean(data);
 }
 
+const readVersions = new WeakMap<Database, number>();
+
 export async function readDb(): Promise<Database> {
   const row = await getRow();
-  return normalizeDb(row.data);
+  const db = normalizeDb(row.data);
+  readVersions.set(db, row.version);
+  return db;
 }
 
 let queue: Promise<unknown> = Promise.resolve();
 
 export async function writeDb(db: Database): Promise<void> {
   const run = async () => {
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const row = await getRow();
-      const saved = await saveWithVersion(db, row.version);
-
-      if (saved) return;
+    const expectedVersion = readVersions.get(db);
+    if (expectedVersion === undefined) {
+      throw new Error('数据库写入缺少原始版本信息，请重新读取后再试。');
     }
-
-    throw new Error('数据库正在被频繁修改，请稍后重试。');
+    const saved = await saveWithVersion(db, expectedVersion);
+    if (!saved) {
+      throw new Error('数据库刚刚被其他请求修改。为避免覆盖新数据，本次操作未保存，请刷新后重试。');
+    }
+    readVersions.set(db, expectedVersion + 1);
   };
 
   const next = queue.then(run, run);
