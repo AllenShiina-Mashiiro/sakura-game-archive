@@ -6,8 +6,10 @@ import { FavoriteButton } from '@/app/components/ActionForm';
 export const dynamic = 'force-dynamic';
 export default async function ResourceDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const r = (await readDb()).resources.find((x) => x.id === id);
+  const db = await readDb();
+  const r = db.resources.find((x) => x.id === id);
   if (!r) notFound();
+  const linkedGame = db.games.find((game) => game.id === r.gameId);
   return (
     <div className="page-wrap article-page">
       <Link className="back-link" href="/resources">
@@ -19,6 +21,13 @@ export default async function ResourceDetail({ params }: { params: Promise<{ id:
       <p className="subtitle">
         {r.gameName || '通用资源'} · {r.version} · 更新于 {r.updatedAt}
       </p>
+      <nav className="detail-section-nav" aria-label="资源内容导航">
+        <a href="#resource-description">资源说明</a>
+        <a href="#resource-install">安装方式</a>
+        {r.tutorial && <a href="#resource-tutorial">相关教程</a>}
+        <a href="#resource-download">下载链接</a>
+        <a href="#resource-comments">评论区</a>
+      </nav>
       <div className="detail-meta-grid">
         <div className="detail-meta">
           <small>适用范围</small>
@@ -26,22 +35,22 @@ export default async function ResourceDetail({ params }: { params: Promise<{ id:
         </div>
         <div className="detail-meta">
           <small>关联游戏</small>
-          <strong>{r.gameName || '通用'}</strong>
+          <strong>{linkedGame ? <Link href={`/games/${linkedGame.slug}`}>{linkedGame.name} ↗</Link> : r.gameName || '通用'}</strong>
         </div>
       </div>
       <div className="article-body">
-        <h2>资源说明</h2>
+        <h2 id="resource-description">资源说明</h2>
         <p>{r.description}</p>
-        <h2>安装方式</h2>
+        <h2 id="resource-install">安装方式</h2>
         <p>{r.install}</p>
         {r.tutorial && (
           <>
-            <h2>相关教程</h2>
+            <h2 id="resource-tutorial">相关教程</h2>
             <p>{r.tutorial}</p>
           </>
         )}
         {r.url && (
-          <a className="primary-btn" href={r.url} target="_blank" rel="noreferrer">
+          <a id="resource-download" className="primary-btn" href={r.url} target="_blank" rel="noreferrer">
             打开下载 / 资源链接 ↗
           </a>
         )}
@@ -54,7 +63,7 @@ export default async function ResourceDetail({ params }: { params: Promise<{ id:
         ))}
       </div>
       <FavoriteButton targetType="resource" targetId={r.id} />
-      <CommentSection targetType="resource" targetId={r.id} />
+      <section id="resource-comments"><CommentSection targetType="resource" targetId={r.id} /></section>
     </div>
   );
 }
