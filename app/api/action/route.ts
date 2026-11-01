@@ -559,7 +559,7 @@ export async function POST(req: Request) {
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
       if ('previousImages' in result) {
         let warning = '';
-        try { await deleteUnreferencedStorageImages(result.previousImages); }
+        try { await deleteUnreferencedStorageImages(result.previousImages || []); }
         catch (cleanupError) { console.error('教程已更新，但旧图片清理失败:', cleanupError); warning = '教程已更新，但旧图片清理失败，需稍后处理'; }
         return NextResponse.json({ ok: true, message: warning || '教程修改成功', warning: warning || undefined });
       }
