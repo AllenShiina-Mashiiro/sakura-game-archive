@@ -15,7 +15,8 @@ export default async function Feedback() {
           <p className="subtitle">反馈游戏问题、网站 Bug 或功能建议。审核采纳后可获得经验。</p>
         </div>
       </header>
-      <section className="detail-section">
+      <nav className="detail-section-nav feedback-tabs"><a href="#submit-feedback">提交反馈</a><a href="#my-feedback">我的反馈（{mine.length}）</a></nav>
+      <section id="submit-feedback" className="detail-section">
         <h2>提交反馈</h2>
         <ActionForm action="feedback" button="提交反馈">
           <label>
@@ -51,7 +52,7 @@ export default async function Feedback() {
           <ImageUploadField name="image" label="上传问题截图（可选）" folder="feedback" />
         </ActionForm>
       </section>
-      <section className="detail-section">
+      <section id="my-feedback" className="detail-section">
         <h2>我的反馈记录</h2>
         <div className="content-grid">
           {mine.map((f) => (
@@ -62,7 +63,7 @@ export default async function Feedback() {
               <details className="feedback-detail">
                 <summary>查看反馈详情与处理进度</summary>
                 <p className="multiline">{f.description}</p>
-                <p><b>当前状态：</b>{f.status === 'pending' ? '等待管理员处理' : f.status === 'accepted' ? '已采纳' : '未采纳'}</p>
+                <p><b>当前状态：</b>{f.status === 'pending' ? '等待管理员处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '未采纳'}</p>
                 <p><b>管理员回复：</b>{f.reply || '管理员暂未回复'}</p>
                 <div className="feedback-progress-timeline">{(f.statusHistory || []).map((step, index) => <div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status === 'processing' ? '处理中' : step.status === 'fixed' ? '已修复' : step.status === 'failed' ? '修复失败' : step.status === 'accepted' ? '已采纳' : step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div>
                 {f.rewardGranted && <p className="muted">EXP 奖励已发放</p>}
