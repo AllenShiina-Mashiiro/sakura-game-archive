@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import type { Game } from '@/lib/types';
+import { mediaUrl } from '@/lib/media';
 import { FavoriteButton } from '../../components/ActionForm';
 export function GameCard({ game }: { game: Game }) {
   return (
     <article className="game-card">
       <Link href={`/games/${game.slug}`}>
         <div className="cover-wrap">
-          <img src={game.cover || '/placeholder-cover.svg'} alt={`${game.name}封面`} className="game-cover" />
+          <img src={mediaUrl(game.cover || '/placeholder-cover.svg')} alt={`${game.name}封面`} className="game-cover" />
           <span className="status-pill">{game.status}</span>
         </div>
         <div className="game-card-body">
