@@ -2,7 +2,7 @@
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseAdmin: ReturnType<typeof createClient<any>> | null = null;
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseAdmin() {
   const supabaseUrl = process.env.SUPABASE_URL;
