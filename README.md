@@ -1,6 +1,6 @@
 # Sakura Game Archive · V2.24-dev
 
-V2.3 是基于原 V2.2 项目的渐进式升级版本。保留原有 Next.js App Router、TypeScript 和 JSON 数据文件结构。
+本项目沿用 V2.3 以来的 Next.js App Router 与 TypeScript 架构持续迭代。下方各版本记录描述对应版本发布时的功能与存储状态；其中早期版本提到的本地 JSON 文件存储属于历史说明，不代表当前分支的数据后端。当前数据架构以「数据说明」章节为准。
 
 ## V2.24-dev（开发中）
 
