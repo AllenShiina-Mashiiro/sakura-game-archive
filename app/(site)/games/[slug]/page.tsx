@@ -1,13 +1,21 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getGameBySlug } from '@/lib/db';
+import { readDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
+import { LinkifiedText } from '@/app/components/LinkifiedText';
 import { FavoriteButton } from '../../../components/ActionForm';
 import { CommentSection } from '@/app/components/CommentSection';
 export const dynamic = 'force-dynamic';
 export default async function GameDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const game = await getGameBySlug(slug);
+  const [db, user] = await Promise.all([readDb(), getSessionUser()]);
+  const game = db.games.find((g) => g.slug === slug);
   if (!game) notFound();
+  const legacyGuides = game.guides || [];
+  const linkedGuides = db.guides.filter((g) => g.gameId === game.id && g.status === 'approved');
+  const guideMap = new Map([...legacyGuides, ...linkedGuides].map((g) => [g.id, g]));
+  const gameGuides = [...guideMap.values()];
+  const isAdmin = user?.role === 'admin';
   return (
     <div className="page-wrap detail-page">
       <Link className="back-link" href="/games">
@@ -105,7 +113,8 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
               <div className="resource-row" key={file.id}>
                 <span>
                   <b>{file.name}</b>
-                  <small>{file.notes}</small>
+                  <small><LinkifiedText text={file.notes || ''} /></small>
+                  {file.url && /^https?:\\/\\//i.test(file.url) && <a className="resource-download-link" href={file.url} target="_blank" rel="noopener noreferrer">打开下载链接 ↗</a>}
                   {file.checksum && file.checksum !== '待填写' && <code className="checksum">SHA / MD5: {file.checksum}</code>}
                 </span>
                 <code>{file.version || '—'}</code>
@@ -123,18 +132,19 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           <div>
             <div className="eyebrow">KNOWLEDGE BASE</div>
             <h2>
-              攻略与开发者说明 <span className="count-badge">{game.guides.length}</span>
+              攻略与开发者说明 <span className="count-badge">{gameGuides.length}</span>
             </h2>
           </div>
         </div>
-        {game.guides.length ? (
+        {isAdmin && <Link className="outline-btn" href="/admin?section=tutorials">管理攻略 / 开发者说明 ↗</Link>}
+        {gameGuides.length ? (
           <div className="guide-grid">
-            {game.guides.map((guide) => (
+            {gameGuides.map((guide) => (
               <article className="guide-card" key={guide.id}>
                 <span className="tag">{guide.category}</span>
                 <time>{guide.date}</time>
-                <h3>{guide.title}</h3>
-                <p>{guide.content}</p>
+                <h3><Link href={`/tutorials/${guide.id}`}>{guide.title} ↗</Link></h3>
+                <p><LinkifiedText text={guide.content} /></p>
               </article>
             ))}
           </div>
@@ -145,9 +155,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
       <CommentSection targetType="game" targetId={game.id} />
       <div className="detail-bottom">
         <span>资料由个人档案库维护，示例数据请自行核实。</span>
-        <Link className="primary-btn" href="/admin">
+        {isAdmin && <Link className="primary-btn" href="/admin?section=games">
           编辑档案 ↗
-        </Link>
+        </Link>}
       </div>
     </div>
   );
