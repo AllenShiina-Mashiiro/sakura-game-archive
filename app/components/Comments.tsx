@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { mediaUrl } from '@/lib/media';
-import { mediaUrl } from '@/lib/media';
 type C = {
   id: string;
   userId: string;
