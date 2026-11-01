@@ -91,7 +91,7 @@ export default async function ContributorsPage() {
             <article className="contributor-card" key={x.id}>
               {x.userId ? <Link className="contributor-avatar contributor-avatar-large" href={`/users/${encodeURIComponent(x.userId)}`} title={`查看${x.name}的主页`}>{x.avatar ? <img src={x.avatar} alt={`${x.name}头像`} loading="lazy" /> : '✿'}</Link> : <span className="contributor-avatar contributor-avatar-large">{x.avatar ? <img src={x.avatar} alt={`${x.name}头像`} loading="lazy" /> : '✿'}</span>}
               <div>
-                {x.userId ? <b><Link href={`/users/${encodeURIComponent(x.userId)}`}>{x.name}</Link></b> : <b>{x.name}</b>
+                {x.userId ? <b><Link href={`/users/${encodeURIComponent(x.userId)}`}>{x.name}</Link></b> : <b>{x.name}</b>}
                 <small>{kindName(x.kind)} · {x.role}</small>
                 <div className="contributor-meta"><span className="tag">Lv.{levelForContributor(x.exp || 0)}</span><span className="muted">{x.exp || 0} EXP</span></div>
                 <div className="contributor-badges">{(x.badges || []).map((badge) => <span className="contributor-badge" key={badge}>{badge}</span>)}</div>
