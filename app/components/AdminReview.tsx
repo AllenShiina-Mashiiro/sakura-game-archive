@@ -19,7 +19,7 @@ export function AdminReview({ id, action }: { id: string; action: string }) {
       });
       const d = await r.json();
       if (!r.ok) throw Error(d.error || '操作失败');
-      setSuccess(status === 'accepted' ? '审核已通过' : '已拒绝该投稿');
+      setSuccess(({ processing: '反馈已标记为处理中', fixed: '反馈已标记为已修复，奖励已按规则处理', failed: '反馈已标记为修复失败', accepted: '审核已通过', rejected: '已拒绝该投稿' } as Record<string, string>)[status] || '处理状态已更新');
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : '操作失败');
