@@ -42,13 +42,20 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           {game.views || 0} 次浏览 · {game.favorites || 0} 次收藏
         </span>
       </div>
+      <nav className="detail-section-nav" aria-label="档案内容导航">
+        <a href="#updates">版本更新记录 ({game.updates.length})</a>
+        <a href="#requirements">运行配置</a>
+        <a href="#files">资源文件清单 ({game.files.length})</a>
+        <a href="#guides">攻略与开发者说明 ({gameGuides.length})</a>
+        <a href="#comments">评论区</a>
+      </nav>
       <div className="detail-meta-grid">
         <Meta label="最新版本" value={game.latestVersion || '未记录'} />
         <Meta label="最近更新" value={game.updatedAt || '暂无'} />
         <Meta label="游戏类型" value={game.genre || '未分类'} />
         <Meta label="运行平台" value={game.platforms.join(' / ') || '未记录'} />
       </div>
-      <section className="detail-section">
+      <section id="updates" className="detail-section">
         <div className="section-head compact">
           <div>
             <div className="eyebrow">VERSION HISTORY</div>
@@ -79,7 +86,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           <Empty text="还没有版本更新记录。" />
         )}
       </section>
-      <section className="detail-section">
+      <section id="requirements" className="detail-section">
         <div className="section-head compact">
           <div>
             <div className="eyebrow">SYSTEM REQUIREMENTS</div>
@@ -91,7 +98,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           <Meta label="推荐配置" value={game.config?.recommended || '暂未填写'} />
         </div>
       </section>
-      <section className="detail-section">
+      <section id="files" className="detail-section">
         <div className="section-head compact">
           <div>
             <div className="eyebrow">RESOURCE FILES</div>
@@ -126,7 +133,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           <Empty text="还没有资源文件记录。" />
         )}
       </section>
-      <section className="detail-section">
+      <section id="guides" className="detail-section">
         <div className="section-head compact">
           <div>
             <div className="eyebrow">KNOWLEDGE BASE</div>
@@ -151,7 +158,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           <Empty text="还没有文章或公告记录。" />
         )}
       </section>
-      <CommentSection targetType="game" targetId={game.id} />
+      <section id="comments" className="detail-section"><CommentSection targetType="game" targetId={game.id} /></section>
       <div className="detail-bottom">
         <span>资料由个人档案库维护，示例数据请自行核实。</span>
         {isAdmin && <Link className="primary-btn" href="/admin?section=games">
