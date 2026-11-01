@@ -520,7 +520,6 @@ export async function POST(req: Request) {
       const values = {
         author: user.nickname,
         gameId: String(b.gameId || ''),
-        gameName: db.games.find((g) => g.id === b.gameId)?.name || '',
         title: b.title.trim().slice(0, 100),
         category: String(b.category || '教程'),
         date: now.slice(0, 10),
@@ -530,45 +529,40 @@ export async function POST(req: Request) {
         bodyImage: String(b.bodyImage || ''),
         bodyImages: (() => {
           let images: unknown = b.bodyImages;
-          if (typeof images === 'string') {
-            try {
-              images = JSON.parse(images);
-            } catch {
-              images = [];
-            }
-          }
-          return Array.isArray(images)
-  ? images.filter((x): x is string => typeof x === 'string' && Boolean(x)).slice(0, 20)
-  : [b.image1, b.image2, b.image3, b.image4, b.image5].filter(
-      (x): x is string => typeof x === 'string' && Boolean(x)
-    );
+          if (typeof images === 'string') { try { images = JSON.parse(images); } catch { images = []; } }
+          return Array.isArray(images) ? images.filter((x): x is string => typeof x === 'string' && Boolean(x)).slice(0, 20) : [b.image1, b.image2, b.image3, b.image4, b.image5].filter((x): x is string => typeof x === 'string' && Boolean(x));
         })(),
       };
-      if (b.action === 'guide-edit') {
-        const old = db.guides.find((g) => g.id === b.id);
-        if (!old) return NextResponse.json({ error: '教程不存在' }, { status: 404 });
-        if (old.userId !== user.id && user.role !== 'admin') return NextResponse.json({ error: '只有教程作者或管理员可以修改' }, { status: 403 });
-        const previousGuideImages = [old.cover, old.bodyImage, old.bodyImages, old.content];
-        Object.assign(old, { ...values, author: old.author || user.nickname, date: old.date });
-        if (old.userId === user.id) old.author = user.nickname;
-        if (user.role !== 'admin' && old.status === 'rejected') old.status = 'pending';
-        await writeDb(db);
-        await deleteUnreferencedStorageImages(previousGuideImages);
-        return NextResponse.json({ ok: true, message: '教程修改成功' });
-      }
-      db.guides.unshift({
-        id: randomUUID(),
-        userId: user.id,
-        ...values,
-        status: b.action === 'guide-admin-create' ? 'approved' : 'pending',
-        views: 0,
-        favorites: 0,
+      const result = await mutateDb((fresh) => {
+        if (b.action === 'guide-edit') {
+          const old = fresh.guides.find((g) => g.id === b.id);
+          if (!old) return { error: '教程不存在' as const, status: 404 as const };
+          if (old.userId !== user.id && user.role !== 'admin') return { error: '只有教程作者或管理员可以修改' as const, status: 403 as const };
+          const previousImages = [old.cover, old.bodyImage, old.bodyImages, old.content];
+          Object.assign(old, { ...values, gameName: fresh.games.find((g) => g.id === values.gameId)?.name || '', author: old.author || user.nickname, date: old.date });
+          if (old.userId === user.id) old.author = user.nickname;
+          if (user.role !== 'admin' && old.status === 'rejected') old.status = 'pending';
+          return { previousImages };
+        }
+        fresh.guides.unshift({
+          id: randomUUID(), userId: user.id, ...values,
+          gameName: fresh.games.find((g) => g.id === values.gameId)?.name || '',
+          status: b.action === 'guide-admin-create' ? 'approved' : 'pending',
+          views: 0, favorites: 0,
+        });
+        if (b.action === 'guide') {
+          for (const admin of fresh.users.filter((x) => x.role === 'admin' && x.status === 'active'))
+            pushNotification(fresh, admin.id, 'system', '收到新的教程投稿', user.nickname + ' 投稿了《' + values.title + '》，等待审核。', '/admin#reviews', user.id);
+        }
+        return { created: true as const };
       });
-      if (b.action === 'guide') {
-        for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
-          pushNotification(db, admin.id, 'system', '收到新的教程投稿', user.nickname + ' 投稿了《' + values.title + '》，等待审核。', '/admin#reviews', user.id);
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      if ('previousImages' in result) {
+        let warning = '';
+        try { await deleteUnreferencedStorageImages(result.previousImages); }
+        catch (cleanupError) { console.error('教程已更新，但旧图片清理失败:', cleanupError); warning = '教程已更新，但旧图片清理失败，需稍后处理'; }
+        return NextResponse.json({ ok: true, message: warning || '教程修改成功', warning: warning || undefined });
       }
-      await writeDb(db);
       return NextResponse.json({ ok: true, message: b.action === 'guide-admin-create' ? '教程已发布并关联游戏' : '教程已提交审核' });
     }
     await requireAdmin();
