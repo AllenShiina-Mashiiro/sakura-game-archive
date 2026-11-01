@@ -158,14 +158,18 @@ export async function POST(req: Request) {
       });
     }
     if (b.action === 'checkin') {
-      if (user.lastCheckIn === now.slice(0, 10)) return NextResponse.json({ error: '今天已经签到过了' }, { status: 409 });
-      const u = db.users.find((x) => x.id === user.id)!;
-      const oldLevel = levelOf(u.exp);
-      u.exp += 10;
-      u.lastCheckIn = now.slice(0, 10);
-      if (levelOf(u.exp) > oldLevel) pushNotification(db, u.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(u.exp)}。`, `/users/${u.id}`);
-      await writeDb(db);
-      return NextResponse.json({ ok: true, exp: u.exp });
+      const result = await mutateDb((fresh) => {
+        const u = fresh.users.find((x) => x.id === user.id);
+        if (!u) return { error: '用户不存在' as const };
+        if (u.lastCheckIn === now.slice(0, 10)) return { error: '今天已经签到过了' as const };
+        const oldLevel = levelOf(u.exp);
+        u.exp += 10;
+        u.lastCheckIn = now.slice(0, 10);
+        if (levelOf(u.exp) > oldLevel) pushNotification(fresh, u.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(u.exp)}。`, `/users/${u.id}`);
+        return { exp: u.exp };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.error === '用户不存在' ? 404 : 409 });
+      return NextResponse.json({ ok: true, exp: result.exp });
     }
     if (b.action === 'user-appearance') {
       const result = await mutateDb((fresh) => {
@@ -182,21 +186,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: '个人外观设置已保存' });
     }
     if (b.action === 'profile') {
-      const u = db.users.find((x) => x.id === user.id)!;
-      const previousProfileImages = [u.avatar, u.cardBackground];
       if (typeof b.nickname !== 'string' || b.nickname.trim().length < 1 || b.nickname.trim().length > 24) return NextResponse.json({ error: '昵称需为 1-24 个字符' }, { status: 400 });
-      u.nickname = b.nickname.trim();
-      u.avatar = typeof b.avatar === 'string' ? b.avatar.slice(0, 500) : u.avatar;
-      u.selectedBadge = typeof b.selectedBadge === 'string' && (u.badges || []).includes(b.selectedBadge) ? b.selectedBadge : '';
-      u.avatarFrame =
-  b.avatarFrame === 'none' ||
-  b.avatarFrame === 'sakura' ||
-  b.avatarFrame === 'gold' ||
-  b.avatarFrame === 'glass'
-    ? b.avatarFrame
-    : 'none';
-      u.cardBackground = typeof b.cardBackground === 'string' && (/^https:\/\//i.test(b.cardBackground) || b.cardBackground.startsWith('/uploads/') || b.cardBackground === '') ? b.cardBackground.slice(0, 1000) : u.cardBackground;
-      await writeDb(db);
+      const previousProfileImages = await mutateDb((fresh) => {
+        const u = fresh.users.find((x) => x.id === user.id);
+        if (!u) return null;
+        const previous = [u.avatar, u.cardBackground];
+        u.nickname = b.nickname!.toString().trim();
+        u.avatar = typeof b.avatar === 'string' ? b.avatar.slice(0, 500) : u.avatar;
+        u.selectedBadge = typeof b.selectedBadge === 'string' && (u.badges || []).includes(b.selectedBadge) ? b.selectedBadge : '';
+        u.avatarFrame = b.avatarFrame === 'none' || b.avatarFrame === 'sakura' || b.avatarFrame === 'gold' || b.avatarFrame === 'glass' ? b.avatarFrame : 'none';
+        u.cardBackground = typeof b.cardBackground === 'string' && (/^https:\/\//i.test(b.cardBackground) || b.cardBackground.startsWith('/uploads/') || b.cardBackground === '') ? b.cardBackground.slice(0, 1000) : u.cardBackground;
+        return previous;
+      });
+      if (!previousProfileImages) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
       await deleteUnreferencedStorageImages(previousProfileImages);
       return NextResponse.json({ ok: true });
     }
