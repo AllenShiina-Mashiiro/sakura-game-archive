@@ -1017,13 +1017,17 @@ export async function POST(req: Request) {
     }
     if (b.action === 'contributor-settings-delete') {
       await requireAdmin();
-      const oldImages = [db.siteSettings?.contributor?.avatar, db.siteSettings?.contributor?.donationQr, db.siteSettings?.contributorBackground];
-      db.siteSettings = db.siteSettings || {};
-      delete db.siteSettings.contributor;
-      delete db.siteSettings.contributorBackground;
-      await writeDb(db);
-      await deleteUnreferencedStorageImages(oldImages);
-      return NextResponse.json({ ok: true, message: '开发者资料已删除，贡献者名单未受影响' });
+      const oldImages = await mutateDb((fresh) => {
+        const images = [fresh.siteSettings?.contributor?.avatar, fresh.siteSettings?.contributor?.donationQr, fresh.siteSettings?.contributorBackground];
+        fresh.siteSettings = fresh.siteSettings || {};
+        delete fresh.siteSettings.contributor;
+        delete fresh.siteSettings.contributorBackground;
+        return images;
+      });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages(oldImages); }
+      catch (cleanupError) { console.error('开发者资料已删除，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, message: '开发者资料已删除，贡献者名单未受影响' + warning });
     }
     if (b.action === 'contributor-add' || b.action === 'contributor-update') {
       await requireAdmin();
