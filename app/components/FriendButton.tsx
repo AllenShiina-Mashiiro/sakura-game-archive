@@ -16,7 +16,10 @@ export function FriendButton({ userId }: { userId: string }) {
     else if ((d.outgoing || []).some((x: { id: string }) => x.id === userId)) setState('outgoing');
     else setState('none');
   }, [userId]);
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
   async function act(action: string) {
     setBusy(true); setNotice('');
     try {
