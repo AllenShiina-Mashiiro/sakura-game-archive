@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { readDb, writeDb } from '@/lib/db';
+import { readDb, mutateDb } from '@/lib/db';
 import {
   verifyPassword,
   createSession,
@@ -72,51 +72,53 @@ export async function POST(req: Request) {
   // 登录成功，清除该 IP 的失败次数
   await clearLoginFailures(ip);
 
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  const loginResult = await mutateDb((fresh) => {
+    const current = fresh.users.find((u) => u.id === user.id);
+    if (!current || current.status !== 'active' || current.passwordHash !== user.passwordHash) {
+      return { ok: false as const, error: '账户状态已变化，请重新登录' };
+    }
 
-  const oldLevel = levelOf(user.exp);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const oldLevel = levelOf(current.exp);
 
-  // 每日首次登录增加 5 点经验
-  if (user.lastDailyLogin !== today) {
-    user.exp += 5;
-    user.lastDailyLogin = today;
-  }
+    // 每日首次登录奖励和登录日志在同一次原子快照更新中完成。
+    if (current.lastDailyLogin !== today) {
+      current.exp += 5;
+      current.lastDailyLogin = today;
+    }
 
-  // 等级提升通知
-  if (levelOf(user.exp) > oldLevel) {
-    db.notifications = db.notifications || [];
+    if (levelOf(current.exp) > oldLevel) {
+      fresh.notifications = fresh.notifications || [];
+      fresh.notifications.unshift({
+        id: randomUUID(),
+        userId: current.id,
+        type: 'level',
+        title: '等级提升啦！',
+        body: `恭喜升级至 Lv.${levelOf(current.exp)}。`,
+        href: `/users/${current.id}`,
+        createdAt: now.toISOString(),
+      });
+    }
 
-    db.notifications.unshift({
+    current.lastLoginAt = now.toISOString();
+    current.lastLoginIp = ip;
+    fresh.loginLogs = fresh.loginLogs || [];
+    fresh.loginLogs.unshift({
       id: randomUUID(),
-      userId: user.id,
-      type: 'level',
-      title: '等级提升啦！',
-      body: `恭喜升级至 Lv.${levelOf(user.exp)}。`,
-      href: `/users/${user.id}`,
-      createdAt: now.toISOString(),
+      userId: current.id,
+      username: current.username,
+      ip,
+      date: now.toISOString(),
     });
-  }
-
-  // 更新登录信息
-  user.lastLoginAt = now.toISOString();
-  user.lastLoginIp = ip;
-
-  // 保存登录日志
-  db.loginLogs.unshift({
-    id: randomUUID(),
-    userId: user.id,
-    username: user.username,
-    ip,
-    date: now.toISOString(),
+    fresh.loginLogs = fresh.loginLogs.slice(0, 5000);
+    return { ok: true as const };
   });
 
-  // 最多保留 5000 条登录日志
-  db.loginLogs = db.loginLogs.slice(0, 5000);
+  if (!loginResult.ok) {
+    return NextResponse.json({ error: loginResult.error }, { status: 409 });
+  }
 
-  await writeDb(db);
-
-  // 创建登录会话
   await createSession(user.id);
 
   return NextResponse.json({ ok: true });

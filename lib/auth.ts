@@ -2,7 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { readDb, writeDb } from './db';
+import { readDb, mutateDb } from './db';
 import type { User } from './types';
 const scrypt = promisify(scryptCb);
 const COOKIE = 'gra_session';
@@ -71,22 +71,23 @@ export function clientUser(user: User) {
   return safe;
 }
 export async function bootstrapAdmin() {
-  const db = await readDb();
-  if (db.users.some((u) => u.role === 'admin')) return;
   const password = process.env.ADMIN_PASSWORD;
   if (!password || password.length < 10) return;
-  db.users.push({
-    id: 'initial-admin',
-    username: 'admin',
-    passwordHash: await hashPassword(password),
-    nickname: '管理员',
-    avatar: '',
-    role: 'admin',
-    status: 'active',
-    createdAt: new Date().toISOString(),
-    exp: 0,
-    badges: ['站点管理员'],
-    title: '站点管理员',
+  const passwordHash = await hashPassword(password);
+  await mutateDb((fresh) => {
+    if (fresh.users.some((u) => u.role === 'admin')) return;
+    fresh.users.push({
+      id: 'initial-admin',
+      username: 'admin',
+      passwordHash,
+      nickname: '管理员',
+      avatar: '',
+      role: 'admin',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      exp: 0,
+      badges: ['站点管理员'],
+      title: '站点管理员',
+    });
   });
-  await writeDb(db);
 }
