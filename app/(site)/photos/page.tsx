@@ -1,6 +1,7 @@
 import { readDb } from '@/lib/db';
 import Link from 'next/link';
 import { SearchBar } from '@/app/components/SearchBar';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 export default async function Photos({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const sp = await searchParams;
@@ -24,7 +25,7 @@ export default async function Photos({ searchParams }: { searchParams: Promise<{
         {photos.map((p) => (
           <article className="photo-card" key={p.id}>
             <a href={p.image} target="_blank" rel="noreferrer">
-              <img src={p.image} alt={p.title} />
+              <img src={mediaUrl(p.image)} alt={p.title} />
             </a>
             <div>
               <h3>{p.title}</h3>
