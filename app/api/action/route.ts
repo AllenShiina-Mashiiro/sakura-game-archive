@@ -643,6 +643,11 @@ export async function POST(req: Request) {
         guides: old?.guides || [],
         views: old?.views || 0,
         favorites: old?.favorites || 0,
+        images: (() => {
+          let value: unknown = b.images;
+          if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } }
+          return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : old?.images || [];
+        })(),
         config: {
   minimum:
     typeof b.minimum === 'string'
@@ -660,6 +665,7 @@ export async function POST(req: Request) {
       else db.games.unshift(game);
       await writeDb(db);
       if (old && old.cover !== game.cover) await deleteUnreferencedStorageImages([old.cover]);
+      if (old) await deleteUnreferencedStorageImages((old.images || []).filter((image) => !(game.images || []).includes(image)));
       return NextResponse.json({ ok: true, id: game.id, message: old ? '游戏档案修改成功' : '游戏档案创建成功' });
     }
     if (b.action === 'game-record') {

@@ -80,6 +80,7 @@ export type Game = {
   views: number;
   favorites: number;
   config?: { minimum: string; recommended: string };
+  images?: string[];
 };
 export type Resource = {
   id: string;
@@ -110,6 +111,9 @@ export type Feedback = {
   status: 'pending' | 'accepted' | 'rejected';
   reply: string;
   createdAt: string;
+  statusHistory?: { status: string; reply: string; at: string; by: string }[];
+  bugSeverity?: 'warning' | 'error' | 'critical';
+  rewardGranted?: boolean;
 };
 export type Notice = {
   id: string;

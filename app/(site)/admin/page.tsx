@@ -15,6 +15,7 @@ import { ResourceEditForm } from '@/app/components/ResourceEditForm';
 import { ContributorEditForm } from '@/app/components/ContributorEditForm';
 import { AdminSearchList } from '@/app/components/AdminSearchList';
 import { GameRecordManager } from '@/app/components/GameRecordManager';
+import { MultiImageUploadField } from '@/app/components/MultiImageUploadField';
 export const dynamic = 'force-dynamic';
 export default async function Admin({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   const params = await searchParams;
@@ -164,6 +165,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               <input name="slug" required pattern="[a-z0-9-]+" />
             </label>
             <ImageUploadField name="cover" label="游戏封面" folder="games" />
+            <MultiImageUploadField name="images" label="更多图片" folder="games" />
             <label>
               游戏类型
               <input name="genre" />

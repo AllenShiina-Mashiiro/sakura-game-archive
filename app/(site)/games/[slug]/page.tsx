@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { LinkifiedText } from '@/app/components/LinkifiedText';
 import { FavoriteButton } from '../../../components/ActionForm';
 import { CommentSection } from '@/app/components/CommentSection';
+import { ImageViewer } from '@/app/components/ImageViewer';
 import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 export default async function GameDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,6 +47,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
       <nav className="detail-section-nav" aria-label="档案内容导航">
         <a href="#updates">版本更新记录 ({game.updates.length})</a>
         <a href="#requirements">运行配置</a>
+        <a href="#more-images">更多图片 ({(game.images || []).length})</a>
         <a href="#files">资源文件清单 ({game.files.length})</a>
         <a href="#guides">攻略与开发者说明 ({gameGuides.length})</a>
         <a href="#comments">评论区</a>
@@ -98,6 +100,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
           <Meta label="最低配置" value={game.config?.minimum || '暂未填写'} />
           <Meta label="推荐配置" value={game.config?.recommended || '暂未填写'} />
         </div>
+      </section>
+      <section id="more-images" className="detail-section game-extra-gallery-section">
+        <div className="section-head compact"><div><div className="eyebrow">MORE IMAGES</div><h2>更多图片 <span className="count-badge">{(game.images || []).length}</span></h2></div></div>
+        {(game.images || []).length ? <div className="game-extra-gallery">{(game.images || []).map((src, index) => <ImageViewer key={`${src}-${index}`} src={src} alt={`${game.name}图片 ${index + 1}`} className="game-extra-thumb" />)}</div> : <div className="empty-inline">暂无更多图片。</div>}
       </section>
       <section id="files" className="detail-section">
         <div className="section-head compact">
