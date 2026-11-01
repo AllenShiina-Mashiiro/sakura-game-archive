@@ -49,11 +49,15 @@ export default async function ResourceDetail({ params }: { params: Promise<{ id:
             <p>{r.tutorial}</p>
           </>
         )}
-        {r.url && (
-          <a id="resource-download" className="primary-btn" href={r.url} target="_blank" rel="noreferrer">
-            打开下载 / 资源链接 ↗
-          </a>
-        )}
+        <section id="resource-download" className="resource-download-section">
+          {r.url ? (
+            <a className="primary-btn" href={r.url} target="_blank" rel="noopener noreferrer">
+              打开下载 / 资源链接 ↗
+            </a>
+          ) : (
+            <p className="muted">管理员尚未提供下载链接。</p>
+          )}
+        </section>
       </div>
       <div className="tag-row">
         {r.tags.map((t) => (
