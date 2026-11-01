@@ -1,9 +1,9 @@
-name: v2.23 validation
+name: v2.24 validation
 on:
   pull_request:
     branches: [master, test]
   push:
-    branches: [release/v2.23]
+    branches: [release/v2.23, v2.24-dev]
 permissions:
   contents: read
 jobs:
