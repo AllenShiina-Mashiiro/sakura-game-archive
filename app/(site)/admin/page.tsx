@@ -116,9 +116,6 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </article>
           ))}
         {!db.guides.some((g) => g.status === 'pending') && <p className="muted">暂无待审核教程。</p>}
-        <h3>拓展资源内容</h3>
-        {db.resources.slice(0, 100).map((resource) => <article className="review-card" key={resource.id}><b>{resource.title}</b><small>{resource.gameName || '通用资源'} · {resource.version} · {resource.updatedAt}</small>{resource.cover && <ImageViewer src={resource.cover} alt={resource.title + '封面'} className="review-image" />}<p className="multiline">{resource.description}</p><p className="muted">{resource.scope || '未注明适用范围'}</p><a href={'/resources/' + resource.id} target="_blank" rel="noreferrer">查看资源详情 ↗</a></article>)}
-        {!db.resources.length && <p className="muted">暂无资源内容。</p>}
         <h3>问题反馈</h3>
         {db.feedback
           .slice(0, 200)
@@ -349,7 +346,18 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </label>
           </ActionForm>
         </details>
-        <AdminSearchList items={db.resources.map((r) => ({ id: r.id, search: [r.title,r.gameName,r.description,r.version,...(r.tags||[])].join(' '), content: <div className="admin-row"><div><b>{r.title}</b><small>{r.gameName} · {(r.tags||[]).join(' / ')}</small></div><ResourceEditForm resource={r} games={db.games.map(g=>({id:g.id,name:g.name}))} /><AdminDeleteButton action="resource-delete" id={r.id} /></div> }))} placeholder="搜索资源名称、游戏、版本或标签…" />
+        <div className="review-post-list">
+          {db.resources.map((r) => <article className="review-card" key={r.id}>
+            <b>{r.title}</b>
+            <small>{r.gameName || '通用资源'} · {r.version || '未标注版本'} · 更新于 {r.updatedAt}{r.username ? ' · 贡献者 ' + r.username : ''}</small>
+            {r.cover && <ImageViewer src={r.cover} alt={r.title + '封面'} className="review-image" />}
+            <p className="multiline">{r.description || '暂无资源说明'}</p>
+            <p><b>适用范围：</b>{r.scope || '未注明'}　<b>标签：</b>{(r.tags || []).join(' / ') || '无'}</p>
+            <details><summary>安装方式、下载与关联教程</summary><p className="multiline">{r.install || '暂无安装说明'}</p><p>{r.url ? <a href={r.url} target="_blank" rel="noreferrer">打开资源链接 ↗</a> : '暂无下载链接'}</p><p>{r.tutorial || '暂无关联教程'}</p></details>
+            <div className="admin-row"><ResourceEditForm resource={r} games={db.games.map(g=>({id:g.id,name:g.name}))} /><AdminDeleteButton action="resource-delete" id={r.id} /></div>
+          </article>)}
+          {!db.resources.length && <p className="muted">暂无资源内容。</p>}
+        </div>
       </section>
       )}
       {section === "notices" && (

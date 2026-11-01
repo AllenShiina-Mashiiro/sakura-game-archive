@@ -3947,3 +3947,5 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
 .feedback-tabs{display:flex;gap:12px;flex-wrap:wrap}.feedback-tabs a{display:inline-flex;align-items:center;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);text-decoration:none}
 
 .review-image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;align-items:start;margin:12px 0}.review-image-grid .review-image{width:100%;height:120px;object-fit:cover;border-radius:10px}
+
+.review-post-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}.review-post-list .review-card{min-width:0}.review-post-list .review-image{display:block;width:min(100%,420px);max-height:240px;object-fit:contain;border-radius:12px;margin:10px 0}.review-post-list .admin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
