@@ -115,7 +115,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         {!db.guides.some((g) => g.status === 'pending') && <p className="muted">暂无待审核教程。</p>}
         <h3>问题反馈</h3>
         {db.feedback
-          .filter((f) => f.status === 'pending')
+          .slice(0, 200)
           .map((f) => (
             <article className="review-card" key={f.id}>
               <b>
@@ -124,12 +124,12 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               <small>
                 {f.username} · {f.createdAt}
               </small>
-              <p>{f.description}</p>
+              <details><summary>查看完整反馈与处理记录（{f.status === 'pending' ? '待处理' : f.status === 'accepted' ? '已采纳' : '已拒绝'}）</summary><p className="multiline">{f.description}</p><p><b>管理员回复：</b>{f.reply || '暂无回复'}</p></details>
               {f.image && <ImageViewer src={f.image} alt="反馈附件" className="review-image" />}
-              <Review id={f.id} action="review-feedback" />
+              {f.status === 'pending' ? <Review id={f.id} action="review-feedback" /> : <small className="muted">该反馈已处理；处理结果和回复仍可在此查看。</small>}
             </article>
           ))}
-        {!db.feedback.some((f) => f.status === 'pending') && <p className="muted">暂无待处理反馈。</p>}
+        {!db.feedback.length && <p className="muted">暂无反馈记录。</p>}
       </section>
       )}
       {section === "tutorials" && (
