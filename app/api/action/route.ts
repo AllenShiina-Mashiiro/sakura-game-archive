@@ -858,88 +858,43 @@ export async function POST(req: Request) {
       const nickname = String(b.nickname || username).trim();
       if (!/^[A-Za-z0-9_]{3,24}$/.test(username)) return NextResponse.json({ error: '用户名需为 3-24 位字母、数字或下划线' }, { status: 400 });
       if (password.length < 8) return NextResponse.json({ error: '初始密码至少 8 位' }, { status: 400 });
-      if (db.users.some((x) => x.username.toLowerCase() === username.toLowerCase())) return NextResponse.json({ error: '用户名已存在' }, { status: 409 });
-      const role: 'user' | 'vip' =
-  b.role === 'user' || b.role === 'vip' ? b.role : 'user';
-      db.users.unshift({
-        id: randomUUID(),
-        username,
-        passwordHash: await hashPassword(password),
-        nickname: nickname.slice(0, 24),
-        avatar: '',
-        role,
-        status: 'active',
-        createdAt: now,
-        exp: 0,
-        badges: [],
-        title: '',
+      const role: 'user' | 'vip' = b.role === 'user' || b.role === 'vip' ? b.role : 'user';
+      const passwordHash = await hashPassword(password);
+      const created = await mutateDb((fresh) => {
+        if (fresh.users.some((x) => x.username.toLowerCase() === username.toLowerCase())) return false;
+        fresh.users.unshift({ id: randomUUID(), username, passwordHash, nickname: nickname.slice(0, 24), avatar: '', role, status: 'active', createdAt: now, exp: 0, badges: [], title: '' });
+        return true;
       });
-      await writeDb(db);
+      if (!created) return NextResponse.json({ error: '用户名已存在' }, { status: 409 });
       return NextResponse.json({ ok: true, message: '账号创建成功' });
     }
     if (b.action === 'admin-user-update') {
       await requireAdmin();
-      const target = db.users.find((x) => x.id === String(b.id));
-      if (!target) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
-      if (target.id === user.id && b.role && b.role !== 'admin') return NextResponse.json({ error: '不能降低当前管理员自己的权限' }, { status: 400 });
-      if (target.role === 'admin' && target.id !== user.id && b.role && b.role !== 'admin') return NextResponse.json({ error: '不能在此降级其他管理员' }, { status: 403 });
-      if (target.role === 'admin' && target.id !== user.id && b.status === 'banned') return NextResponse.json({ error: '不能封禁其他管理员账号' }, { status: 403 });
-      if (
-  b.role === 'user' ||
-  b.role === 'vip' ||
-  b.role === 'admin'
-) {
-  target.role = b.role;
-}
-
-if (b.status === 'active' || b.status === 'banned') {
-  target.status = b.status;
-}
-      if (typeof b.nickname === 'string' && b.nickname.trim()) target.nickname = b.nickname.trim().slice(0, 24);
-      const oldExp = Math.max(0, Number(target.exp) || 0);
-      const oldBadges = [...(target.badges || [])];
-      if (b.exp !== undefined && Number.isFinite(Number(b.exp))) target.exp = Math.max(0, Math.min(1000000, Math.floor(Number(b.exp))));
-      if (typeof b.title === 'string') target.title = b.title.trim().slice(0, 40);
-      if (typeof b.badges === 'string') {
-  target.badges = [...new Set<string>(
-    b.badges.split(',').map((x: string) => x.trim()).filter(Boolean)
-  )].slice(0, 30);
-} else if (Array.isArray(b.badges)) {
-  const badgeList = b.badges.filter(
-    (x: unknown): x is string => typeof x === 'string'
-  );
-
-  target.badges = [...new Set<string>(
-    badgeList.map((x: string) => x.trim()).filter(Boolean)
-  )].slice(0, 30);
-}
-      if (target.selectedBadge && !(target.badges || []).includes(target.selectedBadge)) target.selectedBadge = '';
-      if (target.exp > oldExp) {
-        const gainedExp = target.exp - oldExp;
-        pushNotification(
-          db,
-          target.id,
-          'system',
-          '获得经验值',
-          `管理员为你增加了 ${gainedExp} EXP，当前经验为 ${target.exp} EXP。`,
-          `/users/${target.id}`,
-          user.id,
-        );
-      }
-      if (levelOf(target.exp) > levelOf(oldExp)) {
-        pushNotification(
-          db,
-          target.id,
-          'level',
-          '等级提升啦！',
-          `管理员调整经验后，你已达到 Lv.${levelOf(target.exp)}。`,
-          `/users/${target.id}`,
-        );
-      }
-      for (const badge of target.badges || []) {
-        if (!oldBadges.includes(badge)) pushNotification(db, target.id, 'badge', '获得新徽章', `管理员授予你徽章：${badge}`, `/users/${target.id}`, user.id);
-      }
-      await writeDb(db);
+      const result = await mutateDb((fresh) => {
+        const target = fresh.users.find((x) => x.id === String(b.id));
+        if (!target) return { error: '用户不存在' as const, status: 404 as const };
+        if (target.id === user.id && b.role && b.role !== 'admin') return { error: '不能降低当前管理员自己的权限' as const, status: 400 as const };
+        if (target.role === 'admin' && target.id !== user.id && b.role && b.role !== 'admin') return { error: '不能在此降级其他管理员' as const, status: 403 as const };
+        if (target.role === 'admin' && target.id !== user.id && b.status === 'banned') return { error: '不能封禁其他管理员账号' as const, status: 403 as const };
+        if (b.role === 'user' || b.role === 'vip' || b.role === 'admin') target.role = b.role;
+        if (b.status === 'active' || b.status === 'banned') target.status = b.status;
+        if (typeof b.nickname === 'string' && b.nickname.trim()) target.nickname = b.nickname.trim().slice(0, 24);
+        const oldExp = Math.max(0, Number(target.exp) || 0);
+        const oldBadges = [...(target.badges || [])];
+        if (b.exp !== undefined && Number.isFinite(Number(b.exp))) target.exp = Math.max(0, Math.min(1000000, Math.floor(Number(b.exp))));
+        if (typeof b.title === 'string') target.title = b.title.trim().slice(0, 40);
+        if (typeof b.badges === 'string') target.badges = [...new Set<string>(b.badges.split(',').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30);
+        else if (Array.isArray(b.badges)) target.badges = [...new Set<string>(b.badges.filter((x: unknown): x is string => typeof x === 'string').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30);
+        if (target.selectedBadge && !(target.badges || []).includes(target.selectedBadge)) target.selectedBadge = '';
+        if (target.exp > oldExp) {
+          const gainedExp = target.exp - oldExp;
+          pushNotification(fresh, target.id, 'system', '获得经验值', `管理员为你增加了 ${gainedExp} EXP，当前经验为 ${target.exp} EXP。`, `/users/${target.id}`, user.id);
+        }
+        if (levelOf(target.exp) > levelOf(oldExp)) pushNotification(fresh, target.id, 'level', '等级提升啦！', `管理员调整经验后，你已达到 Lv.${levelOf(target.exp)}。`, `/users/${target.id}`);
+        for (const badge of target.badges || []) if (!oldBadges.includes(badge)) pushNotification(fresh, target.id, 'badge', '获得新徽章', `管理员授予你徽章：${badge}`, `/users/${target.id}`, user.id);
+        return { ok: true as const };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json({ ok: true, message: '账户资料、经验与徽章已更新' });
     }
     if (b.action === 'admin-user-delete') {
