@@ -3717,3 +3717,62 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Resource detail: keep long cloud-drive URLs inside the first column. */
+.resource-table {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.resource-head,
+.resource-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(72px, .7fr) minmax(100px, .8fr) minmax(110px, .8fr);
+  gap: 14px;
+  align-items: start;
+}
+.resource-head > *,
+.resource-row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.resource-row small {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.65;
+}
+.resource-row a,
+.inline-external-link {
+  color: var(--cyan);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.resource-download-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.guide-card h3 a:hover,
+.resource-row a:hover {
+  color: var(--accent);
+}
+@media (max-width: 760px) {
+  .resource-head { display: none; }
+  .resource-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 12px;
+    padding: 14px 12px;
+  }
+  .resource-row > span:first-child {
+    grid-column: 1 / -1;
+  }
+  .resource-row > span:first-child b {
+    font-size: 15px;
+  }
+}
