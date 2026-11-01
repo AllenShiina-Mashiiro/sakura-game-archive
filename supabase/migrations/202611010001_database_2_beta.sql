@@ -97,7 +97,7 @@ begin
     loop
       entity_id := coalesce(item ->> spec.id_key, item ->> 'username', item ->> 'slug');
       if entity_id is null or entity_id = '' then
-        raise exception 'Missing entity id in app_state key %', spec[1];
+        raise exception 'Missing entity id in app_state key %', spec.array_key;
       end if;
       owner := coalesce(item ->> 'userId', item ->> 'ownerId', item ->> 'requesterId');
       begin
