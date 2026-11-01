@@ -23,8 +23,8 @@ with source as (
   union all select 'notifications', jsonb_array_length(coalesce(data->'notifications','[]'::jsonb)), (select count(*)::int from public.archive_notifications) from source
   union all select 'contributors', jsonb_array_length(coalesce(data->'contributors','[]'::jsonb)), (select count(*)::int from public.archive_contributors) from source
   union all select 'gameGuides', (
-    select coalesce(sum(jsonb_array_length(case when jsonb_typeof(g->'guides')='array' then g->'guides' else '[]'::jsonb end)),0)::int
-    from jsonb_array_elements(coalesce(data->'games','[]'::jsonb)) g
+    select coalesce(sum(jsonb_array_length(case when jsonb_typeof(games.game->'guides')='array' then games.game->'guides' else '[]'::jsonb end)),0)::int
+    from jsonb_array_elements(coalesce(data->'games','[]'::jsonb)) as games(game)
   ), (select count(*)::int from public.archive_game_guides) from source
 )
 select entity, legacy_count, normalized_count,
