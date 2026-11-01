@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { readDb, writeDb, mutateDb, createDefaultShopProducts } from '@/lib/db';
+import { readDb, mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
 import type {
@@ -199,8 +199,10 @@ export async function POST(req: Request) {
         return previous;
       });
       if (!previousProfileImages) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
-      await deleteUnreferencedStorageImages(previousProfileImages);
-      return NextResponse.json({ ok: true });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages(previousProfileImages); }
+      catch (cleanupError) { console.error('个人资料已保存，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, warning: warning || undefined, message: '个人资料已保存' + warning });
     }
     if (b.action === 'favorite') {
       const targetType = b.targetType as Collection['targetType'];
