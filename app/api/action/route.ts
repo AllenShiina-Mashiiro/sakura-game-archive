@@ -839,12 +839,15 @@ export async function POST(req: Request) {
         if (b.action === 'review-guide') {
           const guide = item as Guide;
           const wasApproved = guide.status === 'approved';
+          // Preserve the one-time reward marker when an already-approved guide is later rejected.
+          if (wasApproved) guide.rewardGranted = true;
           guide.status = accepted ? 'approved' : 'rejected';
-          if (accepted && !wasApproved) {
+          if (accepted && !wasApproved && !guide.rewardGranted) {
             const owner = fresh.users.find((u) => u.id === item.userId);
             if (owner) {
               const oldLevel = levelOf(owner.exp);
               owner.exp += 30;
+              guide.rewardGranted = true;
               pushNotification(fresh, owner.id, 'system', '教程审核奖励已发放', '教程《' + guide.title + '》通过审核，获得 30 EXP。', '/tutorials/' + guide.id, user.id);
               if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
             }

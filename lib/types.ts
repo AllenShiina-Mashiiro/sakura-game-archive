@@ -63,6 +63,7 @@ export type Guide = {
   views?: number;
   favorites?: number;
   favoriteRewards?: string[];
+  rewardGranted?: boolean;
 };
 export type Game = {
   id: string;
