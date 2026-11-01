@@ -13,8 +13,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
   if (!game) notFound();
   const legacyGuides = game.guides || [];
   const linkedGuides = db.guides.filter((g) => g.gameId === game.id && g.status === 'approved');
-  const guideMap = new Map([...legacyGuides, ...linkedGuides].map((g) => [g.id, g]));
-  const gameGuides = [...guideMap.values()];
+  const gameGuides = [...legacyGuides, ...linkedGuides.filter((guide) => !legacyGuides.some((legacy) => legacy.id === guide.id))];
   const isAdmin = user?.role === 'admin';
   return (
     <div className="page-wrap detail-page">
