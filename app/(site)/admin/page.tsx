@@ -14,6 +14,7 @@ import { GameEditForm } from '@/app/components/GameEditForm';
 import { ResourceEditForm } from '@/app/components/ResourceEditForm';
 import { ContributorEditForm } from '@/app/components/ContributorEditForm';
 import { AdminSearchList } from '@/app/components/AdminSearchList';
+import { GameRecordManager } from '@/app/components/GameRecordManager';
 export const dynamic = 'force-dynamic';
 export default async function Admin({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   const params = await searchParams;
@@ -277,7 +278,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </label>
           </ActionForm>
         </details>
-        <AdminSearchList items={db.games.map((g) => ({ id: g.id, search: [g.name,g.slug,g.latestVersion,...(g.tags||[])].join(' '), content: <div className="admin-row"><div><b>{g.name} · {g.latestVersion}</b><small>{g.slug} · {(g.tags||[]).join(' / ')}</small></div><GameEditForm game={g} /><AdminDeleteButton action="game-delete" id={g.id} label="删除档案" /></div> }))} placeholder="搜索游戏名称、Slug、版本或标签…" />
+        <AdminSearchList items={db.games.map((g) => ({ id: g.id, search: [g.name,g.slug,g.latestVersion,...(g.tags||[])].join(' '), content: <div className="admin-game-item"><div className="admin-row"><div><b>{g.name} · {g.latestVersion}</b><small>{g.slug} · {(g.tags||[]).join(' / ')}</small></div><GameEditForm game={g} /><AdminDeleteButton action="game-delete" id={g.id} label="删除档案" /></div><GameRecordManager game={g} /></div> }))} placeholder="搜索游戏名称、Slug、版本或标签…" />
       </section>
       )}
       {section === "resources" && (
