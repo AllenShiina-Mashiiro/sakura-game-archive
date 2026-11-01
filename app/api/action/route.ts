@@ -573,7 +573,6 @@ export async function POST(req: Request) {
       const category = String(b.category || 'other');
       if (name.length < 1 || name.length > 80 || !Number.isInteger(price) || price < 0 || price > 100000000) return NextResponse.json({ error: '请填写有效商品名称和价格' }, { status: 400 });
       if (!['avatar-frame', 'badge', 'card-background', 'vip', 'other'].includes(category)) return NextResponse.json({ error: '商品分类无效' }, { status: 400 });
-      const old = (db.shopProducts || []).find((x) => x.id === String(b.id || ''));
       const stockRaw = String(b.stock ?? '').trim();
       const stock = stockRaw === '' ? -1 : Number(stockRaw);
       if (stock !== -1 && (!Number.isInteger(stock) || stock < 0)) return NextResponse.json({ error: '库存必须为非负整数，留空表示不限量' }, { status: 400 });
@@ -581,33 +580,37 @@ export async function POST(req: Request) {
       const effectValue = String(b.effectValue || '').slice(0, 100);
       if (category === 'avatar-frame' && !['sakura', 'gold', 'glass'].includes(effectValue)) return NextResponse.json({ error: '头像框装饰标识必须为 sakura、gold 或 glass' }, { status: 400 });
       if (category === 'card-background' && !image) return NextResponse.json({ error: '名片背景商品必须上传图片' }, { status: 400 });
-      const product = {
-        id: old?.id || randomUUID(),
-        name,
-        description: String(b.description || '').slice(0, 2000),
-        image,
-        category: category as ShopProduct['category'],
-        price,
-        effectValue,
-        active: b.active !== 'false',
-        stock: stock === -1 ? null : stock,
-        createdAt: old?.createdAt || now,
-        updatedAt: now,
-      };
-      db.shopProducts = db.shopProducts || [];
-      if (old) db.shopProducts[db.shopProducts.indexOf(old)] = product;
-      else db.shopProducts.unshift(product);
-      await writeDb(db);
-      return NextResponse.json({ ok: true, message: old ? '商品已更新' : '商品已添加' });
+      const result = await mutateDb((fresh) => {
+        const products = fresh.shopProducts || (fresh.shopProducts = []);
+        const old = products.find((x) => x.id === String(b.id || ''));
+        const product = {
+          id: old?.id || (String(b.id || '') || randomUUID()),
+          name,
+          description: String(b.description || '').slice(0, 2000),
+          image,
+          category: category as ShopProduct['category'],
+          price,
+          effectValue,
+          active: b.active !== 'false',
+          stock: stock === -1 ? null : stock,
+          createdAt: old?.createdAt || now,
+          updatedAt: now,
+        };
+        if (old) products[products.indexOf(old)] = product; else products.unshift(product);
+        return { updated: Boolean(old) };
+      });
+      return NextResponse.json({ ok: true, message: result.updated ? '商品已更新' : '商品已添加' });
     }
     if (b.action === 'shop-product-status') {
       await requireAdmin();
-      const p = (db.shopProducts || []).find((x) => x.id === String(b.id));
-      if (!p) return NextResponse.json({ error: '商品不存在' }, { status: 404 });
-      p.active = b.active === 'true';
-      p.updatedAt = now;
-      await writeDb(db);
-      return NextResponse.json({ ok: true, message: p.active ? '商品已上架' : '商品已下架' });
+      const result = await mutateDb((fresh) => {
+        const p = (fresh.shopProducts || []).find((x) => x.id === String(b.id || ''));
+        if (!p) return { error: '商品不存在' as const };
+        p.active = b.active === 'true'; p.updatedAt = now;
+        return { active: p.active };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      return NextResponse.json({ ok: true, message: result.active ? '商品已上架' : '商品已下架' });
     }
     if (b.action === 'game-save') {
       await requireAdmin();
