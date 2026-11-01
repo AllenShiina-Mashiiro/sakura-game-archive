@@ -4,6 +4,7 @@ import { ActionForm } from '../../components/ActionForm';
 import { ProfileEditor } from '../../components/ProfileEditor';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 const thresholds = [0, 50, 120, 220, 350, 500, 680, 880, 1100, 1350, 1650, 2000, 2400, 2850, 3350, 3900, 4500, 5150, 5850, 6600, 7400, 8250, 9150, 10100, 11100, 12200, 13400, 14700, 16100, 17600];
 export default async function Profile() {
@@ -29,14 +30,14 @@ export default async function Profile() {
         style={
           user.cardBackground
             ? {
-                backgroundImage: `linear-gradient(90deg,rgba(12,15,24,.82),rgba(12,15,24,.38)),url("${user.cardBackground}")`,
+                backgroundImage: `linear-gradient(90deg,rgba(12,15,24,.82),rgba(12,15,24,.38)),url("${mediaUrl(user.cardBackground)}")`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }
             : undefined
         }
       >
-        <div className={`avatar avatar-large avatar-frame-${user.avatarFrame || 'none'}`}>{user.avatar ? <img src={user.avatar} alt="" /> : user.nickname.slice(0, 1)}</div>
+        <div className={`avatar avatar-large avatar-frame-${user.avatarFrame || 'none'}`}>{user.avatar ? <img src={mediaUrl(user.avatar)} alt="" /> : user.nickname.slice(0, 1)}</div>
         <div>
           <h2>{user.nickname}</h2>
           <p>
