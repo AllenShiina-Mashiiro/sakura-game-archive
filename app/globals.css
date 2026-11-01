@@ -3844,3 +3844,50 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
     font-size: .82rem;
   }
 }
+
+
+/* v2.23: consistent rounded content surfaces and safe account drawer bounds */
+.detail-section {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) var(--panel-alpha, 100%), transparent);
+}
+.detail-section > :last-child {
+  margin-bottom: 0;
+}
+.account-menu {
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+.account-menu-head > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.profile-menu-trigger {
+  min-width: 0;
+}
+.profile-menu-trigger > span:not(.avatar) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.profile-menu-trigger b,
+.profile-menu-trigger small {
+  overflow-wrap: anywhere;
+}
+.stack-form,
+.stack-form label,
+.stack-form input,
+.stack-form textarea,
+.stack-form select {
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .sidebar.is-pinned {
+    width: auto;
+    padding: 14px;
+  }
+}
