@@ -123,7 +123,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 {f.title} · {f.type}
               </b>
               <small>
-                {f.username} · {f.createdAt}
+                <a href={`/users/${encodeURIComponent(f.userId)}`}>{f.username}</a> · {f.createdAt}
               </small>
               <details><summary>查看完整反馈与处理记录（{f.status === 'pending' ? '待处理' : f.status === 'accepted' ? '已采纳' : '已拒绝'}）</summary><p className="multiline">{f.description}</p><p><b>管理员回复：</b>{f.reply || '暂无回复'}</p></details>
               {f.image && <ImageViewer src={f.image} alt="反馈附件" className="review-image" />}

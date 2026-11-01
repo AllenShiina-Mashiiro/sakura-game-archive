@@ -58,7 +58,7 @@ export default async function Feedback() {
             <article className="content-card" key={f.id}>
               <span className="tag">{f.status === 'pending' ? '待处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '已拒绝'}</span>
               <h3>{f.title}</h3>
-              <small>{f.createdAt.slice(0, 10)} · {f.type}</small>
+              <small><a href={`/users/${encodeURIComponent(f.userId)}`}>{f.username}</a> · {f.createdAt.slice(0, 10)} · {f.type}</small>
               <details className="feedback-detail">
                 <summary>查看反馈详情与处理进度</summary>
                 <p className="multiline">{f.description}</p>

@@ -822,9 +822,10 @@ export async function POST(req: Request) {
         feedback.bugSeverity = ['warning', 'error', 'critical'].includes(String(b.severity)) ? b.severity as Feedback['bugSeverity'] : feedback.bugSeverity;
         feedback.statusHistory = feedback.statusHistory || [];
         feedback.statusHistory.push({ status: nextStatus, reply: feedback.reply, at: now, by: user.nickname });
-        const isBug = /bug/i.test(feedback.type) || feedback.type.includes('问题');
+        const isBug = /bug/i.test(feedback.type);
+        const wasAlreadyRewardedStatus = feedback.status === 'accepted' || feedback.status === 'fixed';
         const finalReward = nextStatus === 'fixed' || nextStatus === 'accepted';
-        if (finalReward && !feedback.rewardGranted) {
+        if (finalReward && !feedback.rewardGranted && !wasAlreadyRewardedStatus) {
           const owner = db.users.find((u) => u.id === feedback.userId);
           if (owner) {
             const reward = isBug && nextStatus === 'fixed'
