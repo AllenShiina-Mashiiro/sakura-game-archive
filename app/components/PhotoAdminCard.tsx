@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mediaUrl } from '@/lib/media';
 export function PhotoAdminCard({ id, title, image }: { id: string; title: string; image: string }) {
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -24,7 +25,7 @@ export function PhotoAdminCard({ id, title, image }: { id: string; title: string
   }
   return (
     <div className="admin-row">
-      <img className="admin-photo-thumb" src={image} alt="" />
+      <img className="admin-photo-thumb" src={mediaUrl(image)} alt="" />
       <b>{title}</b>
       <button className="outline-btn" disabled={busy} onClick={remove}>
         {busy ? '删除中…' : '删除'}
