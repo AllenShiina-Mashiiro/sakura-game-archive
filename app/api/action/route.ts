@@ -205,112 +205,88 @@ export async function POST(req: Request) {
     if (b.action === 'favorite') {
       const targetType = b.targetType as Collection['targetType'];
       if (!['game', 'guide', 'resource'].includes(targetType) || typeof b.targetId !== 'string') return NextResponse.json({ error: '收藏目标无效' }, { status: 400 });
-      const idx = db.collections.findIndex((c) => c.userId === user.id && c.targetType === targetType && c.targetId === b.targetId);
-      if (idx >= 0) {
-        db.collections.splice(idx, 1);
-        if (targetType === 'game') {
-          const g = db.games.find((g) => g.id === b.targetId);
-          if (g) g.favorites = Math.max(0, (g.favorites || 0) - 1);
-        }
-        if (targetType === 'resource') {
-          const r = db.resources.find((r) => r.id === b.targetId);
-          if (r) r.favorites = Math.max(0, (r.favorites || 0) - 1);
-        }
-        if (targetType === 'guide') {
-          const g = db.guides.find((g) => g.id === b.targetId);
-          if (g) g.favorites = Math.max(0, (g.favorites || 0) - 1);
-        }
-        await writeDb(db);
-        return NextResponse.json({ favorited: false });
-      }
-      db.collections.push({
-        id: randomUUID(),
-        userId: user.id,
-        targetType,
-        targetId: b.targetId,
-        createdAt: now,
-      });
-      if (targetType === 'guide') {
-        const guide = db.guides.find((g) => g.id === b.targetId);
-        if (guide) {
-          guide.favorites = (guide.favorites || 0) + 1;
-          guide.favoriteRewards = guide.favoriteRewards || [];
-          if (guide.userId && guide.userId !== user.id && !guide.favoriteRewards.includes(user.id)) {
-            const author = db.users.find((u) => u.id === guide.userId);
-            if (author) author.exp += 2;
-            guide.favoriteRewards.push(user.id);
+      const result = await mutateDb((fresh) => {
+        fresh.collections = fresh.collections || [];
+        const idx = fresh.collections.findIndex((c) => c.userId === user.id && c.targetType === targetType && c.targetId === b.targetId);
+        if (idx >= 0) {
+          fresh.collections.splice(idx, 1);
+          if (targetType === 'game') {
+            const target = fresh.games.find((g) => g.id === b.targetId);
+            if (target) target.favorites = Math.max(0, (target.favorites || 0) - 1);
+          } else if (targetType === 'resource') {
+            const target = fresh.resources.find((r) => r.id === b.targetId);
+            if (target) target.favorites = Math.max(0, (target.favorites || 0) - 1);
+          } else {
+            const target = fresh.guides.find((g) => g.id === b.targetId);
+            if (target) target.favorites = Math.max(0, (target.favorites || 0) - 1);
           }
+          return false;
         }
-      }
-      if (targetType === 'game') {
-        const g = db.games.find((g) => g.id === b.targetId);
-        if (g) g.favorites = (g.favorites || 0) + 1;
-      }
-      if (targetType === 'resource') {
-        const r = db.resources.find((r) => r.id === b.targetId);
-        if (r) r.favorites = (r.favorites || 0) + 1;
-      }
-      if (targetType === 'guide') {
-        const target = db.guides.find((g) => g.id === b.targetId);
-        if (target?.userId && target.userId !== user.id) pushNotification(db, target.userId, 'comment', '你的教程收到了收藏', `${user.nickname} 收藏了《${target.title}》`, `/tutorials/${target.id}`, user.id);
-      }
-      await writeDb(db);
-      return NextResponse.json({ favorited: true });
+        fresh.collections.push({ id: randomUUID(), userId: user.id, targetType, targetId: b.targetId, createdAt: now });
+        if (targetType === 'guide') {
+          const guide = fresh.guides.find((g) => g.id === b.targetId);
+          if (guide) {
+            guide.favorites = (guide.favorites || 0) + 1;
+            guide.favoriteRewards = guide.favoriteRewards || [];
+            if (guide.userId && guide.userId !== user.id && !guide.favoriteRewards.includes(user.id)) {
+              const author = fresh.users.find((u) => u.id === guide.userId);
+              if (author) author.exp += 2;
+              guide.favoriteRewards.push(user.id);
+            }
+            if (guide.userId && guide.userId !== user.id) pushNotification(fresh, guide.userId, 'comment', '你的教程收到了收藏', `${user.nickname} 收藏了《${guide.title}》`, `/tutorials/${guide.id}`, user.id);
+          }
+        } else if (targetType === 'game') {
+          const target = fresh.games.find((g) => g.id === b.targetId);
+          if (target) target.favorites = (target.favorites || 0) + 1;
+        } else {
+          const target = fresh.resources.find((r) => r.id === b.targetId);
+          if (target) target.favorites = (target.favorites || 0) + 1;
+        }
+        return true;
+      });
+      return NextResponse.json({ favorited: result });
     }
     if (b.action === 'comment-save') {
       if (!['game', 'guide', 'resource'].includes(String(b.targetType)) || !b.targetId || typeof b.content !== 'string' || b.content.trim().length < 1 || b.content.trim().length > 2000)
         return NextResponse.json({ error: '评论内容需为 1-2000 字' }, { status: 400 });
-      if (
-  b.targetType !== 'game' &&
-  b.targetType !== 'guide' &&
-  b.targetType !== 'resource'
-) {
-  return NextResponse.json({ error: '无效的评论目标类型' }, { status: 400 });
-}
-    const targetType = b.targetType as Collection['targetType'];
-      const c = {
-        id: randomUUID(),
-        targetType,
-        targetId: String(b.targetId),
-        userId: user.id,
-        content: b.content.trim(),
-        createdAt: now,
-        likes: [],
-        pinned: false,
-        parentId: String(b.parentId || '') || undefined,
-      };
-      db.comments.unshift(c);
-      let recipient = '';
-      if (c.parentId) {
-        const parent = db.comments.find((x) => x.id === c.parentId);
-        if (parent) recipient = parent.userId;
-      }
-      if (!recipient && c.targetType === 'guide') {
-        const guide = db.guides.find((x) => x.id === c.targetId);
-        recipient = guide?.userId || '';
-      }
-      if (recipient && recipient !== user.id) {
-        const href = c.targetType === 'guide' ? `/tutorials/${c.targetId}` : c.targetType === 'resource' ? `/resources/${c.targetId}` : `/games`;
-        pushNotification(db, recipient, 'comment', c.parentId ? '有人回复了你的评论' : '你的内容收到了新评论', `${user.nickname}：${c.content.slice(0, 100)}`, href, user.id);
-      }
-      await writeDb(db);
-      return NextResponse.json({ ok: true });
+      if (b.targetType !== 'game' && b.targetType !== 'guide' && b.targetType !== 'resource') return NextResponse.json({ error: '无效的评论目标类型' }, { status: 400 });
+      const targetType = b.targetType as Collection['targetType'];
+      const result = await mutateDb((fresh) => {
+        fresh.comments = fresh.comments || [];
+        const c = { id: randomUUID(), targetType, targetId: String(b.targetId), userId: user.id, content: b.content!.toString().trim(), createdAt: now, likes: [] as string[], pinned: false, parentId: String(b.parentId || '') || undefined };
+        fresh.comments.unshift(c);
+        let recipient = '';
+        if (c.parentId) {
+          const parent = fresh.comments.find((x) => x.id === c.parentId);
+          if (parent) recipient = parent.userId;
+        }
+        if (!recipient && c.targetType === 'guide') recipient = fresh.guides.find((x) => x.id === c.targetId)?.userId || '';
+        if (recipient && recipient !== user.id) {
+          const href = c.targetType === 'guide' ? `/tutorials/${c.targetId}` : c.targetType === 'resource' ? `/resources/${c.targetId}` : '/games';
+          pushNotification(fresh, recipient, 'comment', c.parentId ? '有人回复了你的评论' : '你的内容收到了新评论', `${user.nickname}：${c.content.slice(0, 100)}`, href, user.id);
+        }
+        return true;
+      });
+      return NextResponse.json({ ok: result });
     }
     if (b.action === 'comment-like') {
-      const c = db.comments.find((x) => x.id === b.id);
-      if (!c || c.deleted) return NextResponse.json({ error: '评论不存在' }, { status: 404 });
-      c.likes = c.likes || [];
-      const i = c.likes.indexOf(user.id);
-      if (i >= 0) c.likes.splice(i, 1);
-      else {
-        c.likes.push(user.id);
-        if (c.userId !== user.id) {
-          const href = c.targetType === 'guide' ? `/tutorials/${c.targetId}` : c.targetType === 'resource' ? `/resources/${c.targetId}` : `/games/${db.games.find((g) => g.id === c.targetId)?.slug || ''}`;
-          pushNotification(db, c.userId, 'comment', '你的评论收到了点赞', `${user.nickname} 赞了你的评论`, href, user.id);
+      const result = await mutateDb((fresh) => {
+        const c = fresh.comments.find((x) => x.id === b.id);
+        if (!c || c.deleted) return { error: '评论不存在' as const };
+        c.likes = c.likes || [];
+        const i = c.likes.indexOf(user.id);
+        if (i >= 0) c.likes.splice(i, 1);
+        else {
+          c.likes.push(user.id);
+          if (c.userId !== user.id) {
+            const href = c.targetType === 'guide' ? `/tutorials/${c.targetId}` : c.targetType === 'resource' ? `/resources/${c.targetId}` : `/games/${fresh.games.find((g) => g.id === c.targetId)?.slug || ''}`;
+            pushNotification(fresh, c.userId, 'comment', '你的评论收到了点赞', `${user.nickname} 赞了你的评论`, href, user.id);
+          }
         }
-      }
-      await writeDb(db);
-      return NextResponse.json({ liked: i < 0 });
+        return { liked: i < 0 };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      return NextResponse.json(result);
     }
     if (b.action === 'comment-edit' || b.action === 'comment-delete' || b.action === 'comment-pin') {
       const c = db.comments.find((x) => x.id === b.id);
