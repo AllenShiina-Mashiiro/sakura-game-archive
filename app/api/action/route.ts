@@ -943,12 +943,16 @@ if (b.status === 'active' || b.status === 'banned') {
       db.contributors = db.contributors || [];
       const old = b.action === 'contributor-update' ? db.contributors.find((x) => x.id === String(b.id)) : undefined;
       if (b.action === 'contributor-update' && !old) return NextResponse.json({ error: '贡献者记录不存在' }, { status: 404 });
+      const kind: 'volunteer' | 'technical' | 'content' | 'financial' =
+        b.kind === 'volunteer' || b.kind === 'content' || b.kind === 'financial' || b.kind === 'technical'
+          ? b.kind
+          : 'volunteer';
       const item = {
         id: old?.id || randomUUID(),
         name: name.slice(0, 60),
         role: String(b.role || '社区贡献者').slice(0, 80),
         description: description.slice(0, 1000),
-        kind: b.kind === 'volunteer' || b.kind === 'content' || b.kind === 'financial' || b.kind === 'technical' ? b.kind : 'volunteer',
+        kind,
         userId: String(b.userId || '') || undefined,
         avatar: String(b.avatar || '').slice(0, 1000),
         exp: Math.max(0, Math.min(1000000, Math.floor(Number(b.exp) || 0))),
