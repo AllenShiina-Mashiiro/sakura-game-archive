@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { readDb, writeDb, mutateDb, createDefaultShopProducts } from '@/lib/db';
+import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
 import type {
   Collection,
@@ -182,6 +183,7 @@ export async function POST(req: Request) {
     }
     if (b.action === 'profile') {
       const u = db.users.find((x) => x.id === user.id)!;
+      const previousProfileImages = [u.avatar, u.cardBackground];
       if (typeof b.nickname !== 'string' || b.nickname.trim().length < 1 || b.nickname.trim().length > 24) return NextResponse.json({ error: '昵称需为 1-24 个字符' }, { status: 400 });
       u.nickname = b.nickname.trim();
       u.avatar = typeof b.avatar === 'string' ? b.avatar.slice(0, 500) : u.avatar;
@@ -195,6 +197,7 @@ export async function POST(req: Request) {
     : 'none';
       u.cardBackground = typeof b.cardBackground === 'string' && (/^https:\/\//i.test(b.cardBackground) || b.cardBackground.startsWith('/uploads/') || b.cardBackground === '') ? b.cardBackground.slice(0, 1000) : u.cardBackground;
       await writeDb(db);
+      await deleteUnreferencedStorageImages(previousProfileImages);
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'favorite') {
@@ -363,8 +366,11 @@ export async function POST(req: Request) {
     }
     if (b.action === 'photo-delete') {
       await requireAdmin();
-      db.photos = db.photos.filter((p) => p.id !== b.id);
+      const oldPhoto = db.photos.find((p) => p.id === String(b.id));
+      if (!oldPhoto) return NextResponse.json({ error: '照片不存在' }, { status: 404 });
+      db.photos = db.photos.filter((p) => p.id !== String(b.id));
       await writeDb(db);
+      await deleteUnreferencedStorageImages([oldPhoto]);
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'wallet-convert') {
@@ -524,10 +530,12 @@ export async function POST(req: Request) {
         const old = db.guides.find((g) => g.id === b.id);
         if (!old) return NextResponse.json({ error: '教程不存在' }, { status: 404 });
         if (old.userId !== user.id && user.role !== 'admin') return NextResponse.json({ error: '只有教程作者或管理员可以修改' }, { status: 403 });
+        const previousGuideImages = [old.cover, old.bodyImage, old.bodyImages, old.content];
         Object.assign(old, { ...values, author: old.author || user.nickname, date: old.date });
         if (old.userId === user.id) old.author = user.nickname;
         if (user.role !== 'admin' && old.status === 'rejected') old.status = 'pending';
         await writeDb(db);
+        await deleteUnreferencedStorageImages(previousGuideImages);
         return NextResponse.json({ ok: true, message: '教程修改成功' });
       }
       db.guides.unshift({
@@ -664,8 +672,11 @@ export async function POST(req: Request) {
     }
     if (b.action === 'game-delete') {
       await requireAdmin();
-      db.games = db.games.filter((g) => g.id !== b.id);
+      const oldGame = db.games.find((g) => g.id === String(b.id));
+      if (!oldGame) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
+      db.games = db.games.filter((g) => g.id !== String(b.id));
       await writeDb(db);
+      await deleteUnreferencedStorageImages([oldGame]);
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'resource-save') {
@@ -987,20 +998,36 @@ if (b.status === 'active' || b.status === 'banned') {
     }
     if (b.action === 'resource-delete' || b.action === 'notice-delete' || b.action === 'guide-delete' || b.action === 'game-record-delete') {
       await requireAdmin();
-      if (b.action === 'resource-delete') db.resources = db.resources.filter((x) => x.id !== String(b.id));
+      const removedImages: unknown[] = [];
+      if (b.action === 'resource-delete') {
+        const old = db.resources.find((x) => x.id === String(b.id));
+        if (!old) return NextResponse.json({ error: '资源不存在' }, { status: 404 });
+        removedImages.push(old);
+        db.resources = db.resources.filter((x) => x.id !== String(b.id));
+      }
       if (b.action === 'notice-delete') db.notices = db.notices.filter((x) => x.id !== String(b.id));
       if (b.action === 'guide-delete') {
+        const old = db.guides.find((x) => x.id === String(b.id));
+        if (!old) return NextResponse.json({ error: '教程不存在' }, { status: 404 });
+        removedImages.push(old);
         db.guides = db.guides.filter((x) => x.id !== String(b.id));
         db.collections = db.collections.filter((x) => !(x.targetType === 'guide' && x.targetId === String(b.id)));
       }
       if (b.action === 'game-record-delete') {
         const g = db.games.find((x) => x.id === String(b.gameId));
         if (!g) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
-        if (b.kind === 'update') g.updates = g.updates.filter((x) => x.id !== String(b.id));
-        else if (b.kind === 'file') g.files = g.files.filter((x) => x.id !== String(b.id));
-        else return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
+        if (b.kind === 'update') {
+          const old = g.updates.find((x) => x.id === String(b.id));
+          if (old) removedImages.push(old);
+          g.updates = g.updates.filter((x) => x.id !== String(b.id));
+        } else if (b.kind === 'file') {
+          const old = g.files.find((x) => x.id === String(b.id));
+          if (old) removedImages.push(old);
+          g.files = g.files.filter((x) => x.id !== String(b.id));
+        } else return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
       }
       await writeDb(db);
+      if (removedImages.length) await deleteUnreferencedStorageImages(removedImages);
       return NextResponse.json({ ok: true, message: '已删除' });
     }
     return NextResponse.json({ error: '未知操作' }, { status: 400 });
