@@ -58,14 +58,25 @@ export default async function Feedback() {
             <article className="content-card" key={f.id}>
               <span className="tag">{f.status === 'pending' ? '待处理' : f.status === 'accepted' ? '已采纳' : '已拒绝'}</span>
               <h3>{f.title}</h3>
-              <p>{f.description}</p>
-              {f.reply && (
-                <p>
-                  <b>管理员回复：</b>
-                  {f.reply}
-                </p>
+              <small>{f.createdAt.slice(0, 10)} · {f.type}</small>
+              <details className="feedback-detail">
+                <summary>查看反馈详情与处理进度</summary>
+                <p className="multiline">{f.description}</p>
+                <p><b>当前状态：</b>{f.status === 'pending' ? '等待管理员处理' : f.status === 'accepted' ? '已采纳' : '未采纳'}</p>
+                <p><b>管理员回复：</b>{f.reply || '管理员暂未回复'}</p>
+              </details>
+              {f.status === 'pending' && (
+                <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新">
+                  <input type="hidden" name="id" value={f.id} />
+                  <label>修改标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
+                  <label>修改类型<select name="type" defaultValue={f.type}><option>游戏 Bug</option><option>游戏运行问题</option><option>游戏内容问题</option><option>网站 Bug</option><option>功能建议</option><option>其他</option></select></label>
+                  <label>修改描述<textarea name="description" rows={4} required minLength={5} defaultValue={f.description} /></label>
+                  <input type="hidden" name="gameId" value={f.gameId} />
+                </ActionForm>
               )}
-              <small>{f.createdAt.slice(0, 10)}</small>
+              <ActionForm action="feedback-delete" button="删除这条反馈" successMessage="反馈已删除">
+                <input type="hidden" name="id" value={f.id} />
+              </ActionForm>
             </article>
           ))}
           {!mine.length && <div className="empty-state">你还没有提交过反馈。</div>}
