@@ -56,7 +56,7 @@ export default async function Feedback() {
         <div className="content-grid">
           {mine.map((f) => (
             <article className="content-card" key={f.id}>
-              <span className="tag">{f.status === 'pending' ? '待处理' : f.status === 'accepted' ? '已采纳' : '已拒绝'}</span>
+              <span className="tag">{f.status === 'pending' ? '待处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '已拒绝'}</span>
               <h3>{f.title}</h3>
               <small>{f.createdAt.slice(0, 10)} · {f.type}</small>
               <details className="feedback-detail">
@@ -64,6 +64,8 @@ export default async function Feedback() {
                 <p className="multiline">{f.description}</p>
                 <p><b>当前状态：</b>{f.status === 'pending' ? '等待管理员处理' : f.status === 'accepted' ? '已采纳' : '未采纳'}</p>
                 <p><b>管理员回复：</b>{f.reply || '管理员暂未回复'}</p>
+                <div className="feedback-progress-timeline">{(f.statusHistory || []).map((step, index) => <div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status === 'processing' ? '处理中' : step.status === 'fixed' ? '已修复' : step.status === 'failed' ? '修复失败' : step.status === 'accepted' ? '已采纳' : step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div>
+                {f.rewardGranted && <p className="muted">EXP 奖励已发放</p>}
               </details>
               {f.status === 'pending' && (
                 <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新">

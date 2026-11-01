@@ -108,7 +108,7 @@ export type Feedback = {
   gameId: string;
   description: string;
   image: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'processing' | 'fixed' | 'failed';
   reply: string;
   createdAt: string;
   statusHistory?: { status: string; reply: string; at: string; by: string }[];

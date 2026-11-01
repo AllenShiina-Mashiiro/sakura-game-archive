@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { mediaUrl } from '@/lib/media';
+import Link from 'next/link';
 type C = {
   id: string;
   userId: string;
@@ -59,7 +60,7 @@ export function Comments({ targetType, targetId, items, me, admin }: { targetTyp
         <div className="comment-head">
           <span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={mediaUrl(c.avatar)} alt="" /> : c.nickname.slice(0, 1)}</span>
           <div>
-            <b>{c.nickname}</b>
+            <b><Link href={`/users/${encodeURIComponent(c.userId)}`}>{c.nickname}</Link></b>
             <small>
               Lv.{c.level}{' '}
               {c.badges.map((x) => (

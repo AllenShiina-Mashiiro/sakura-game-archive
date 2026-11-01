@@ -808,26 +808,40 @@ export async function POST(req: Request) {
       const item = list.find((x) => x.id === b.id);
       if (!item) return NextResponse.json({ error: '记录不存在' }, { status: 404 });
       const accepted = b.status === 'accepted';
-      if (b.action === 'review-guide') (item as Guide).status = accepted ? 'approved' : 'rejected';
-      else (item as Feedback).status = accepted ? 'accepted' : 'rejected';
-      if ('reply' in item) item.reply = String(b.reply || '');
-      if (accepted) {
-        const ownerId = item.userId;
-        const owner = db.users.find((u) => u.id === ownerId);
-        if (owner) {
-          const oldLevel = levelOf(owner.exp);
-          owner.exp += b.action === 'review-guide' ? 30 : 100;
-          if (levelOf(owner.exp) > oldLevel) pushNotification(db, owner.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(owner.exp)}。`, `/users/${owner.id}`);
+      if (b.action === 'review-guide') {
+        (item as Guide).status = accepted ? 'approved' : 'rejected';
+        if (accepted) {
+          const owner = db.users.find((u) => u.id === item.userId);
+          if (owner) { const oldLevel = levelOf(owner.exp); owner.exp += 30; if (levelOf(owner.exp) > oldLevel) pushNotification(db, owner.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(owner.exp)}。`, `/users/${owner.id}`); }
+        }
+      } else {
+        const feedback = item as Feedback;
+        const nextStatus = ['processing', 'fixed', 'failed'].includes(String(b.status)) ? String(b.status) : accepted ? 'accepted' : 'rejected';
+        feedback.status = nextStatus as Feedback['status'];
+        feedback.reply = String(b.reply || '');
+        feedback.bugSeverity = ['warning', 'error', 'critical'].includes(String(b.severity)) ? b.severity as Feedback['bugSeverity'] : feedback.bugSeverity;
+        feedback.statusHistory = feedback.statusHistory || [];
+        feedback.statusHistory.push({ status: nextStatus, reply: feedback.reply, at: now, by: user.nickname });
+        const isBug = /bug/i.test(feedback.type) || feedback.type.includes('问题');
+        const finalReward = nextStatus === 'fixed' || nextStatus === 'accepted';
+        if (finalReward && !feedback.rewardGranted) {
+          const owner = db.users.find((u) => u.id === feedback.userId);
+          if (owner) {
+            const reward = isBug && nextStatus === 'fixed'
+              ? feedback.bugSeverity === 'critical' ? 300 : feedback.bugSeverity === 'error' ? 150 : 50
+              : 100;
+            const oldLevel = levelOf(owner.exp);
+            owner.exp += reward;
+            feedback.rewardGranted = true;
+            pushNotification(db, owner.id, 'feedback', '反馈修复奖励已发放', `本次反馈获得 ${reward} EXP。`, `/users/${owner.id}`);
+            if (levelOf(owner.exp) > oldLevel) pushNotification(db, owner.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(owner.exp)}。`, `/users/${owner.id}`);
+          }
         }
       }
-      pushNotification(
-        db,
-        String(item.userId || ''),
-        b.action === 'review-guide' ? 'system' : 'feedback',
-        b.action === 'review-guide' ? (accepted ? '教程审核通过' : '教程审核未通过') : accepted ? '反馈已被采纳' : '反馈处理结果已更新',
-        String(b.reply || (accepted ? '你的内容已通过审核。' : '你的内容审核状态已更新。')),
-        b.action === 'review-guide' ? `/tutorials/${item.id}` : '/feedback',
-      );
+      pushNotification(db, String(item.userId || ''), b.action === 'review-guide' ? 'system' : 'feedback',
+        b.action === 'review-guide' ? (accepted ? '教程审核通过' : '教程审核未通过') : '反馈处理进度已更新',
+        String(b.reply || (accepted ? '你的内容已通过审核。' : '管理员已更新处理状态。')),
+        b.action === 'review-guide' ? `/tutorials/${item.id}` : '/feedback');
       await writeDb(db);
       return NextResponse.json({ ok: true });
     }
