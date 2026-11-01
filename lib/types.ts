@@ -202,6 +202,7 @@ export type DirectMessage = {
   createdAt: string;
   readAt?: string;
 };
+export type Friendship = { id: string; requesterId: string; addresseeId: string; status: 'pending' | 'accepted' | 'rejected'; createdAt: string; updatedAt: string };
 export type UserNotification = {
   id: string;
   userId: string;
@@ -266,6 +267,7 @@ export type Database = {
     contributorBackground?: string;
   };
   messages?: DirectMessage[];
+  friendships?: Friendship[];
   notifications?: UserNotification[];
   contributors?: Contributor[];
   shopProducts?: ShopProduct[];
