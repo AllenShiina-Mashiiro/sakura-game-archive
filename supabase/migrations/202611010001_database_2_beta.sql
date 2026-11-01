@@ -117,11 +117,11 @@ begin
   -- Game-specific nested guides are preserved separately to avoid ID collisions
   -- with top-level community guides.
   for item in
-    select jsonb_build_object('gameId', g ->> 'id', 'guide', guide)
-    from jsonb_array_elements(coalesce(source_data -> 'games', '[]'::jsonb)) g
+    select jsonb_build_object('gameId', games.game ->> 'id', 'guide', nested.guide)
+    from jsonb_array_elements(coalesce(source_data -> 'games', '[]'::jsonb)) as games(game)
     cross join lateral jsonb_array_elements(
-      case when jsonb_typeof(g -> 'guides') = 'array' then g -> 'guides' else '[]'::jsonb end
-    ) guide
+      case when jsonb_typeof(games.game -> 'guides') = 'array' then games.game -> 'guides' else '[]'::jsonb end
+    ) as nested(guide)
   loop
     entity_id := coalesce(item #>> '{guide,id}', item #>> '{guide,title}');
     if entity_id is null then raise exception 'Nested game guide missing id/title'; end if;
