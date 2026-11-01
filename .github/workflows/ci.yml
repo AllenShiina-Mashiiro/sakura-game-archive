@@ -1,0 +1,25 @@
+name: v2.23 validation
+on:
+  pull_request:
+    branches: [master, test]
+  push:
+    branches: [release/v2.23]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+        env:
+          SESSION_SECRET: ci-only-placeholder-session-secret-32chars
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
