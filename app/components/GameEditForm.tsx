@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ImageUploadField } from '@/app/components/ImageUploadField';
-export function GameEditForm({game}:{game:any}) {
+import type { Game } from '@/lib/types';
+export function GameEditForm({game}:{game:Game}) {
  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const router=useRouter();
  async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError('');const data=Object.fromEntries(new FormData(e.currentTarget).entries());try{const r=await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'game-save',id:game.id,...data})});const d=await r.json();if(!r.ok)throw Error(d.error||'保存失败');setOpen(false);router.refresh();}catch(e){setError(e instanceof Error?e.message:'保存失败')}finally{setBusy(false)}}
