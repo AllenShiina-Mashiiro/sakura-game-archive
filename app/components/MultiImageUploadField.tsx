@@ -23,7 +23,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
     }
     setBusy(true);
     try {
-      const uploaded = await Promise.all(
+      const results = await Promise.allSettled(
         selected.map(async (file) => {
           const fd = new FormData();
           fd.set('image', file);
@@ -34,7 +34,10 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
           return data.url as string;
         }),
       );
-      setUrls((old) => [...old, ...uploaded].slice(0, 20));
+      const uploaded = results.filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled').map((result) => result.value);
+      const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+      if (uploaded.length) setUrls((old) => [...old, ...uploaded].slice(0, 20));
+      if (failures.length) setError(failures.map((result) => result.reason instanceof Error ? result.reason.message : '部分图片上传失败').join('；'));
     } catch (e) {
       setError(e instanceof Error ? e.message : '上传失败，请重试');
     } finally {

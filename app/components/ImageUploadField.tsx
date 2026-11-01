@@ -40,7 +40,7 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
       )}
       {busy && <small>正在上传…</small>}
       {error && <small className="error-text">{error}</small>}
-      <small className="muted">JPG / PNG / WEBP / GIF，最大 {maxSizeMB || (folder === 'photos' ? 50 : 8)} MB；照片墙保留原始分辨率</small>
+      <small className="muted">JPG / PNG / WEBP / GIF，最大 {maxSizeMB || (folder === 'photos' ? 50 : 12)} MB；照片墙保留原始分辨率</small>
     </div>
   );
 }
