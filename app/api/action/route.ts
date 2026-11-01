@@ -348,6 +348,8 @@ export async function POST(req: Request) {
       db.photos.unshift({
         id: randomUUID(),
         title: String(b.title).slice(0, 100),
+        userId: user.id,
+        username: user.username,
         description: String(b.description || '').slice(0, 1000),
         image: String(b.image),
         createdAt: now,
@@ -804,6 +806,7 @@ export async function POST(req: Request) {
           pinned: Boolean(b.pinned),
           published: Boolean(b.published),
           updatedBy: user.nickname,
+          updatedById: user.id,
         });
       } else
         db.notices.unshift({
@@ -817,6 +820,7 @@ export async function POST(req: Request) {
           pinned: Boolean(b.pinned),
           published: Boolean(b.published),
           updatedBy: user.nickname,
+          updatedById: user.id,
           history: [],
         });
       if (!old && b.published) {

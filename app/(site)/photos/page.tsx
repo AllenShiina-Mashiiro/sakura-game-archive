@@ -29,17 +29,14 @@ export default async function Photos({ searchParams }: { searchParams: Promise<{
             </a>
             <div>
               <h3>{p.title}</h3>
+              {p.userId ? <small>上传者：<Link href={`/users/${encodeURIComponent(p.userId)}`}>{p.username || '查看主页'}</Link></small> : null}
               <p>{p.description}</p>
               <div className="tag-row">
                 {p.tags.map((t) => (
-                  <Link className="tag" href={`/tags/${encodeURIComponent(t)}`} key={t}>
-                    {t}
-                  </Link>
+                  <Link className="tag" href={`/tags/${encodeURIComponent(t)}`} key={t}>{t}</Link>
                 ))}
               </div>
-              <a className="outline-btn" href={mediaUrl(p.image)} download>
-                下载原图 ↓
-              </a>
+              <a className="outline-btn" href={mediaUrl(p.image)} download>下载原图 ↓</a>
             </div>
           </article>
         ))}

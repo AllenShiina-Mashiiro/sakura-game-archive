@@ -131,6 +131,7 @@ export type Notice = {
   pinned: boolean;
   published: boolean;
   updatedBy: string;
+  updatedById?: string;
   history: {
     id: string;
     date: string;
@@ -163,6 +164,8 @@ export type Comment = {
 };
 export type Photo = {
   id: string;
+  userId?: string;
+  username?: string;
   title: string;
   description: string;
   image: string;
