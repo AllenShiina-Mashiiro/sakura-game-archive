@@ -26,26 +26,26 @@ export default async function Tutorials({ searchParams }: { searchParams: Promis
       <SearchBar action="/tutorials" q={sp.q} />
       <section className="content-grid">
         {guides.map((g) => (
-          <Link className="content-card article-tile" href={`/tutorials/${g.id}`} key={g.id}>
-            {g.cover && <img className="wide-cover" src={mediaUrl(g.cover)} alt="" />}
+          <article className="content-card article-tile" key={g.id}>
+            {g.cover && <Link href={`/tutorials/${g.id}`}><img className="wide-cover" src={mediaUrl(g.cover)} alt="" /></Link>}
             <div className="tag-row">
               <span className="tag">{g.category}</span>
               <small>{g.gameName || '综合教程'}</small>
             </div>
-            <h3>{g.title}</h3>
+            <h3><Link href={`/tutorials/${g.id}`}>{g.title}</Link></h3>
             <p className="multiline">
               {g.content.slice(0, 180)}
               {g.content.length > 180 ? '…' : ''}
             </p>
             <div className="card-footer">
               <span>
-                {g.author || '档案成员'} · {g.date}
+                {g.userId ? <Link href={`/users/${encodeURIComponent(g.userId)}`}>{g.author || '档案成员'}</Link> : (g.author || '档案成员')} · {g.date}
                 {g.updatedAt ? ` · 更新于 ${new Date(g.updatedAt).toLocaleDateString('zh-CN')}` : ''}
               </span>
               <span>{g.views || 0} 浏览</span>
             </div>
-            <span className="subtle-link">阅读全文 →</span>
-          </Link>
+            <Link className="subtle-link" href={`/tutorials/${g.id}`}>阅读全文 →</Link>
+          </article>
         ))}
         {!guides.length && <div className="empty-state">暂无已发布教程</div>}
       </section>
