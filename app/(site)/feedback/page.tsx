@@ -70,7 +70,7 @@ export default async function Feedback() {
                 <div className="feedback-progress-timeline">{(f.statusHistory || []).map((step, index) => <div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status === 'processing' ? '处理中' : step.status === 'fixed' ? '已修复' : step.status === 'failed' ? '修复失败' : step.status === 'accepted' ? '已采纳' : step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div>
                 {f.rewardGranted && <p className="muted">EXP 奖励已发放</p>}
               </details>
-              {f.status === 'pending' && (
+              {['pending', 'processing', 'failed'].includes(f.status) && (
                 <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新">
                   <input type="hidden" name="id" value={f.id} />
                   <label>修改标题<input name="title" required minLength={3} defaultValue={f.title} /></label>

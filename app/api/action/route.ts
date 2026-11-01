@@ -482,7 +482,7 @@ export async function POST(req: Request) {
       if (!item) return NextResponse.json({ error: '反馈记录不存在' }, { status: 404 });
       const isAdmin = user.role === 'admin';
       if (item.userId !== user.id && !isAdmin) return NextResponse.json({ error: '只有反馈提交者或管理员可以修改' }, { status: 403 });
-      if (!isAdmin && item.status !== 'pending') return NextResponse.json({ error: '反馈进入处理流程后不可由提交者修改' }, { status: 409 });
+      if (!isAdmin && !['pending', 'processing', 'failed'].includes(item.status)) return NextResponse.json({ error: '已修复或已采纳的反馈不可由提交者修改' }, { status: 409 });
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.description !== 'string' || b.description.trim().length < 5) return NextResponse.json({ error: '请填写标题和详细描述' }, { status: 400 });
       item.title = b.title.trim().slice(0, 100);
       item.type = String(b.type || item.type).slice(0, 40);
