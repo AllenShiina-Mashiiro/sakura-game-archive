@@ -737,6 +737,8 @@ export async function POST(req: Request) {
       const old = db.resources.find((x) => x.id === String(b.id || ''));
       const r: Resource = {
         id: old?.id || randomUUID(),
+        userId: old?.userId || user.id,
+        username: old?.username || user.nickname,
         title: String(b.title || '').trim(),
         cover: String(b.cover || ''),
         gameId: String(b.gameId || ''),

@@ -17,6 +17,7 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
   const next = thresholds[level] || start + 2000;
   const progress = Math.max(0, Math.min(100, ((u.exp - start) / (next - start)) * 100));
   const guides = db.guides.filter((g) => g.userId === u.id && g.status === 'approved');
+  const resources = db.resources.filter((r) => r.userId === u.id);
   return (
     <div className="page-wrap">
       <header className="topbar">
@@ -90,6 +91,13 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
             </Link>
           ))}
           {!guides.length && <div className="empty-state">暂未发布公开教程。</div>}
+        </div>
+      </section>
+      <section className="detail-section">
+        <h2>公开资源贡献 · {resources.length}</h2>
+        <div className="content-grid">
+          {resources.map((r) => <Link className="content-card" href={`/resources/${r.id}`} key={r.id}><h3>{r.title}</h3><small>{r.version} · {r.updatedAt}</small><p>{r.description.slice(0,130)}</p></Link>)}
+          {!resources.length && <div className="empty-state">暂未发布公开资源。</div>}
         </div>
       </section>
       <small className="muted">加入时间：{u.createdAt.slice(0, 10)}</small>

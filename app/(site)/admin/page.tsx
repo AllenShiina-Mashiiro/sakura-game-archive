@@ -156,6 +156,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <label>关联游戏<select name="gameId" defaultValue=""><option value="">综合教程（不关联单个游戏）</option>{db.games.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
             <label>分类<input name="category" defaultValue="攻略" placeholder="攻略 / 开发者说明 / 安装教程" /></label>
             <label>封面图片 URL<input name="cover" type="url" /></label>
+            <MultiImageUploadField name="bodyImages" label="教程配图" folder="tutorials" />
             <label>正文<textarea name="content" rows={9} minLength={20} required /></label>
           </ActionForm>
         </details>

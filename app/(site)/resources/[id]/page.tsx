@@ -20,6 +20,7 @@ export default async function ResourceDetail({ params }: { params: Promise<{ id:
       <h1>{r.title}</h1>
       <p className="subtitle">
         {r.gameName || '通用资源'} · {r.version} · 更新于 {r.updatedAt}
+        {r.userId && <> · 贡献者：<Link href={`/users/${encodeURIComponent(r.userId)}`}>{r.username || '查看主页'}</Link></>}
       </p>
       <nav className="detail-section-nav" aria-label="资源内容导航">
         <a href="#resource-description">资源说明</a>

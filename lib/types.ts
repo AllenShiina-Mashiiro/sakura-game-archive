@@ -86,6 +86,8 @@ export type Game = {
 };
 export type Resource = {
   id: string;
+  userId?: string;
+  username?: string;
   title: string;
   cover: string;
   gameId: string;
