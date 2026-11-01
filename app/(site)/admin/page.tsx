@@ -108,12 +108,17 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               <small>
                 {g.author} · {g.date}
               </small>
-              <p>{g.content}</p>
+              {g.cover && <ImageViewer src={g.cover} alt={g.title + '封面'} className="review-image" />}
+              <p className="multiline">{g.content}</p>
+              {!!g.bodyImages?.length && <div className="review-image-grid">{g.bodyImages.map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={g.title + '配图 ' + (index+1)} className="review-image" />)}</div>}
               <Review id={g.id} action="review-guide" />
               <AdminDeleteButton action="guide-delete" id={g.id} label="删除教程" />
             </article>
           ))}
         {!db.guides.some((g) => g.status === 'pending') && <p className="muted">暂无待审核教程。</p>}
+        <h3>拓展资源内容</h3>
+        {db.resources.slice(0, 100).map((resource) => <article className="review-card" key={resource.id}><b>{resource.title}</b><small>{resource.gameName || '通用资源'} · {resource.version} · {resource.updatedAt}</small>{resource.cover && <ImageViewer src={resource.cover} alt={resource.title + '封面'} className="review-image" />}<p className="multiline">{resource.description}</p><p className="muted">{resource.scope || '未注明适用范围'}</p><a href={'/resources/' + resource.id} target="_blank" rel="noreferrer">查看资源详情 ↗</a></article>)}
+        {!db.resources.length && <p className="muted">暂无资源内容。</p>}
         <h3>问题反馈</h3>
         {db.feedback
           .slice(0, 200)

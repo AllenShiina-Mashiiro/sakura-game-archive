@@ -3945,3 +3945,5 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
 .feedback-progress-timeline{display:grid;gap:10px;margin:16px 0;padding-left:14px;border-left:2px solid var(--line)}.feedback-progress-step{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}.feedback-progress-step small{color:var(--muted)}.feedback-progress-step p{margin:4px 0 0;white-space:pre-wrap}
 
 .feedback-tabs{display:flex;gap:12px;flex-wrap:wrap}.feedback-tabs a{display:inline-flex;align-items:center;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);text-decoration:none}
+
+.review-image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;align-items:start;margin:12px 0}.review-image-grid .review-image{width:100%;height:120px;object-fit:cover;border-radius:10px}
