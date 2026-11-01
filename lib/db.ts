@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Database, Game, ShopProduct } from './types';
-import { getSupabaseAdmin } from './supabase-admin';
+import { getSupabaseAdmin, type SupabaseJson } from './supabase-admin';
 
 export function createDefaultShopProducts(): ShopProduct[] {
   const now = new Date().toISOString();
@@ -111,7 +111,7 @@ async function getRow(): Promise<DbRow> {
     .from('app_state')
     .insert({
       id: 'main',
-      data: initial,
+      data: initial as unknown as SupabaseJson,
       version: 1,
     });
 
@@ -144,7 +144,7 @@ async function saveWithVersion(
 
   if (process.env.DATABASE_V2_ENABLED === 'true') {
     const { data, error } = await supabaseAdmin.rpc('archive_save_snapshot', {
-      p_data: db,
+      p_data: db as unknown as SupabaseJson,
       p_expected_version: expectedVersion,
     });
     if (error) throw new Error(`保存数据库 2.0 Beta 失败：${error.message}`);
