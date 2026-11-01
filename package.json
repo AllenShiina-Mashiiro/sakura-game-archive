@@ -1,6 +1,6 @@
 {
   "name": "game-resource-archive",
-  "version": "2.10.0",
+  "version": "2.23.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
