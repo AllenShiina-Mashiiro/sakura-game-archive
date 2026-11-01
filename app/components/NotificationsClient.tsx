@@ -36,12 +36,13 @@ export function NotificationsClient() {
 
   void run();
 }, []);
-  async function friendAction(targetId: string, action: 'accept' | 'reject' | 'ignore') {
+  async function friendAction(targetId: string, action: 'accept' | 'reject' | 'ignore', notificationId: string) {
     setBusy(true);
     try {
       const r = await fetch('/api/friends', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, targetId }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || '好友操作失败');
+      await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: notificationId }) });
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '好友操作失败'); }
     finally { setBusy(false); }
@@ -80,9 +81,9 @@ export function NotificationsClient() {
           <div className="notification-actions">
             {n.title === '收到好友请求' && n.actorId && <>
               <Link className="subtle-link" href={`/users/${encodeURIComponent(n.actorId)}`}>查看对方主页</Link>
-              <button className="primary-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'accept')}>接受</button>
-              <button className="outline-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'reject')}>拒绝</button>
-              <button className="text-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'ignore')}>忽略</button>
+              <button className="primary-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'accept', n.id)}>接受</button>
+              <button className="outline-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'reject', n.id)}>拒绝</button>
+              <button className="text-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'ignore', n.id)}>忽略</button>
             </>}
             {n.href && (
               <Link className="subtle-link" href={n.href} onClick={() => !n.readAt && mark(n.id)}>
