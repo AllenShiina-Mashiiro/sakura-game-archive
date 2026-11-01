@@ -222,7 +222,7 @@ export async function POST(req: Request) {
           }
           return false;
         }
-        fresh.collections.push({ id: randomUUID(), userId: user.id, targetType, targetId: b.targetId, createdAt: now });
+        fresh.collections.push({ id: randomUUID(), userId: user.id, targetType, targetId: String(b.targetId), createdAt: now });
         if (targetType === 'guide') {
           const guide = fresh.guides.find((g) => g.id === b.targetId);
           if (guide) {
