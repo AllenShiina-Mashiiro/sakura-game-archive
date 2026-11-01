@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { mediaUrl } from '@/lib/media';
 
 export function MultiImageUploadField({ name = 'bodyImages', label = '教程正文图片', folder = 'tutorials', initial = [] }: { name?: string; label?: string; folder?: string; initial?: string[] }) {
   const [urls, setUrls] = useState<string[]>(initial.filter(Boolean).slice(0, 20));
@@ -56,7 +57,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         <div className="multi-upload-grid">
           {urls.map((url, index) => (
             <div className="multi-upload-item" key={`${url}-${index}`}>
-              <img src={url} alt={`正文图片 ${index + 1}`} />
+              <img src={mediaUrl(url)} alt={`正文图片 ${index + 1}`} />
               <span>图片 {index + 1}</span>
               <button type="button" onClick={() => setUrls((old) => old.filter((_, i) => i !== index))} aria-label={`移除图片 ${index + 1}`}>
                 移除
