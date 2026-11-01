@@ -968,8 +968,9 @@ export async function POST(req: Request) {
     }
     if (b.action === 'site-background' || b.action === 'site-branding') {
       await requireAdmin();
-      db.siteSettings = {
-        ...(db.siteSettings || {}),
+      await mutateDb((fresh) => {
+        fresh.siteSettings = {
+        ...(fresh.siteSettings || {}),
         ...(typeof b.background === 'string' ? { background: b.background } : {}),
         ...(typeof b.logo === 'string' ? { logo: b.logo } : {}),
         ...(typeof b.heroLogo === 'string' ? { heroLogo: b.heroLogo } : {}),
@@ -983,7 +984,7 @@ export async function POST(req: Request) {
         ...(b.defaultThemeMode === 'light' || b.defaultThemeMode === 'dark' ? { defaultThemeMode: b.defaultThemeMode } : {}),
         ...(typeof b.sakuraEnabled === 'boolean' ? { sakuraEnabled: b.sakuraEnabled } : typeof b.sakuraEnabled === 'string' ? { sakuraEnabled: b.sakuraEnabled === 'true' } : {}),
       };
-      await writeDb(db);
+      });
       return NextResponse.json({ ok: true, message: '站点外观已保存' });
     }
     if (b.action === 'contributor-settings') {
