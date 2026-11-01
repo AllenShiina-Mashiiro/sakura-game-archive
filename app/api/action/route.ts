@@ -969,31 +969,17 @@ export async function POST(req: Request) {
     }
     if (b.action === 'contributor-settings') {
       await requireAdmin();
-      const oldContributorImages = [db.siteSettings?.contributor?.avatar, db.siteSettings?.contributor?.donationQr, db.siteSettings?.contributorBackground];
-      const contributions = String(b.contributions || '')
-        .split('\n')
-        .map((x: string) => x.trim())
-        .filter(Boolean)
-        .slice(0, 40);
-      db.siteSettings = db.siteSettings || {};
-      if (typeof b.contributorBackground === 'string') {
-        db.siteSettings.contributorBackground = b.contributorBackground.slice(0, 1000);
-      }
-      db.siteSettings.contributor = {
-        nickname: String(b.nickname || '开发者').slice(0, 40),
-        avatar: String(b.developerAvatar || '').slice(0, 1000),
-        level: String(b.level || '').slice(0, 60),
-        github: String(b.github || '').slice(0, 300),
-        bilibili: String(b.bilibili || '').slice(0, 300),
-        qq: String(b.qq || '').slice(0, 60),
-        email: String(b.email || '').slice(0, 160),
-        intro: String(b.intro || '').slice(0, 2000),
-        donationQr: String(b.donationQr || '').slice(0, 1000),
-        contributions,
-      };
-      await writeDb(db);
-      await deleteUnreferencedStorageImages(oldContributorImages);
-      return NextResponse.json({ ok: true, message: '开发者资料已保存' });
+      const contributions = String(b.contributions || '').split('\n').map((x: string) => x.trim()).filter(Boolean).slice(0, 40);
+      const oldImages = await mutateDb((fresh) => {
+        const images = [fresh.siteSettings?.contributor?.avatar, fresh.siteSettings?.contributor?.donationQr, fresh.siteSettings?.contributorBackground];
+        fresh.siteSettings = fresh.siteSettings || {};
+        if (typeof b.contributorBackground === 'string') fresh.siteSettings.contributorBackground = b.contributorBackground.slice(0, 1000);
+        fresh.siteSettings.contributor = { nickname: String(b.nickname || '开发者').slice(0, 40), avatar: String(b.developerAvatar || '').slice(0, 1000), level: String(b.level || '').slice(0, 60), github: String(b.github || '').slice(0, 300), bilibili: String(b.bilibili || '').slice(0, 300), qq: String(b.qq || '').slice(0, 60), email: String(b.email || '').slice(0, 160), intro: String(b.intro || '').slice(0, 2000), donationQr: String(b.donationQr || '').slice(0, 1000), contributions };
+        return images;
+      });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages(oldImages); } catch (cleanupError) { console.error('开发者资料已保存，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, message: '开发者资料已保存' + warning, warning: warning || undefined });
     }
     if (b.action === 'contributor-settings-delete') {
       await requireAdmin();
