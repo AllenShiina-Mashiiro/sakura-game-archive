@@ -910,6 +910,7 @@ if (b.status === 'active' || b.status === 'banned') {
     }
     if (b.action === 'contributor-settings') {
       await requireAdmin();
+      const oldContributorImages = [db.siteSettings?.contributor?.avatar, db.siteSettings?.contributor?.donationQr, db.siteSettings?.contributorBackground];
       const contributions = String(b.contributions || '')
         .split('\n')
         .map((x: string) => x.trim())
@@ -932,6 +933,7 @@ if (b.status === 'active' || b.status === 'banned') {
         contributions,
       };
       await writeDb(db);
+      await deleteUnreferencedStorageImages(oldContributorImages);
       return NextResponse.json({ ok: true, message: '开发者资料已保存' });
     }
     if (b.action === 'contributor-add' || b.action === 'contributor-update') {
