@@ -142,7 +142,7 @@ export function MessagesClient() {
             </button>
           </div>
         ))}
-        {!ordered.length && !showUsers && <p className="muted">还没有私信会话。点击「新建」选择用户开始聊天。</p>}
+        {!ordered.length && !showUsers && <p className="muted">还没有好友会话。请先打开对方的个人主页并发送好友请求；成为好友后即可私信。</p>}
       </aside>
       <section className="chat-panel">
         {peer ? (
@@ -173,7 +173,8 @@ export function MessagesClient() {
               {!messages.length && <div className="empty-state">发送第一条消息，开启对话吧。</div>}
             </div>
             <form className="chat-compose" onSubmit={send}>
-              <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="发送文字消息…" maxLength={2000} rows={2} />
+              <div className="chat-emoji-picker" aria-label="常用表情">{['😀','😊','🥰','😂','😭','❤️','👍','🎉','🌸','✨','🙏','🤔'].map((emoji) => <button type="button" key={emoji} aria-label={`插入${emoji}`} onClick={() => setText((v) => (v + emoji).slice(0, 2000))}>{emoji}</button>)}</div>
+              <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="发送消息…" maxLength={2000} rows={2} />
               <div>
                 <small>{error || `${text.length}/2000`}</small>
                 <button className="primary-btn" disabled={busy || !text.trim()}>
@@ -186,7 +187,7 @@ export function MessagesClient() {
           <div className="chat-empty">
             <span>✉</span>
             <h2>选择一个会话</h2>
-            <p>支持纯文字私信，点击头像即可查看对方个人主页。</p>
+            <p>仅好友之间可以私信。请先从成员个人主页添加好友。</p>
             <button className="primary-btn" onClick={() => setShowUsers(true)}>
               开始新对话
             </button>
