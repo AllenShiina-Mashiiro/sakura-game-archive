@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 type State = 'loading' | 'none' | 'outgoing' | 'incoming' | 'friend';
@@ -7,7 +7,7 @@ export function FriendButton({ userId }: { userId: string }) {
   const [state, setState] = useState<State>('loading');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const r = await fetch('/api/friends', { cache: 'no-store' });
     if (!r.ok) { setState('none'); return; }
     const d = await r.json();
@@ -15,8 +15,8 @@ export function FriendButton({ userId }: { userId: string }) {
     else if ((d.incoming || []).some((x: { id: string }) => x.id === userId)) setState('incoming');
     else if ((d.outgoing || []).some((x: { id: string }) => x.id === userId)) setState('outgoing');
     else setState('none');
-  }
-  useEffect(() => { void refresh(); }, [userId]);
+  }, [userId]);
+  useEffect(() => { void refresh(); }, [refresh]);
   async function act(action: string) {
     setBusy(true); setNotice('');
     try {
