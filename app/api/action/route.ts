@@ -289,69 +289,68 @@ export async function POST(req: Request) {
       return NextResponse.json(result);
     }
     if (b.action === 'comment-edit' || b.action === 'comment-delete' || b.action === 'comment-pin') {
-      const c = db.comments.find((x) => x.id === b.id);
-      if (!c) return NextResponse.json({ error: '评论不存在' }, { status: 404 });
-      if (b.action === 'comment-pin') {
-        await requireAdmin();
-        c.pinned = !c.pinned;
-      } else {
-        if (c.userId !== user.id && user.role !== 'admin') return NextResponse.json({ error: '无权操作这条评论' }, { status: 403 });
+      if (b.action === 'comment-pin') await requireAdmin();
+      if (b.action === 'comment-edit' && (typeof b.content !== 'string' || !b.content.trim() || b.content.length > 2000)) return NextResponse.json({ error: '修改内容需为 1-2000 字' }, { status: 400 });
+      const result = await mutateDb((fresh) => {
+        const c = fresh.comments.find((x) => x.id === b.id);
+        if (!c) return { error: '评论不存在' as const };
+        if (b.action === 'comment-pin') {
+          c.pinned = !c.pinned;
+          return { ok: true as const };
+        }
+        if (c.userId !== user.id && user.role !== 'admin') return { forbidden: true as const };
         if (b.action === 'comment-delete') {
           const removeIds = new Set([c.id]);
           let changed = true;
           while (changed) {
             changed = false;
-            for (const child of db.comments) {
+            for (const child of fresh.comments) {
               if (child.parentId && removeIds.has(child.parentId) && !removeIds.has(child.id)) {
                 removeIds.add(child.id);
                 changed = true;
               }
             }
           }
-          db.comments = db.comments.filter((x) => !removeIds.has(x.id));
-          await writeDb(db);
-          return NextResponse.json({ deleted: true, count: removeIds.size });
-        } else {
-          if (typeof b.content !== 'string' || !b.content.trim() || b.content.length > 2000) return NextResponse.json({ error: '修改内容需为 1-2000 字' }, { status: 400 });
-          c.content = b.content.trim();
-          c.updatedAt = now;
+          fresh.comments = fresh.comments.filter((x) => !removeIds.has(x.id));
+          return { deleted: true as const, count: removeIds.size };
         }
-      }
-      await writeDb(db);
-      return NextResponse.json({ ok: true });
+        c.content = (b.content as string).trim();
+        c.updatedAt = now;
+        return { ok: true as const };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      if ('forbidden' in result) return NextResponse.json({ error: '无权操作这条评论' }, { status: 403 });
+      return NextResponse.json(result);
     }
     if (b.action === 'photo-save') {
       await requireAdmin();
       if (!b.title || !b.image) return NextResponse.json({ error: '照片标题和图片必填' }, { status: 400 });
-      db.photos.unshift({
-        id: randomUUID(),
-        title: String(b.title).slice(0, 100),
-        userId: user.id,
-        username: user.username,
-        description: String(b.description || '').slice(0, 1000),
-        image: String(b.image),
-        createdAt: now,
-        downloads: 0,
-        tags: Array.isArray(b.tags)
-          ? b.tags
-          : typeof b.tags === 'string'
-            ? b.tags
-                .split(',')
-                .map((x: string) => x.trim())
-                .filter(Boolean)
-            : [],
+      await mutateDb((fresh) => {
+        fresh.photos = fresh.photos || [];
+        fresh.photos.unshift({
+          id: randomUUID(), title: String(b.title).slice(0, 100), userId: user.id, username: user.username,
+          description: String(b.description || '').slice(0, 1000), image: String(b.image), createdAt: now, downloads: 0,
+          tags: Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : [],
+        });
       });
-      await writeDb(db);
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'photo-delete') {
       await requireAdmin();
-      const oldPhoto = db.photos.find((p) => p.id === String(b.id));
+      const oldPhoto = await mutateDb((fresh) => {
+        const old = fresh.photos.find((p) => p.id === String(b.id));
+        if (!old) return null;
+        fresh.photos = fresh.photos.filter((p) => p.id !== String(b.id));
+        return old;
+      });
       if (!oldPhoto) return NextResponse.json({ error: '照片不存在' }, { status: 404 });
-      db.photos = db.photos.filter((p) => p.id !== String(b.id));
-      await writeDb(db);
-      await deleteUnreferencedStorageImages([oldPhoto]);
-      return NextResponse.json({ ok: true });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages([oldPhoto]); }
+      catch (cleanupError) {
+        console.error('照片已删除，但图片存储清理失败:', cleanupError);
+        warning = '照片记录已删除，但图片文件清理失败，需稍后处理';
+      }
+      return NextResponse.json({ ok: true, warning: warning || undefined, message: warning || '照片已删除' });
     }
     if (b.action === 'wallet-convert') {
       const result = await mutateDb((fresh) => {
