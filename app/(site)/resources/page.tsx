@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { readDb } from '@/lib/db';
 import { FavoriteButton } from '@/app/components/ActionForm';
 import { SearchBar } from '@/app/components/SearchBar';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 export default async function Resources({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string; type?: string; platform?: string }> }) {
   const sp = await searchParams;
@@ -31,7 +32,7 @@ export default async function Resources({ searchParams }: { searchParams: Promis
           <article className="content-card" key={r.id}>
             {r.cover && (
               <Link href={`/resources/${r.id}`}>
-                <img className="wide-cover" src={r.cover} alt="" />
+                <img className="wide-cover" src={mediaUrl(r.cover)} alt="" />
               </Link>
             )}
             <small>
