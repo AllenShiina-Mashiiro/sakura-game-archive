@@ -9,9 +9,10 @@ const PUBLIC_PREFIX = '/storage/v1/object/public/uploads/';
 function extractOwnedStoragePath(value: string): string | null {
   try {
     const url = new URL(value);
-    const marker = url.pathname.indexOf(PUBLIC_PREFIX);
-    if (marker < 0) return null;
-    const path = decodeURIComponent(url.pathname.slice(marker + PUBLIC_PREFIX.length));
+    const configuredUrl = process.env.SUPABASE_URL;
+    if (!configuredUrl || url.origin !== new URL(configuredUrl).origin) return null;
+    if (!url.pathname.startsWith(PUBLIC_PREFIX)) return null;
+    const path = decodeURIComponent(url.pathname.slice(PUBLIC_PREFIX.length));
     if (!path || path.split('/').some((part) => !part || part === '.' || part === '..')) return null;
     return path;
   } catch {
