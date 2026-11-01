@@ -56,7 +56,6 @@ export async function GET(req: Request) {
         unread,
       };
     })
-    .filter((x) => messages.some((m) => (m.fromId === user.id && m.toId === x.id) || (m.fromId === x.id && m.toId === user.id)))
     .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
   return NextResponse.json({ contacts, users: [] });
 }
