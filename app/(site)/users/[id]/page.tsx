@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { readDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { FriendButton } from '@/app/components/FriendButton';
+import { mediaUrl } from '@/lib/media';
 export const dynamic = 'force-dynamic';
 const thresholds = [0, 50, 120, 220, 350, 500, 680, 880, 1100, 1350, 1650, 2000, 2400, 2850, 3350, 3900, 4500, 5150, 5850, 6600, 7400, 8250, 9150, 10100, 11100, 12200, 13400, 14700, 16100, 17600];
 export default async function PublicUserPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +30,7 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
         </Link>
       </header>
       <section className="public-profile-hero">
-        <span className={`avatar avatar-large avatar-frame-${u.avatarFrame || 'none'}`}>{u.avatar ? <img src={u.avatar} alt="" /> : u.nickname.slice(0, 1)}</span>
+        <span className={`avatar avatar-large avatar-frame-${u.avatarFrame || 'none'}`}>{u.avatar ? <img src={mediaUrl(u.avatar)} alt="" /> : u.nickname.slice(0, 1)}</span>
         <div className="public-profile-info">
           <h2>{u.nickname}</h2>
           <p>
@@ -49,7 +50,7 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
         <div
           className="public-card-background"
           style={{
-            backgroundImage: `linear-gradient(90deg,#11182766,#11182722),url("${u.cardBackground}")`,
+            backgroundImage: `linear-gradient(90deg,#11182766,#11182722),url("${mediaUrl(u.cardBackground)}")`,
           }}
         />
       )}
