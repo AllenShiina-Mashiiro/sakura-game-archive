@@ -24,7 +24,7 @@ export default async function Photos({ searchParams }: { searchParams: Promise<{
       <div className="photo-wall">
         {photos.map((p) => (
           <article className="photo-card" key={p.id}>
-            <a href={p.image} target="_blank" rel="noreferrer">
+            <a href={mediaUrl(p.image)} target="_blank" rel="noreferrer">
               <img src={mediaUrl(p.image)} alt={p.title} />
             </a>
             <div>
@@ -37,7 +37,7 @@ export default async function Photos({ searchParams }: { searchParams: Promise<{
                   </Link>
                 ))}
               </div>
-              <a className="outline-btn" href={p.image} download>
+              <a className="outline-btn" href={mediaUrl(p.image)} download>
                 下载原图 ↓
               </a>
             </div>
