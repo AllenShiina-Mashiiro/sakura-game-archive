@@ -113,6 +113,7 @@ export function UserManagement({ users }: { users: U[] }) {
           </button>
         </form>
       </section>
+      <label className="admin-search-field">搜索账号<input aria-label="搜索用户" placeholder="搜索用户名、昵称或 ID（含管理员）…" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
       <section id="admin-accounts">
         <h3>
           管理员账户 <small>({admins.length})</small>
@@ -128,7 +129,7 @@ export function UserManagement({ users }: { users: U[] }) {
           <h3>
             普通用户列表 <small>({normal.length})</small>
           </h3>
-          <input aria-label="搜索用户" placeholder="搜索用户名、昵称或 ID…" value={query} onChange={(e) => setQuery(e.target.value)} />
+
         </div>
         <div className="table-card">
           {normal.map((u) => (
