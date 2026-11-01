@@ -15,11 +15,10 @@ import {
 
 export async function POST(req: Request) {
   // 获取客户端 IP
-  // Netlify 提供的客户端 IP 头优先；本地开发环境再回退到代理头。
+  // 使用常见反向代理转发的客户端 IP 请求头，避免依赖特定部署平台。
   const rawIp =
-    req.headers.get('x-nf-client-connection-ip') ||
-    req.headers.get('x-real-ip') ||
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
     'unknown';
   const ip = rawIp.replace(/[^0-9a-fA-F:.]/g, '').slice(0, 64) || 'unknown';
 
