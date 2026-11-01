@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { readDb } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { FriendButton } from '@/app/components/FriendButton';
 export const dynamic = 'force-dynamic';
 const thresholds = [0, 50, 120, 220, 350, 500, 680, 880, 1100, 1350, 1650, 2000, 2400, 2850, 3350, 3900, 4500, 5150, 5850, 6600, 7400, 8250, 9150, 10100, 11100, 12200, 13400, 14700, 16100, 17600];
 export default async function PublicUserPage({ params }: { params: Promise<{ id: string }> }) {
@@ -41,9 +42,7 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
           </div>
         </div>
         {viewer && viewer.id !== u.id && (
-          <Link className="primary-btn" href={`/messages?with=${u.id}`}>
-            发送私信
-          </Link>
+          <FriendButton userId={u.id} />
         )}
       </section>
       {u.cardBackground && (
