@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { mediaUrl } from '@/lib/media';
 type C = {
   id: string;
   userId: string;
@@ -56,7 +57,7 @@ export function Comments({ targetType, targetId, items, me, admin }: { targetTyp
     return (
       <article className={`comment-card ${c.pinned ? 'comment-pinned' : ''}`} key={c.id}>
         <div className="comment-head">
-          <span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={c.avatar} alt="" /> : c.nickname.slice(0, 1)}</span>
+          <span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={mediaUrl(c.avatar)} alt="" /> : c.nickname.slice(0, 1)}</span>
           <div>
             <b>{c.nickname}</b>
             <small>
