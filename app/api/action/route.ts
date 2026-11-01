@@ -516,24 +516,23 @@ export async function POST(req: Request) {
     }
     if (b.action === 'feedback') {
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.description !== 'string' || b.description.trim().length < 5) return NextResponse.json({ error: '请填写标题和详细描述' }, { status: 400 });
-      db.feedback.unshift({
-        id: randomUUID(),
-        userId: user.id,
-        username: user.username,
-        title: b.title.trim().slice(0, 100),
-        type: String(b.type || '其他'),
-        gameId: String(b.gameId || ''),
-        description: b.description.trim().slice(0, 10000),
-        image: String(b.image || '').slice(0, 1000),
-        images: (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0,20) : []; })(),
-        status: 'pending',
-        reply: '',
-        createdAt: now,
-        statusHistory: [{ status: 'pending', reply: '反馈已提交，等待管理员处理', at: now, by: user.nickname }],
+      const submittedAt = new Date().toISOString();
+      const feedbackId = randomUUID();
+      const images = (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : []; })();
+      await mutateDb((fresh) => {
+        fresh.feedback.unshift({
+          id: feedbackId, userId: user.id, username: user.username,
+          title: (b.title as string).trim().slice(0, 100),
+          type: String(b.type || '其他').slice(0, 40),
+          gameId: String(b.gameId || '').slice(0, 100),
+          description: (b.description as string).trim().slice(0, 10000),
+          image: String(b.image || '').slice(0, 1000), images,
+          status: 'pending', reply: '', createdAt: submittedAt,
+          statusHistory: [{ status: 'pending', reply: '反馈已提交，等待管理员处理', at: submittedAt, by: user.nickname }],
+        });
+        for (const admin of fresh.users.filter((x) => x.role === 'admin' && x.status === 'active'))
+          pushNotification(fresh, admin.id, 'feedback', '收到新的问题反馈', `${user.nickname} 提交了：${(b.title as string).trim().slice(0, 80)}`, '/admin#reviews', user.id);
       });
-      for (const admin of db.users.filter((x) => x.role === 'admin' && x.status === 'active'))
-        pushNotification(db, admin.id, 'feedback', '收到新的问题反馈', `${user.nickname} 提交了：${b.title.trim().slice(0, 80)}`, '/admin#reviews', user.id);
-      await writeDb(db);
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'guide' || b.action === 'guide-edit' || b.action === 'guide-admin-create') {
@@ -834,10 +833,17 @@ export async function POST(req: Request) {
         if (!item) return { error: '记录不存在' };
         const accepted = b.status === 'accepted';
         if (b.action === 'review-guide') {
-          (item as Guide).status = accepted ? 'approved' : 'rejected';
-          if (accepted) {
+          const guide = item as Guide;
+          const wasApproved = guide.status === 'approved';
+          guide.status = accepted ? 'approved' : 'rejected';
+          if (accepted && !wasApproved) {
             const owner = fresh.users.find((u) => u.id === item.userId);
-            if (owner) { const oldLevel = levelOf(owner.exp); owner.exp += 30; if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
+            if (owner) {
+              const oldLevel = levelOf(owner.exp);
+              owner.exp += 30;
+              pushNotification(fresh, owner.id, 'system', '教程审核奖励已发放', '教程《' + guide.title + '》通过审核，获得 30 EXP。', '/tutorials/' + guide.id, user.id);
+              if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
+            }
           }
         } else {
           const feedback = item as Feedback;
