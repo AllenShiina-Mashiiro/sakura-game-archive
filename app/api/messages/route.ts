@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { mutateDb, readDb } from '@/lib/db';
 import type { DirectMessage, UserNotification } from '@/lib/types';
+const areFriends = (db: Awaited<ReturnType<typeof readDb>>, a: string, b: string) =>
+  (db.friendships || []).some((f) => f.status === 'accepted' && ((f.requesterId === a && f.addresseeId === b) || (f.requesterId === b && f.addresseeId === a)));
 export const dynamic = 'force-dynamic';
 const publicUser = (u: User) => ({
   id: u.id,
@@ -24,6 +26,7 @@ export async function GET(req: Request) {
     const result = await mutateDb((db) => {
       const peer = db.users.find((u) => u.id === withId && u.status === 'active');
       if (!peer) return { error: '用户不存在' };
+      if (!areFriends(db, user.id, withId)) return { error: '双方成为好友后才能私信' };
       const messages = (db.messages || []).filter((m) => (m.fromId === user.id && m.toId === withId) || (m.fromId === withId && m.toId === user.id)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
       for (const m of messages) if (m.toId === user.id && !m.readAt) m.readAt = new Date().toISOString();
       for (const n of db.notifications || []) if (n.userId === user.id && n.type === 'message' && n.actorId === withId && !n.readAt) n.readAt = new Date().toISOString();
@@ -39,7 +42,7 @@ export async function GET(req: Request) {
     return NextResponse.json(result);
   }
   const db = await readDb();
-  const activeUsers = db.users.filter((u) => u.id !== user.id && u.status === 'active');
+  const activeUsers = db.users.filter((u) => u.id !== user.id && u.status === 'active' && areFriends(db, user.id, u.id));
   const messages = db.messages || [];
   const contacts = activeUsers
     .map((peer) => {
@@ -55,7 +58,7 @@ export async function GET(req: Request) {
     })
     .filter((x) => messages.some((m) => (m.fromId === user.id && m.toId === x.id) || (m.fromId === x.id && m.toId === user.id)))
     .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
-  return NextResponse.json({ contacts, users: activeUsers.map(publicUser) });
+  return NextResponse.json({ contacts, users: [] });
 }
 export async function POST(req: Request) {
   const user = await getSessionUser();
@@ -69,6 +72,7 @@ export async function POST(req: Request) {
     const result = await mutateDb((db) => {
       const peer = db.users.find((u) => u.id === toId && u.status === 'active');
       if (!peer) return { error: '收件人不存在或不可用' };
+      if (!areFriends(db, user.id, toId)) return { error: '双方成为好友后才能私信' };
       const now = new Date().toISOString();
       const message: DirectMessage = {
         id: randomUUID(),
