@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { mediaUrl } from '@/lib/media';
 export function ImageUploadField({ name, label = '上传图片', folder = 'content', initial = '', maxSizeMB }: { name: string; label?: string; folder?: string; initial?: string; maxSizeMB?: number }) {
   const [url, setUrl] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -31,7 +32,7 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
       <input type="hidden" name={name} value={url} />
       {url && (
         <div className="upload-preview">
-          <img src={url} alt="图片预览" />
+          <img src={mediaUrl(url)} alt="图片预览" />
           <button type="button" className="text-btn" onClick={() => setUrl('')}>
             移除图片
           </button>
