@@ -973,55 +973,60 @@ if (b.status === 'active' || b.status === 'banned') {
     }
     if (b.action === 'admin-user-delete') {
       await requireAdmin();
-      const target = db.users.find((x) => x.id === String(b.id));
-      if (!target) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
-      if (target.id === user.id) return NextResponse.json({ error: '不能删除当前登录账号' }, { status: 400 });
-      if (target.role === 'admin') return NextResponse.json({ error: '不能删除管理员账号' }, { status: 403 });
-      db.users = db.users.filter((x) => x.id !== target.id);
-      db.collections = (db.collections || []).filter((x) => x.userId !== target.id);
-      db.comments = (db.comments || [])
-        .filter((x) => x.userId !== target.id)
-        .map((comment) => ({
-          ...comment,
-          likes: (comment.likes || []).filter((id) => id !== target.id),
-        }));
-      db.messages = (db.messages || []).filter((x) => x.fromId !== target.id && x.toId !== target.id);
-      db.friendships = (db.friendships || []).filter(
-        (x) => x.requesterId !== target.id && x.addresseeId !== target.id,
-      );
-      db.notifications = (db.notifications || [])
-        .filter((x) => x.userId !== target.id)
-        .map((notification) => notification.actorId === target.id
-          ? { ...notification, actorId: undefined }
-          : notification);
-      db.loginLogs = (db.loginLogs || []).filter((x) => x.userId !== target.id);
-      db.inventory = (db.inventory || []).filter((x) => x.userId !== target.id);
-      db.coinTransactions = (db.coinTransactions || []).filter((x) => x.userId !== target.id);
-      // 保留已发布内容及其展示名称，但解除指向已删除账号的主页关联。
-      db.guides = (db.guides || []).map((guide) =>
-        guide.userId === target.id ? { ...guide, userId: undefined } : guide,
-      );
-      db.resources = (db.resources || []).map((resource) =>
-        resource.userId === target.id ? { ...resource, userId: undefined } : resource,
-      );
-      db.photos = (db.photos || []).map((photo) =>
-        photo.userId === target.id ? { ...photo, userId: undefined } : photo,
-      );
-      db.feedback = (db.feedback || []).map((feedback) =>
-        feedback.userId === target.id ? { ...feedback, userId: '' } : feedback,
-      );
-      db.contributors = (db.contributors || []).map((contributor) =>
-        contributor.userId === target.id ? { ...contributor, userId: undefined } : contributor,
-      );
-      db.notices = (db.notices || []).map((notice) =>
-        notice.updatedById === target.id ? { ...notice, updatedById: undefined } : notice,
-      );
-      for (const game of db.games || []) {
-        game.updates = (game.updates || []).map((update) =>
-          update.contributorId === target.id ? { ...update, contributorId: undefined } : update,
+      const result = await mutateDb((fresh) => {
+        const target = fresh.users.find((x) => x.id === String(b.id));
+        if (!target) return { error: '用户不存在', status: 404 as const };
+        if (target.id === user.id) return { error: '不能删除当前登录账号', status: 400 as const };
+        if (target.role === 'admin') return { error: '不能删除管理员账号', status: 403 as const };
+        const profileImages = [target.avatar, target.cardBackground];
+        fresh.users = fresh.users.filter((x) => x.id !== target.id);
+        fresh.collections = (fresh.collections || []).filter((x) => x.userId !== target.id);
+        fresh.comments = (fresh.comments || [])
+          .filter((x) => x.userId !== target.id)
+          .map((comment) => ({
+            ...comment,
+            likes: (comment.likes || []).filter((id) => id !== target.id),
+          }));
+        fresh.messages = (fresh.messages || []).filter((x) => x.fromId !== target.id && x.toId !== target.id);
+        fresh.friendships = (fresh.friendships || []).filter(
+          (x) => x.requesterId !== target.id && x.addresseeId !== target.id,
         );
-      }
-      await writeDb(db);
+        fresh.notifications = (fresh.notifications || [])
+          .filter((x) => x.userId !== target.id)
+          .map((notification) => notification.actorId === target.id
+            ? { ...notification, actorId: undefined }
+            : notification);
+        fresh.loginLogs = (fresh.loginLogs || []).filter((x) => x.userId !== target.id);
+        fresh.inventory = (fresh.inventory || []).filter((x) => x.userId !== target.id);
+        fresh.coinTransactions = (fresh.coinTransactions || []).filter((x) => x.userId !== target.id);
+        // 保留已发布内容及其展示名称，但解除指向已删除账号的主页关联。
+        fresh.guides = (fresh.guides || []).map((guide) =>
+          guide.userId === target.id ? { ...guide, userId: undefined } : guide,
+        );
+        fresh.resources = (fresh.resources || []).map((resource) =>
+          resource.userId === target.id ? { ...resource, userId: undefined } : resource,
+        );
+        fresh.photos = (fresh.photos || []).map((photo) =>
+          photo.userId === target.id ? { ...photo, userId: undefined } : photo,
+        );
+        fresh.feedback = (fresh.feedback || []).map((feedback) =>
+          feedback.userId === target.id ? { ...feedback, userId: '' } : feedback,
+        );
+        fresh.contributors = (fresh.contributors || []).map((contributor) =>
+          contributor.userId === target.id ? { ...contributor, userId: undefined } : contributor,
+        );
+        fresh.notices = (fresh.notices || []).map((notice) =>
+          notice.updatedById === target.id ? { ...notice, updatedById: undefined } : notice,
+        );
+        for (const game of fresh.games || []) {
+          game.updates = (game.updates || []).map((update) =>
+            update.contributorId === target.id ? { ...update, contributorId: undefined } : update,
+          );
+        }
+        return { ok: true as const, profileImages };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      await deleteUnreferencedStorageImages(result.profileImages);
       return NextResponse.json({ ok: true, message: '账号已删除；相关好友关系、私信及个人记录已清理，已发布内容保留并解除账号关联' });
     }
     if (b.action === 'site-background' || b.action === 'site-branding') {
