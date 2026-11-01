@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { mediaUrl } from '@/lib/media';
 export function ImageViewer({ src, alt = '图片预览', className = '' }: { src: string; alt?: string; className?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button type="button" className={`image-view-trigger ${className}`} onClick={() => setOpen(true)} aria-label="放大查看图片">
-        <img src={src} alt={alt} />
+        <img src={mediaUrl(src)} alt={alt} />
       </button>
       {open && (
         <div className="image-viewer" role="dialog" aria-modal="true" onClick={() => setOpen(false)}>
