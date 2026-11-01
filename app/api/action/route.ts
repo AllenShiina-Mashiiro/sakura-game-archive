@@ -978,12 +978,51 @@ if (b.status === 'active' || b.status === 'banned') {
       if (target.id === user.id) return NextResponse.json({ error: '不能删除当前登录账号' }, { status: 400 });
       if (target.role === 'admin') return NextResponse.json({ error: '不能删除管理员账号' }, { status: 403 });
       db.users = db.users.filter((x) => x.id !== target.id);
-      db.collections = db.collections.filter((x) => x.userId !== target.id);
-      db.comments = db.comments.filter((x) => x.userId !== target.id);
+      db.collections = (db.collections || []).filter((x) => x.userId !== target.id);
+      db.comments = (db.comments || [])
+        .filter((x) => x.userId !== target.id)
+        .map((comment) => ({
+          ...comment,
+          likes: (comment.likes || []).filter((id) => id !== target.id),
+        }));
       db.messages = (db.messages || []).filter((x) => x.fromId !== target.id && x.toId !== target.id);
-      db.notifications = (db.notifications || []).filter((x) => x.userId !== target.id);
+      db.friendships = (db.friendships || []).filter(
+        (x) => x.requesterId !== target.id && x.addresseeId !== target.id,
+      );
+      db.notifications = (db.notifications || [])
+        .filter((x) => x.userId !== target.id)
+        .map((notification) => notification.actorId === target.id
+          ? { ...notification, actorId: undefined }
+          : notification);
+      db.loginLogs = (db.loginLogs || []).filter((x) => x.userId !== target.id);
+      db.inventory = (db.inventory || []).filter((x) => x.userId !== target.id);
+      db.coinTransactions = (db.coinTransactions || []).filter((x) => x.userId !== target.id);
+      // 保留已发布内容及其展示名称，但解除指向已删除账号的主页关联。
+      db.guides = (db.guides || []).map((guide) =>
+        guide.userId === target.id ? { ...guide, userId: undefined } : guide,
+      );
+      db.resources = (db.resources || []).map((resource) =>
+        resource.userId === target.id ? { ...resource, userId: undefined } : resource,
+      );
+      db.photos = (db.photos || []).map((photo) =>
+        photo.userId === target.id ? { ...photo, userId: undefined } : photo,
+      );
+      db.feedback = (db.feedback || []).map((feedback) =>
+        feedback.userId === target.id ? { ...feedback, userId: '' } : feedback,
+      );
+      db.contributors = (db.contributors || []).map((contributor) =>
+        contributor.userId === target.id ? { ...contributor, userId: undefined } : contributor,
+      );
+      db.notices = (db.notices || []).map((notice) =>
+        notice.updatedById === target.id ? { ...notice, updatedById: undefined } : notice,
+      );
+      for (const game of db.games || []) {
+        game.updates = (game.updates || []).map((update) =>
+          update.contributorId === target.id ? { ...update, contributorId: undefined } : update,
+        );
+      }
       await writeDb(db);
-      return NextResponse.json({ ok: true, message: '账号已删除' });
+      return NextResponse.json({ ok: true, message: '账号已删除；相关好友关系、私信及个人记录已清理，已发布内容保留并解除账号关联' });
     }
     if (b.action === 'site-background' || b.action === 'site-branding') {
       await requireAdmin();
