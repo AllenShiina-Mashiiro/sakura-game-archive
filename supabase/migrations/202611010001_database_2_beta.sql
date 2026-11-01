@@ -143,3 +143,103 @@ end $$;
 -- Tables intentionally have no anon/authenticated policies. The server service-role
 -- client bypasses RLS; never expose SUPABASE_SERVICE_ROLE_KEY to browser code.
 drop function if exists public.archive_create_entity_table(text);
+
+
+-- Runtime compatibility layer. When DATABASE_V2_ENABLED=true, the app reads normalized
+-- entity tables and writes the legacy snapshot + normalized tables in one transaction.
+create or replace function public.archive_replace_entity_table(
+  p_table text, p_rows jsonb, p_owner_key text, p_date_key text
+) returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  execute format('delete from public.%I', p_table);
+  execute format(
+    'insert into public.%I (id, owner_id, created_at, row_data)
+     select coalesce(x->>''id'', x->>''username'', x->>''slug''),
+            coalesce(x->>$1, x->>''ownerId'', x->>''requesterId''),
+            case when coalesce(x->>$2, x->>''created_at'') ~ ''^[0-9]{4}-[0-9]{2}-[0-9]{2}''
+              then (coalesce(x->>$2, x->>''created_at''))::timestamptz else null end,
+            x
+     from jsonb_array_elements(case when jsonb_typeof($3) = ''array'' then $3 else ''[]''::jsonb end) x',
+    p_table
+  ) using p_owner_key, p_date_key, p_rows;
+end;
+$$;
+
+create or replace function public.archive_load_snapshot()
+returns jsonb language sql stable security definer set search_path = public
+as $$
+  select jsonb_build_object(
+    'users', coalesce((select jsonb_agg(row_data) from public.archive_users), '[]'::jsonb),
+    'games', coalesce((select jsonb_agg(row_data) from public.archive_games), '[]'::jsonb),
+    'resources', coalesce((select jsonb_agg(row_data) from public.archive_resources), '[]'::jsonb),
+    'guides', coalesce((select jsonb_agg(row_data) from public.archive_guides), '[]'::jsonb),
+    'feedback', coalesce((select jsonb_agg(row_data) from public.archive_feedback), '[]'::jsonb),
+    'notices', coalesce((select jsonb_agg(row_data) from public.archive_notices), '[]'::jsonb),
+    'collections', coalesce((select jsonb_agg(row_data) from public.archive_collections), '[]'::jsonb),
+    'loginLogs', coalesce((select jsonb_agg(row_data) from public.archive_login_logs), '[]'::jsonb),
+    'comments', coalesce((select jsonb_agg(row_data) from public.archive_comments), '[]'::jsonb),
+    'photos', coalesce((select jsonb_agg(row_data) from public.archive_photos), '[]'::jsonb),
+    'shopProducts', coalesce((select jsonb_agg(row_data) from public.archive_shop_products), '[]'::jsonb),
+    'inventory', coalesce((select jsonb_agg(row_data) from public.archive_inventory), '[]'::jsonb),
+    'coinTransactions', coalesce((select jsonb_agg(row_data) from public.archive_coin_transactions), '[]'::jsonb),
+    'messages', coalesce((select jsonb_agg(row_data) from public.archive_messages), '[]'::jsonb),
+    'friendships', coalesce((select jsonb_agg(row_data) from public.archive_friendships), '[]'::jsonb),
+    'notifications', coalesce((select jsonb_agg(row_data) from public.archive_notifications), '[]'::jsonb),
+    'contributors', coalesce((select jsonb_agg(row_data) from public.archive_contributors), '[]'::jsonb),
+    'siteSettings', coalesce((select row_data from public.archive_site_settings where id='main'), '{}'::jsonb)
+  );
+$$;
+
+create or replace function public.archive_save_snapshot(p_data jsonb, p_expected_version bigint)
+returns boolean language plpgsql security definer set search_path = public
+as $$
+declare
+  changed integer;
+begin
+  update public.app_state
+    set data = p_data, version = p_expected_version + 1, updated_at = now()
+    where id = 'main' and version = p_expected_version;
+  get diagnostics changed = row_count;
+  if changed = 0 then return false; end if;
+
+  perform public.archive_replace_entity_table('archive_users', p_data->'users', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_games', p_data->'games', 'userId', 'updatedAt');
+  perform public.archive_replace_entity_table('archive_resources', p_data->'resources', 'userId', 'updatedAt');
+  perform public.archive_replace_entity_table('archive_guides', p_data->'guides', 'userId', 'date');
+  perform public.archive_replace_entity_table('archive_feedback', p_data->'feedback', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_notices', p_data->'notices', 'userId', 'updatedAt');
+  perform public.archive_replace_entity_table('archive_collections', p_data->'collections', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_login_logs', p_data->'loginLogs', 'userId', 'date');
+  perform public.archive_replace_entity_table('archive_comments', p_data->'comments', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_photos', p_data->'photos', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_shop_products', p_data->'shopProducts', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_inventory', p_data->'inventory', 'userId', 'purchasedAt');
+  perform public.archive_replace_entity_table('archive_coin_transactions', p_data->'coinTransactions', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_messages', p_data->'messages', 'fromId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_friendships', p_data->'friendships', 'requesterId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_notifications', p_data->'notifications', 'userId', 'createdAt');
+  perform public.archive_replace_entity_table('archive_contributors', p_data->'contributors', 'userId', 'createdAt');
+
+  delete from public.archive_game_guides;
+  insert into public.archive_game_guides(id, owner_id, row_data)
+  select (g->>'id') || ':' || coalesce(guide->>'id', guide->>'title'),
+         guide->>'userId', jsonb_build_object('gameId', g->>'id', 'guide', guide)
+  from jsonb_array_elements(coalesce(p_data->'games','[]'::jsonb)) g
+  cross join lateral jsonb_array_elements(
+    case when jsonb_typeof(g->'guides')='array' then g->'guides' else '[]'::jsonb end
+  ) guide;
+
+  insert into public.archive_site_settings(id,row_data)
+  values ('main',coalesce(p_data->'siteSettings','{}'::jsonb))
+  on conflict (id) do update set row_data=excluded.row_data,migrated_at=now();
+  return true;
+end;
+$$;
+
+revoke all on function public.archive_load_snapshot() from public, anon, authenticated;
+revoke all on function public.archive_save_snapshot(jsonb,bigint) from public, anon, authenticated;
+revoke all on function public.archive_replace_entity_table(text,jsonb,text,text) from public, anon, authenticated;
+grant execute on function public.archive_load_snapshot() to service_role;
+grant execute on function public.archive_save_snapshot(jsonb,bigint) to service_role;
