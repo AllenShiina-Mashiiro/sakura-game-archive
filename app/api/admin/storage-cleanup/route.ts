@@ -29,7 +29,9 @@ function storagePathFromPhotoUrl(value: string, supabaseUrl: string): string | n
   }
 }
 
-async function listAllFiles(bucket: any) {
+type UploadBucket = ReturnType<ReturnType<typeof getSupabaseAdmin>['storage']['from']>;
+
+async function listAllFiles(bucket: UploadBucket) {
   const allFiles: string[] = [];
   const foldersToVisit = [''];
   while (foldersToVisit.length) {
