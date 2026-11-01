@@ -681,6 +681,8 @@ export async function POST(req: Request) {
         if (b.id && !old) return NextResponse.json({ error: '版本记录不存在，请刷新后重试' }, { status: 404 });
         const next = {
           id: recordId,
+          contributorId: old?.contributorId || user.id,
+          contributorName: old?.contributorName || user.nickname,
           date: String(b.date),
           version: String(b.version),
           title: String(b.title),

@@ -27,6 +27,8 @@ export type User = {
 };
 export type ResourceUpdate = {
   id: string;
+  contributorId?: string;
+  contributorName?: string;
   date: string;
   version: string;
   title: string;
