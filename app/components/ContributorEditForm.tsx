@@ -1,0 +1,11 @@
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ImageUploadField } from '@/app/components/ImageUploadField';
+export function ContributorEditForm({item}:{item:any}) {
+ const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');const router=useRouter();
+ async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError('');const data=Object.fromEntries(new FormData(e.currentTarget).entries());try{const r=await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'contributor-update',id:item.id,...data})});const d=await r.json();if(!r.ok)throw Error(d.error||'保存失败');setOpen(false);router.refresh()}catch(e){setError(e instanceof Error?e.message:'保存失败')}finally{setBusy(false)}}
+ return <div><button type="button" className="outline-btn" onClick={()=>setOpen(v=>!v)}>{open?'收起':'修改资料'}</button>{open&&<form className="stack-form" onSubmit={submit}>
+ <label>昵称<input name="name" defaultValue={item.name} required/></label><label>身份 / 头衔<input name="role" defaultValue={item.role||''}/></label><label>贡献类型<select name="kind" defaultValue={item.kind||'volunteer'}><option value="volunteer">志愿者</option><option value="technical">技术贡献</option><option value="content">内容贡献</option><option value="financial">资金支持</option></select></label><label>贡献说明<textarea name="description" rows={3} defaultValue={item.description} required/></label><ImageUploadField name="avatar" label="贡献者头像" folder="contributors" initial={item.avatar||''}/><label>经验值<input name="exp" type="number" min="0" max="1000000" defaultValue={item.exp||0}/></label><label>徽章（逗号分隔）<input name="badges" defaultValue={(item.badges||[]).join(', ')}/></label><label>关联用户 ID<input name="userId" defaultValue={item.userId||''}/></label>
+ {error&&<p className="error-box">{error}</p>}<button className="primary-btn" disabled={busy}>{busy?'保存中…':'保存修改'}</button></form>}</div>;
+}
