@@ -58,7 +58,7 @@ alter table public.archive_site_settings enable row level security;
 do $$
 declare
   source_data jsonb;
-  spec record;
+  spec text[];
   item jsonb;
   entity_id text;
   owner text;
