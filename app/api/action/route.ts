@@ -989,47 +989,47 @@ export async function POST(req: Request) {
     }
     if (b.action === 'resource-delete' || b.action === 'notice-delete' || b.action === 'guide-delete' || b.action === 'game-record-delete') {
       await requireAdmin();
-      const removedImages: unknown[] = [];
-      if (b.action === 'resource-delete') {
-        const old = db.resources.find((x) => x.id === String(b.id));
-        if (!old) return NextResponse.json({ error: '资源不存在' }, { status: 404 });
-        removedImages.push(old);
-        db.resources = db.resources.filter((x) => x.id !== String(b.id));
-        db.collections = db.collections.filter((x) => !(x.targetType === 'resource' && x.targetId === String(b.id)));
-        db.comments = db.comments.filter((x) => !(x.targetType === 'resource' && x.targetId === String(b.id)));
-      }
-      if (b.action === 'notice-delete') db.notices = db.notices.filter((x) => x.id !== String(b.id));
-      if (b.action === 'guide-delete') {
-        const old = db.guides.find((x) => x.id === String(b.id));
-        if (!old) return NextResponse.json({ error: '教程不存在' }, { status: 404 });
-        removedImages.push(old);
-        db.guides = db.guides.filter((x) => x.id !== String(b.id));
-        db.collections = db.collections.filter((x) => !(x.targetType === 'guide' && x.targetId === String(b.id)));
-        db.comments = db.comments.filter((x) => !(x.targetType === 'guide' && x.targetId === String(b.id)));
-      }
-      if (b.action === 'game-record-delete') {
-        const g = db.games.find((x) => x.id === String(b.gameId));
-        if (!g) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
-        if (b.kind === 'update') {
-          const old = g.updates.find((x) => x.id === String(b.id));
-          if (!old) return NextResponse.json({ error: '版本记录不存在' }, { status: 404 });
+      const result = await mutateDb((fresh) => {
+        const removedImages: unknown[] = [];
+        if (b.action === 'resource-delete') {
+          const old = fresh.resources.find((x) => x.id === String(b.id || ''));
+          if (!old) return { error: '资源不存在' as const };
           removedImages.push(old);
-          g.updates = g.updates.filter((x) => x.id !== String(b.id));
-          if (g.latestVersion === old.version) {
-            const latest = [...g.updates].sort((a, b) => b.date.localeCompare(a.date))[0];
-            g.latestVersion = latest?.version || '';
-            g.updatedAt = latest?.date || '';
-          }
-        } else if (b.kind === 'file') {
-          const old = g.files.find((x) => x.id === String(b.id));
-          if (!old) return NextResponse.json({ error: '资源文件记录不存在' }, { status: 404 });
+          fresh.resources = fresh.resources.filter((x) => x.id !== old.id);
+          fresh.collections = fresh.collections.filter((x) => !(x.targetType === 'resource' && x.targetId === old.id));
+          fresh.comments = fresh.comments.filter((x) => !(x.targetType === 'resource' && x.targetId === old.id));
+        } else if (b.action === 'notice-delete') {
+          fresh.notices = fresh.notices.filter((x) => x.id !== String(b.id || ''));
+        } else if (b.action === 'guide-delete') {
+          const old = fresh.guides.find((x) => x.id === String(b.id || ''));
+          if (!old) return { error: '教程不存在' as const };
           removedImages.push(old);
-          g.files = g.files.filter((x) => x.id !== String(b.id));
-        } else return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
-      }
-      await writeDb(db);
-      if (removedImages.length) await deleteUnreferencedStorageImages(removedImages);
-      return NextResponse.json({ ok: true, message: '已删除' });
+          fresh.guides = fresh.guides.filter((x) => x.id !== old.id);
+          fresh.collections = fresh.collections.filter((x) => !(x.targetType === 'guide' && x.targetId === old.id));
+          fresh.comments = fresh.comments.filter((x) => !(x.targetType === 'guide' && x.targetId === old.id));
+        } else {
+          const game = fresh.games.find((g) => g.id === String(b.gameId || ''));
+          if (!game) return { error: '游戏不存在' as const };
+          if (b.kind === 'update') {
+            const old = game.updates.find((x) => x.id === String(b.id || ''));
+            if (!old) return { error: '版本记录不存在' as const };
+            removedImages.push(old);
+            game.updates = game.updates.filter((x) => x.id !== old.id);
+            if (game.latestVersion === old.version) { const latest = [...game.updates].sort((a, b) => b.date.localeCompare(a.date))[0]; game.latestVersion = latest?.version || ''; game.updatedAt = latest?.date || ''; }
+          } else if (b.kind === 'file') {
+            const old = game.files.find((x) => x.id === String(b.id || ''));
+            if (!old) return { error: '资源文件记录不存在' as const };
+            removedImages.push(old);
+            game.files = game.files.filter((x) => x.id !== old.id);
+          } else return { error: '记录类型无效' as const };
+        }
+        return { removedImages };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.error === '记录类型无效' ? 400 : 404 });
+      let warning = '';
+      try { if (result.removedImages.length) await deleteUnreferencedStorageImages(result.removedImages); }
+      catch (cleanupError) { console.error('记录已删除，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, message: '已删除' + warning, warning: warning || undefined });
     }
     return NextResponse.json({ error: '未知操作' }, { status: 400 });
   } catch (e) {
