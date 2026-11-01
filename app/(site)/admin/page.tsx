@@ -10,6 +10,10 @@ import { NoticeEditForm } from '@/app/components/NoticeEditForm';
 import { ImageViewer } from '@/app/components/ImageViewer';
 import { AdminDeleteButton } from '@/app/components/AdminDeleteButton';
 import { GuideEditForm } from '@/app/components/GuideEditForm';
+import { GameEditForm } from '@/app/components/GameEditForm';
+import { ResourceEditForm } from '@/app/components/ResourceEditForm';
+import { ContributorEditForm } from '@/app/components/ContributorEditForm';
+import { AdminSearchList } from '@/app/components/AdminSearchList';
 export const dynamic = 'force-dynamic';
 export default async function Admin({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   const params = await searchParams;
@@ -130,22 +134,18 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       {section === "tutorials" && (
       <section id="guide-management" className="admin-section">
         <h2>教程管理</h2>
-        <p className="muted">管理员可以修改所有状态的教程；教程作者可以在已发布教程详情页修改自己的教程。</p>
-        <div className="table-card">
-          {db.guides.map((g) => (
-            <div className="admin-row" key={g.id}>
-              <div>
-                <b>{g.title}</b>
-                <small>
-                  {g.author || '未知作者'} · {g.status || '未设置状态'} · 发布于 {g.date} · 最后修改 {g.updatedAt ? new Date(g.updatedAt).toLocaleString('zh-CN') : '尚未修改'}
-                </small>
-              </div>
-              <GuideEditForm guide={g} games={db.games.map((x) => ({ id: x.id, name: x.name }))} />
-              <AdminDeleteButton action="guide-delete" id={g.id} label="删除教程" />
-            </div>
-          ))}
-          {!db.guides.length && <p className="muted">暂无教程。</p>}
-        </div>
+        <p className="muted">管理员可以创建、关联游戏、修改和删除教程；发布后会在所关联游戏档案的攻略与开发者说明中显示。</p>
+        <details open className="admin-form-panel">
+          <summary>创建教程 / 开发者说明</summary>
+          <ActionForm action="guide-admin-create" button="发布教程" successMessage="教程已发布，并已关联所选游戏。">
+            <label>教程标题<input name="title" minLength={3} required /></label>
+            <label>关联游戏<select name="gameId" defaultValue=""><option value="">综合教程（不关联单个游戏）</option>{db.games.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
+            <label>分类<input name="category" defaultValue="攻略" placeholder="攻略 / 开发者说明 / 安装教程" /></label>
+            <label>封面图片 URL<input name="cover" type="url" /></label>
+            <label>正文<textarea name="content" rows={9} minLength={20} required /></label>
+          </ActionForm>
+        </details>
+        <AdminSearchList items={db.guides.map((g) => ({ id: g.id, search: [g.title,g.author,g.category,g.gameName,g.status,g.content].join(' '), content: <div className="admin-row"><div><b>{g.title}</b><small>{g.author || '未知作者'} · {g.status || '未设置状态'} · 发布于 {g.date} · 最后修改 {g.updatedAt ? new Date(g.updatedAt).toLocaleString('zh-CN') : '尚未修改'}</small></div><GuideEditForm guide={g} games={db.games.map((x) => ({ id: x.id, name: x.name }))} /><AdminDeleteButton action="guide-delete" id={g.id} label="删除教程" /></div> }))} placeholder="搜索教程标题、作者、分类或正文…" />
       </section>
       )}
       {section === "games" && (
@@ -277,21 +277,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </label>
           </ActionForm>
         </details>
-        <div className="table-card">
-          {db.games.map((g) => (
-            <div className="admin-row" key={g.id}>
-              <div>
-                <b>
-                  {g.name} · {g.latestVersion}
-                </b>
-                <small>
-                  {g.slug} · {g.tags.join(' / ')}
-                </small>
-              </div>
-              <AdminDeleteButton action="game-delete" id={g.id} label="删除档案" />
-            </div>
-          ))}
-        </div>
+        <AdminSearchList items={db.games.map((g) => ({ id: g.id, search: [g.name,g.slug,g.latestVersion,...(g.tags||[])].join(' '), content: <div className="admin-row"><div><b>{g.name} · {g.latestVersion}</b><small>{g.slug} · {(g.tags||[]).join(' / ')}</small></div><GameEditForm game={g} /><AdminDeleteButton action="game-delete" id={g.id} label="删除档案" /></div> }))} placeholder="搜索游戏名称、Slug、版本或标签…" />
       </section>
       )}
       {section === "resources" && (
@@ -346,19 +332,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </label>
           </ActionForm>
         </details>
-        <div className="table-card">
-          {db.resources.map((r) => (
-            <div className="admin-row" key={r.id}>
-              <div>
-                <b>{r.title}</b>
-                <small>
-                  {r.gameName} · {r.tags.join(' / ')}
-                </small>
-              </div>
-              <AdminDeleteButton action="resource-delete" id={r.id} />
-            </div>
-          ))}
-        </div>
+        <AdminSearchList items={db.resources.map((r) => ({ id: r.id, search: [r.title,r.gameName,r.description,r.version,...(r.tags||[])].join(' '), content: <div className="admin-row"><div><b>{r.title}</b><small>{r.gameName} · {(r.tags||[]).join(' / ')}</small></div><ResourceEditForm resource={r} games={db.games.map(g=>({id:g.id,name:g.name}))} /><AdminDeleteButton action="resource-delete" id={r.id} /></div> }))} placeholder="搜索资源名称、游戏、版本或标签…" />
       </section>
       )}
       {section === "notices" && (
@@ -526,6 +500,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <textarea name="contributions" rows={6} defaultValue={(db.siteSettings?.contributor?.contributions || []).join('\n')} />
           </label>
         </ActionForm>
+        <AdminDeleteButton action="contributor-settings-delete" id="profile" label="删除开发者资料" />
         <details className="admin-form-panel">
           <summary>添加贡献者 / 志愿者</summary>
           <ActionForm action="contributor-add" button="添加贡献者">
@@ -565,24 +540,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             </label>
           </ActionForm>
         </details>
-        <div className="table-card">
-          {(db.contributors || []).map((c) => (
-            <div className="admin-row" key={c.id}>
-              <div>
-                <b>
-                  {c.name} · {c.role}
-                </b>
-                <small>
-                  {c.kind} · {c.description}
-                </small>
-                <small>Lv.{levelForContributor(c.exp || 0)} · {c.exp || 0} EXP · {(c.badges || []).join(' / ') || '暂无徽章'}</small>
-              </div>
-              <ActionForm action="contributor-delete" button="移除" className="inline-action-form">
-                <input type="hidden" name="id" value={c.id} />
-              </ActionForm>
-            </div>
-          ))}
-        </div>
+        <AdminSearchList items={(db.contributors || []).map((c) => ({ id: c.id, search: [c.name,c.role,c.kind,c.description,...(c.badges||[])].join(' '), content: <div className="admin-row"><div><b>{c.name} · {c.role}</b><small>{c.kind} · {c.description}</small><small>Lv.{levelForContributor(c.exp || 0)} · {c.exp || 0} EXP · {(c.badges || []).join(' / ') || '暂无徽章'}</small></div><ContributorEditForm item={c} /><ActionForm action="contributor-delete" button="移除" className="inline-action-form"><input type="hidden" name="id" value={c.id} /></ActionForm></div> }))} placeholder="搜索贡献者昵称、身份或贡献说明…" />
       </section>      )}
 
     </div>
