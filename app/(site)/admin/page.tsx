@@ -316,6 +316,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               </select>
             </label>
             <ImageUploadField name="cover" label="资源封面" folder="resources" />
+            <MultiImageUploadField name="images" label="资源配图（最多 20 张）" folder="resources" />
             <label>
               版本
               <input name="version" />
@@ -351,6 +352,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <b>{r.title}</b>
             <small>{r.gameName || '通用资源'} · {r.version || '未标注版本'} · 更新于 {r.updatedAt}{r.username ? ' · 贡献者 ' + r.username : ''}</small>
             {r.cover && <ImageViewer src={r.cover} alt={r.title + '封面'} className="review-image" />}
+            {!!r.images?.length && <div className="review-image-grid">{r.images.map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={r.title + '配图 ' + (index+1)} className="review-image" />)}</div>}
             <p className="multiline">{r.description || '暂无资源说明'}</p>
             <p><b>适用范围：</b>{r.scope || '未注明'}　<b>标签：</b>{(r.tags || []).join(' / ') || '无'}</p>
             <details><summary>安装方式、下载与关联教程</summary><p className="multiline">{r.install || '暂无安装说明'}</p><p>{r.url ? <a href={r.url} target="_blank" rel="noreferrer">打开资源链接 ↗</a> : '暂无下载链接'}</p><p>{r.tutorial || '暂无关联教程'}</p></details>

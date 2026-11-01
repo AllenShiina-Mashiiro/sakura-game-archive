@@ -90,6 +90,7 @@ export type Resource = {
   username?: string;
   title: string;
   cover: string;
+  images?: string[];
   gameId: string;
   gameName: string;
   version: string;

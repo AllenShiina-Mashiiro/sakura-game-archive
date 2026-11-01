@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { readDb } from '@/lib/db';
 import { CommentSection } from '@/app/components/CommentSection';
 import { FavoriteButton } from '@/app/components/ActionForm';
+import { ImageViewer } from '@/app/components/ImageViewer';
 export const dynamic = 'force-dynamic';
 export default async function ResourceDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,6 +40,7 @@ export default async function ResourceDetail({ params }: { params: Promise<{ id:
           <strong>{linkedGame ? <Link href={`/games/${linkedGame.slug}`}>{linkedGame.name} ↗</Link> : r.gameName || '通用'}</strong>
         </div>
       </div>
+      {!!r.images?.length && <section className="detail-section"><h2>资源配图</h2><div className="review-image-grid">{r.images.map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={r.title + '配图 ' + (index+1)} className="review-image" />)}</div></section>}
       <div className="article-body">
         <h2 id="resource-description">资源说明</h2>
         <p>{r.description}</p>

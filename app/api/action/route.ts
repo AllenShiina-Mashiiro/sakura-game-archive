@@ -754,6 +754,7 @@ export async function POST(req: Request) {
         username: old?.username || user.nickname,
         title: String(b.title || '').trim(),
         cover: String(b.cover || ''),
+        images: (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : old?.images || []; })(),
         gameId: String(b.gameId || ''),
         gameName: db.games.find((g) => g.id === String(b.gameId || ''))?.name || '',
         version: String(b.version || ''),
@@ -771,7 +772,7 @@ export async function POST(req: Request) {
       if (old) db.resources[db.resources.indexOf(old)] = r;
       else db.resources.unshift(r);
       await writeDb(db);
-      if (old && old.cover !== r.cover) await deleteUnreferencedStorageImages([old.cover]);
+      if (old && (old.cover !== r.cover || JSON.stringify(old.images || []) !== JSON.stringify(r.images || []))) await deleteUnreferencedStorageImages([old.cover, old.images || []]);
       return NextResponse.json({ ok: true, message: old ? '资源修改成功' : '资源发布成功' });
     }
     if (b.action === 'notice-save') {
