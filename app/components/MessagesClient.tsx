@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { mediaUrl } from '@/lib/media';
 type Person = {
   id: string;
   nickname: string;
@@ -108,7 +109,7 @@ export function MessagesClient() {
     setShowUsers(false);
     history.replaceState(null, '', `/messages?with=${encodeURIComponent(id)}`);
   };
-  const avatar = (p: Person) => <span className={`avatar avatar-frame-${p.avatarFrame || 'none'}`}>{p.avatar ? <img src={p.avatar} alt="" /> : p.nickname.slice(0, 1)}</span>;
+  const avatar = (p: Person) => <span className={`avatar avatar-frame-${p.avatarFrame || 'none'}`}>{p.avatar ? <img src={mediaUrl(p.avatar)} alt="" /> : p.nickname.slice(0, 1)}</span>;
   return (
     <div className="messages-layout">
       <aside className="conversation-list">
