@@ -42,6 +42,13 @@ export async function POST(req: Request) {
       const now = new Date().toISOString();
       if (action === 'request') {
         if (relation?.status === 'accepted') return { error: '你们已经是好友' };
+        if (relation?.status === 'rejected') {
+          relation.requesterId = user.id;
+          relation.addresseeId = targetId;
+          relation.status = 'pending';
+          relation.updatedAt = now;
+          return { ok: true, message: '好友请求已重新发送' };
+        }
         if (relation?.status === 'pending') {
           if (relation.addresseeId === user.id) {
             relation.status = 'accepted';
