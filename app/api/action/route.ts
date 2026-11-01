@@ -818,6 +818,7 @@ export async function POST(req: Request) {
         }
       } else {
         const feedback = item as Feedback;
+        const previousStatus = feedback.status;
         const nextStatus = ['processing', 'fixed', 'failed'].includes(String(b.status)) ? String(b.status) : accepted ? 'accepted' : 'rejected';
         feedback.status = nextStatus as Feedback['status'];
         feedback.reply = String(b.reply || '');
@@ -825,7 +826,7 @@ export async function POST(req: Request) {
         feedback.statusHistory = feedback.statusHistory || [];
         feedback.statusHistory.push({ status: nextStatus, reply: feedback.reply, at: now, by: user.nickname });
         const isBug = /bug/i.test(feedback.type);
-        const wasAlreadyRewardedStatus = feedback.status === 'accepted' || feedback.status === 'fixed';
+        const wasAlreadyRewardedStatus = previousStatus === 'accepted' || previousStatus === 'fixed';
         const finalReward = nextStatus === 'fixed' || nextStatus === 'accepted';
         if (finalReward && !feedback.rewardGranted && !wasAlreadyRewardedStatus) {
           const owner = db.users.find((u) => u.id === feedback.userId);
