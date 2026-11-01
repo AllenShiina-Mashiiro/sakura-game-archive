@@ -114,6 +114,8 @@ begin
     end loop;
   end loop;
 
+  update public.archive_games set row_data = row_data - 'guides';
+
   -- Game-specific nested guides are preserved separately to avoid ID collisions
   -- with top-level community guides.
   for item in
@@ -172,7 +174,14 @@ returns jsonb language sql stable security definer set search_path = public
 as $$
   select jsonb_build_object(
     'users', coalesce((select jsonb_agg(row_data) from public.archive_users), '[]'::jsonb),
-    'games', coalesce((select jsonb_agg(row_data) from public.archive_games), '[]'::jsonb),
+    'games', coalesce((
+      select jsonb_agg(jsonb_set(g.row_data, '{guides}', coalesce((
+        select jsonb_agg(gg.row_data->'guide')
+        from public.archive_game_guides gg
+        where gg.row_data->>'gameId' = g.id
+      ), '[]'::jsonb), true))
+      from public.archive_games g
+    ), '[]'::jsonb),
     'resources', coalesce((select jsonb_agg(row_data) from public.archive_resources), '[]'::jsonb),
     'guides', coalesce((select jsonb_agg(row_data) from public.archive_guides), '[]'::jsonb),
     'feedback', coalesce((select jsonb_agg(row_data) from public.archive_feedback), '[]'::jsonb),
@@ -206,6 +215,7 @@ begin
 
   perform public.archive_replace_entity_table('archive_users', p_data->'users', 'userId', 'createdAt');
   perform public.archive_replace_entity_table('archive_games', p_data->'games', 'userId', 'updatedAt');
+  update public.archive_games set row_data = row_data - 'guides';
   perform public.archive_replace_entity_table('archive_resources', p_data->'resources', 'userId', 'updatedAt');
   perform public.archive_replace_entity_table('archive_guides', p_data->'guides', 'userId', 'date');
   perform public.archive_replace_entity_table('archive_feedback', p_data->'feedback', 'userId', 'createdAt');
