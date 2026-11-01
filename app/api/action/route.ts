@@ -644,24 +644,30 @@ export async function POST(req: Request) {
     }
     if (b.action === 'game-record') {
       await requireAdmin();
-      const game = db.games.find((g) => g.id === b.gameId);
+      const game = db.games.find((g) => g.id === String(b.gameId || ''));
       if (!game) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
-      const id = randomUUID();
+      const recordId = String(b.id || '') || randomUUID();
       if (b.kind === 'update') {
         if (!b.title || !b.version || !b.date) return NextResponse.json({ error: '版本号、标题和日期必填' }, { status: 400 });
-        game.updates.unshift({
-          id,
+        const old = game.updates.find((item) => item.id === recordId);
+        const next = {
+          id: recordId,
           date: String(b.date),
           version: String(b.version),
           title: String(b.title),
           notes: String(b.notes || ''),
-        });
-        game.latestVersion = String(b.version);
-        game.updatedAt = String(b.date);
+        };
+        if (old) game.updates[game.updates.indexOf(old)] = next;
+        else game.updates.unshift(next);
+        if (!old || game.latestVersion === old.version) {
+          game.latestVersion = next.version;
+          game.updatedAt = next.date;
+        }
       } else if (b.kind === 'file') {
         if (!b.name || !b.date) return NextResponse.json({ error: '资源名称和日期必填' }, { status: 400 });
-        game.files.unshift({
-          id,
+        const old = game.files.find((item) => item.id === recordId);
+        const next = {
+          id: recordId,
           name: String(b.name),
           version: String(b.version || ''),
           size: String(b.size || ''),
@@ -669,16 +675,27 @@ export async function POST(req: Request) {
           date: String(b.date),
           notes: String(b.notes || ''),
           url: String(b.url || ''),
-        });
+        };
+        if (old) game.files[game.files.indexOf(old)] = next;
+        else game.files.unshift(next);
       } else return NextResponse.json({ error: '记录类型无效' }, { status: 400 });
       await writeDb(db);
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, message: b.id ? '记录修改成功' : '记录添加成功' });
     }
     if (b.action === 'game-delete') {
       await requireAdmin();
       const oldGame = db.games.find((g) => g.id === String(b.id));
       if (!oldGame) return NextResponse.json({ error: '游戏不存在' }, { status: 404 });
       db.games = db.games.filter((g) => g.id !== String(b.id));
+      // Keep linked resources and tutorials, but detach them from the deleted game.
+      db.resources = db.resources.map((resource) =>
+        resource.gameId === oldGame.id ? { ...resource, gameId: '', gameName: '通用资源' } : resource,
+      );
+      db.guides = db.guides.map((guide) =>
+        guide.gameId === oldGame.id ? { ...guide, gameId: undefined, gameName: undefined } : guide,
+      );
+      db.collections = db.collections.filter((item) => !(item.targetType === 'game' && item.targetId === oldGame.id));
+      db.comments = db.comments.filter((item) => !(item.targetType === 'game' && item.targetId === oldGame.id));
       await writeDb(db);
       await deleteUnreferencedStorageImages([oldGame]);
       return NextResponse.json({ ok: true });
@@ -1028,6 +1045,8 @@ if (b.status === 'active' || b.status === 'banned') {
         if (!old) return NextResponse.json({ error: '资源不存在' }, { status: 404 });
         removedImages.push(old);
         db.resources = db.resources.filter((x) => x.id !== String(b.id));
+        db.collections = db.collections.filter((x) => !(x.targetType === 'resource' && x.targetId === String(b.id)));
+        db.comments = db.comments.filter((x) => !(x.targetType === 'resource' && x.targetId === String(b.id)));
       }
       if (b.action === 'notice-delete') db.notices = db.notices.filter((x) => x.id !== String(b.id));
       if (b.action === 'guide-delete') {
@@ -1036,6 +1055,7 @@ if (b.status === 'active' || b.status === 'banned') {
         removedImages.push(old);
         db.guides = db.guides.filter((x) => x.id !== String(b.id));
         db.collections = db.collections.filter((x) => !(x.targetType === 'guide' && x.targetId === String(b.id)));
+        db.comments = db.comments.filter((x) => !(x.targetType === 'guide' && x.targetId === String(b.id)));
       }
       if (b.action === 'game-record-delete') {
         const g = db.games.find((x) => x.id === String(b.gameId));
