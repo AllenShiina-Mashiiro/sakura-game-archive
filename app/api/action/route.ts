@@ -614,53 +614,30 @@ export async function POST(req: Request) {
     }
     if (b.action === 'game-save') {
       await requireAdmin();
-      const old = db.games.find((g) => g.id === b.id);
-      const game: Game = {
-        id: old?.id || randomUUID(),
-        name: String(b.name || '').trim(),
-        slug: String(b.slug || '').trim(),
-        cover: String(b.cover || ''),
-        genre: String(b.genre || ''),
-        platforms: Array.isArray(b.platforms) ? b.platforms : typeof b.platforms === 'string' ? b.platforms.split(',').map((x: string) => x.trim()).filter(Boolean) : old?.platforms || [],
-        status:
-  b.status === '运营中' ||
-  b.status === '测试中' ||
-  b.status === '已停更'
-    ? b.status
-    : '运营中',
-        latestVersion: String(b.latestVersion || ''),
-        updatedAt: String(b.updatedAt || now.slice(0, 10)),
-        description: String(b.description || ''),
-        tags: Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : old?.tags || [],
-        updates: old?.updates || [],
-        files: old?.files || [],
-        guides: old?.guides || [],
-        views: old?.views || 0,
-        favorites: old?.favorites || 0,
-        images: (() => {
-          let value: unknown = b.images;
-          if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } }
-          return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : old?.images || [];
-        })(),
-        config: {
-  minimum:
-    typeof b.minimum === 'string'
-      ? b.minimum
-      : old?.config?.minimum || '',
-  recommended:
-    typeof b.recommended === 'string'
-      ? b.recommended
-      : old?.config?.recommended || '',
-},
-      };
-      if (!game.name || !/^[a-z0-9-]+$/.test(game.slug)) return NextResponse.json({ error: '名称必填，slug 只能使用小写英文、数字和连字符' }, { status: 400 });
-      if (db.games.some((g) => g.slug === game.slug && g.id !== game.id)) return NextResponse.json({ error: 'slug 已存在' }, { status: 409 });
-      if (old) db.games[db.games.indexOf(old)] = { ...game, updates: old.updates || [], files: old.files || [], guides: old.guides || [], views: old.views || 0, favorites: old.favorites || 0 };
-      else db.games.unshift(game);
-      await writeDb(db);
-      if (old && old.cover !== game.cover) await deleteUnreferencedStorageImages([old.cover]);
-      if (old) await deleteUnreferencedStorageImages((old.images || []).filter((image) => !(game.images || []).includes(image)));
-      return NextResponse.json({ ok: true, id: game.id, message: old ? '游戏档案修改成功' : '游戏档案创建成功' });
+      const gameId = String(b.id || '') || randomUUID();
+      const gameImages = (() => { let value: unknown = b.images; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : undefined; })();
+      const result = await mutateDb((fresh) => {
+        const old = fresh.games.find((g) => g.id === gameId);
+        const platforms = Array.isArray(b.platforms) ? b.platforms : typeof b.platforms === 'string' ? b.platforms.split(',').map((x: string) => x.trim()).filter(Boolean) : old?.platforms || [];
+        const tags = Array.isArray(b.tags) ? b.tags : typeof b.tags === 'string' ? b.tags.split(',').map((x: string) => x.trim()).filter(Boolean) : old?.tags || [];
+        const game: Game = {
+          id: old?.id || gameId, name: String(b.name || '').trim(), slug: String(b.slug || '').trim(), cover: String(b.cover || ''), genre: String(b.genre || ''), platforms,
+          status: b.status === '运营中' || b.status === '测试中' || b.status === '已停更' ? b.status : '运营中',
+          latestVersion: String(b.latestVersion || ''), updatedAt: String(b.updatedAt || now.slice(0, 10)), description: String(b.description || ''), tags,
+          updates: old?.updates || [], files: old?.files || [], guides: old?.guides || [], views: old?.views || 0, favorites: old?.favorites || 0,
+          images: gameImages ?? old?.images ?? [],
+          config: { minimum: typeof b.minimum === 'string' ? b.minimum : old?.config?.minimum || '', recommended: typeof b.recommended === 'string' ? b.recommended : old?.config?.recommended || '' },
+        };
+        if (!game.name || !/^[a-z0-9-]+$/.test(game.slug)) return { error: '名称必填，slug 只能使用小写英文、数字和连字符' as const, status: 400 };
+        if (fresh.games.some((g) => g.slug === game.slug && g.id !== game.id)) return { error: 'slug 已存在' as const, status: 409 };
+        if (old) fresh.games[fresh.games.indexOf(old)] = game; else fresh.games.unshift(game);
+        return { game, oldCover: old?.cover, oldImages: old?.images || [], updated: Boolean(old) };
+      });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      let warning = '';
+      try { if (result.updated) await deleteUnreferencedStorageImages([result.oldCover !== result.game.cover ? result.oldCover : null, result.oldImages.filter((image) => !(result.game.images || []).includes(image))]); }
+      catch (cleanupError) { console.error('游戏档案已保存，但旧图片清理失败:', cleanupError); warning = '；旧图片清理失败，需稍后处理'; }
+      return NextResponse.json({ ok: true, id: result.game.id, message: (result.updated ? '游戏档案修改成功' : '游戏档案创建成功') + warning, warning: warning || undefined });
     }
     if (b.action === 'game-record') {
       await requireAdmin();
