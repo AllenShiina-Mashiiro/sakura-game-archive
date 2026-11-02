@@ -3960,3 +3960,11 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
 .image-crop-workspace input[type=range]{width:100%}
 .resource-list-gallery{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
 .resource-list-gallery .review-image{height:96px}
+
+
+/* v2.24: contact names open public profiles while the preview selects a thread */
+.conversation-person-main{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:3px;flex:1;min-width:0;padding:5px}
+.conversation-person-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:var(--text);text-decoration:none}
+.conversation-person-name:hover{text-decoration:underline;color:var(--accent)}
+.conversation-person-open{display:block;min-width:0;padding:0;border:0;background:transparent;color:var(--muted);text-align:left;cursor:pointer}
+.conversation-person-open small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}

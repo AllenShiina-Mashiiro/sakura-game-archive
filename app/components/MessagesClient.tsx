@@ -117,13 +117,13 @@ export function MessagesClient() {
             <Link className="conversation-avatar" href={`/users/${p.id}`} title="查看用户主页">
               {avatar(p)}
             </Link>
-            <button className="conversation-person-main" onClick={() => choose(p.id)}>
-              <span className="conversation-person-copy">
-                <b>{p.nickname}</b>
+            <div className="conversation-person-main">
+              <Link className="conversation-person-name" href={`/users/${encodeURIComponent(p.id)}`} title="查看用户主页">{p.nickname}</Link>
+              <button type="button" className="conversation-person-open" onClick={() => choose(p.id)}>
                 <small>{p.lastMessage}</small>
-              </span>
+              </button>
               {!!p.unread && <i className="unread-dot">{p.unread}</i>}
-            </button>
+            </div>
           </div>
         ))}
         {!ordered.length && <p className="muted">还没有好友会话。请先打开对方的个人主页并发送好友请求；成为好友后即可私信。</p>}

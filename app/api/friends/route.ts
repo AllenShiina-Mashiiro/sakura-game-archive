@@ -77,9 +77,13 @@ export async function POST(req: Request) {
       }
       if (action === 'accept' || action === 'reject' || action === 'ignore') {
         if (!relation || relation.status !== 'pending' || relation.addresseeId !== user.id) return { error: '没有可处理的好友请求' };
+        if (action === 'ignore') {
+          // 忽略只隐藏当前通知，不改变好友请求状态，用户之后仍可在主页处理。
+          return { ok: true, message: '已忽略该请求，之后仍可处理' };
+        }
         relation.status = action === 'accept' ? 'accepted' : 'rejected';
         relation.updatedAt = now;
-        return { ok: true, message: action === 'accept' ? '已成为好友' : action === 'ignore' ? '已忽略好友请求' : '已拒绝好友请求' };
+        return { ok: true, message: action === 'accept' ? '已成为好友' : '已拒绝好友请求' };
       }
       if (action === 'remove') {
         if (!relation || relation.status !== 'accepted') return { error: '好友关系不存在' };
