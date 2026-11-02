@@ -3949,3 +3949,14 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
 .review-image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;align-items:start;margin:12px 0}.review-image-grid .review-image{width:100%;height:120px;object-fit:cover;border-radius:10px}
 
 .review-post-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}.review-post-list .review-card{min-width:0}.review-post-list .review-image{display:block;width:min(100%,420px);max-height:240px;object-fit:contain;border-radius:12px;margin:10px 0}.review-post-list .admin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+
+
+/* v2.24 profile image crop workspace */
+.image-crop-upload{display:grid;gap:10px}
+.image-crop-workspace{display:grid;gap:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.image-crop-preview{display:grid;place-items:center;min-height:150px;max-height:320px;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.18)}
+.image-crop-preview canvas{display:block;width:min(100%,760px);max-height:300px;object-fit:contain}
+.image-crop-workspace label{display:grid;gap:5px}
+.image-crop-workspace input[type=range]{width:100%}
+.resource-list-gallery{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.resource-list-gallery .review-image{height:96px}
