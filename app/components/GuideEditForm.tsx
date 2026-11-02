@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ImageUploadField } from '@/app/components/ImageUploadField';
 import { MultiImageUploadField } from '@/app/components/MultiImageUploadField';
 export function GuideEditForm({
   guide,
@@ -35,7 +36,7 @@ export function GuideEditForm({
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || '修改失败');
-      setMessage('教程修改成功');
+      setMessage(d.message || '教程修改成功');
       setOpen(false);
       router.refresh();
     } catch (e) {
@@ -71,10 +72,7 @@ export function GuideEditForm({
             分类
             <input name="category" defaultValue={guide.category} />
           </label>
-          <label>
-            封面图片 URL
-            <input name="cover" defaultValue={guide.cover || ''} />
-          </label>
+          <ImageUploadField name="cover" label="教程封面" folder="tutorials" initial={guide.cover || ''} />
           <MultiImageUploadField name="bodyImages" label="教程正文图片" folder="tutorials" initial={guide.bodyImages?.length ? guide.bodyImages : guide.bodyImage ? [guide.bodyImage] : []} />
           <label>
             正文
