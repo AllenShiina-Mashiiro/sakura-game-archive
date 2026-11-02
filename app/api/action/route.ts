@@ -100,6 +100,15 @@ export async function POST(req: Request) {
           throw new Error('没有找到管理员账号，已停止重置。');
         }
         const preservedSiteSettings = fresh.siteSettings || {};
+        const removedImages = [
+          fresh.games || [],
+          fresh.resources || [],
+          fresh.guides || [],
+          fresh.feedback || [],
+          fresh.notices || [],
+          fresh.photos || [],
+          fresh.contributors || [],
+        ];
         const removedCounts = {
           games: (fresh.games || []).length,
           nestedGameGuides: (fresh.games || []).reduce((sum, game) => sum + (game.guides || []).length, 0),
@@ -143,6 +152,7 @@ export async function POST(req: Request) {
           preservedAdmins,
           preservedSiteSettings: Object.keys(preservedSiteSettings).length > 0,
           removedCounts,
+          removedImages,
           retainedShopProducts: fresh.shopProducts.map((product) => ({
             id: product.id,
             name: product.name,
@@ -152,10 +162,18 @@ export async function POST(req: Request) {
         };
       });
 
+      const { removedImages, ...details } = result;
+      let cleanupWarning = '';
+      try { await deleteUnreferencedStorageImages(removedImages); }
+      catch (cleanupError) {
+        console.error('数据库业务数据已重置，但孤立图片清理失败:', cleanupError);
+        cleanupWarning = '；部分旧图片清理失败，需稍后处理';
+      }
       return NextResponse.json({
         ok: true,
-        message: '数据库业务数据已重置；所有用户账号及其字段、网站外观设置和三个默认头像框商品已保留。',
-        details: result,
+        message: '数据库业务数据已重置；所有用户账号及其字段、网站外观设置和三个默认头像框商品已保留。' + cleanupWarning,
+        details,
+        warning: cleanupWarning || undefined,
       });
     }
     if (b.action === 'checkin') {
