@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { mediaUrl } from '@/lib/media';
+import { uploadImageDirect } from '@/lib/upload-image';
 
 export function MultiImageUploadField({ name = 'bodyImages', label = '教程正文图片', folder = 'tutorials', initial = [] }: { name?: string; label?: string; folder?: string; initial?: string[] }) {
   const [urls, setUrls] = useState<string[]>(initial.filter(Boolean).slice(0, 20));
@@ -24,17 +25,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
     }
     setBusy(true);
     try {
-      const results = await Promise.allSettled(
-        selected.map(async (file) => {
-          const fd = new FormData();
-          fd.set('image', file);
-          fd.set('folder', folder);
-          const res = await fetch('/api/upload/content', { method: 'POST', body: fd });
-          const data = await res.json();
-          if (!res.ok) throw new Error(`${file.name}：${data.error || '上传失败'}`);
-          return data.url as string;
-        }),
-      );
+      const results = await Promise.allSettled(selected.map((file) => uploadImageDirect(file, folder)));
       const uploaded = results.filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled').map((result) => result.value);
       const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
       if (uploaded.length) setUrls((old) => [...old, ...uploaded].slice(0, 20));
@@ -53,7 +44,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         <span>{urls.length}/20 张</span>
       </div>
       <button type="button" className="multi-upload-picker" onClick={() => inputRef.current?.click()} disabled={busy || urls.length >= 20}>
-        {busy ? '正在上传图片…' : '＋ 选择图片（支持多选）'}
+        {busy ? '正在直传 Supabase Storage…' : '＋ 选择图片（支持多选）'}
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => addFiles(e.target.files)} />
       <input type="hidden" name={name} value={JSON.stringify(urls)} />
@@ -71,7 +62,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
-      <small className="muted">可按住 Ctrl / Shift 多选，最多 20 张；支持 JPG / PNG / WEBP / GIF，单张最大 12 MB。图片会按图集排版展示。</small>
+      <small className="muted">可按住 Ctrl / Shift 多选，最多 20 张；支持 JPG / PNG / WEBP / GIF，单张最大 12 MB。图片直接上传至 Supabase Storage，不经过网站函数。</small>
     </div>
   );
 }
