@@ -21,6 +21,7 @@ export function ImageCropUpload({
   const [horizontal, setHorizontal] = useState(0);
   const [vertical, setVertical] = useState(0);
   const [error, setError] = useState('');
+  const [cropping, setCropping] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -74,11 +75,14 @@ export function ImageCropUpload({
   }
 
   function applyCrop() {
+    if (cropping) return;
     const canvas = canvasRef.current;
     if (!canvas || !source) return;
+    setCropping(true);
     canvas.toBlob((blob) => {
       if (!blob) {
         setError('生成裁剪图片失败，请重试。');
+        setCropping(false);
         return;
       }
       const output = new File([blob], fileName.replace(/\.[^.]+$/, '') + '-cropped.jpg', {
@@ -86,11 +90,12 @@ export function ImageCropUpload({
       });
       onCrop(output, canvas.toDataURL('image/jpeg', 0.88));
       setError('');
+      setCropping(false);
     }, 'image/jpeg', 0.88);
   }
 
   return (
-    <div className="image-crop-upload">
+    <div className="image-crop-upload" data-cropping={cropping ? "true" : "false"}>
       <label>
         {label}
         <input
@@ -119,7 +124,7 @@ export function ImageCropUpload({
             垂直位置
             <input type="range" min="-1" max="1" step="0.01" value={vertical} onChange={(event) => setVertical(Number(event.target.value))} />
           </label>
-          <button type="button" className="outline-btn" onClick={applyCrop}>应用裁剪结果</button>
+          <button type="button" className="outline-btn" onClick={applyCrop} disabled={cropping}>{cropping ? "正在生成裁剪图…" : "应用裁剪结果"}</button>
         </div>
       )}
       {error && <small className="error-text">{error}</small>}
