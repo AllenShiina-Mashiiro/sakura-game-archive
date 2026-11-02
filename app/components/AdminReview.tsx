@@ -19,7 +19,7 @@ export function AdminReview({ id, action }: { id: string; action: string }) {
       });
       const d = await r.json();
       if (!r.ok) throw Error(d.error || '操作失败');
-      setSuccess(({ processing: '反馈已标记为处理中', fixed: '反馈已标记为已修复，奖励已按规则处理', failed: '反馈已标记为修复失败', accepted: '审核已通过', rejected: '已拒绝该投稿' } as Record<string, string>)[status] || '处理状态已更新');
+      setSuccess(({ processing: '反馈已标记为处理中', fixed: '反馈已标记为已修复；仅首次符合条件时发放奖励', failed: '反馈已标记为修复失败', accepted: '审核已通过', rejected: '已拒绝该投稿' } as Record<string, string>)[status] || '处理状态已更新');
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : '操作失败');
@@ -32,7 +32,7 @@ export function AdminReview({ id, action }: { id: string; action: string }) {
       <div className="review-actions">
         {action === 'review-feedback' && <select aria-label="Bug 严重程度" value={severity} onChange={(e) => setSeverity(e.target.value as 'warning' | 'error' | 'critical')}><option value="warning">警告 · 50 EXP</option><option value="error">错误 · 150 EXP</option><option value="critical">严重 · 300 EXP</option></select>}
         <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="管理员回复（可选）" />
-        {action === 'review-feedback' && <><button className="outline-btn" disabled={busy} onClick={() => decide('processing')}>处理中</button><button className="primary-btn" disabled={busy} onClick={() => decide('fixed')}>已修复并发奖</button><button className="outline-btn" disabled={busy} onClick={() => decide('failed')}>修复失败</button></>}
+        {action === 'review-feedback' && <><button className="outline-btn" disabled={busy} onClick={() => decide('processing')}>处理中</button><button className="primary-btn" disabled={busy} onClick={() => decide('fixed')}>标记为已修复</button><button className="outline-btn" disabled={busy} onClick={() => decide('failed')}>修复失败</button></>}
         <button className="primary-btn" disabled={busy} onClick={() => decide('accepted')}>
           通过 / 采纳
         </button>
