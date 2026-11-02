@@ -761,10 +761,15 @@ export async function POST(req: Request) {
         } else {
           const feedback = item as Feedback;
           const previousStatus = feedback.status;
+          const requestedReviewStatus = String(b.status || '');
+          const isBugFeedback = /bug/i.test(feedback.type);
+          if (['fixed', 'failed'].includes(requestedReviewStatus) && !isBugFeedback) {
+            return { error: '只有 Bug 反馈可以标记为已修复或修复失败', status: 400 };
+          }
           const reviewUpdate = buildFeedbackReviewUpdate({
-            requestedStatus: b.status,
+            requestedStatus: requestedReviewStatus,
             accepted,
-            requestedSeverity: b.severity,
+            requestedSeverity: isBugFeedback ? b.severity : undefined,
             currentSeverity: feedback.bugSeverity,
             reply: b.reply,
             at: new Date().toISOString(),
@@ -801,7 +806,7 @@ export async function POST(req: Request) {
         pushNotification(fresh, String(item.userId || ''), b.action === 'review-guide' ? 'system' : 'feedback', b.action === 'review-guide' ? (accepted ? '教程审核通过' : '教程审核未通过') : '反馈处理进度已更新', String(b.reply || (accepted ? '你的内容已通过审核。' : '管理员已更新处理状态。')), b.action === 'review-guide' ? '/tutorials/' + item.id : '/feedback', user.id);
         return { ok: true };
       });
-      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 'status' in result ? result.status : 404 });
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'admin-user-create') {
