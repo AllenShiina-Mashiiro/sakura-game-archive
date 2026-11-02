@@ -9,10 +9,14 @@ export function ActionForm({ action, children, button = '提交', className = 's
   const router = useRouter();
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
+    if (form.querySelector('[data-uploading="true"]')) {
+      setError('图片仍在上传，请等待上传完成后再提交。');
+      return;
+    }
     setBusy(true);
     setError('');
     setOk('');
-    const form = e.currentTarget;
     const fd = new FormData(form);
     const body = Object.fromEntries(fd.entries());
     try {
