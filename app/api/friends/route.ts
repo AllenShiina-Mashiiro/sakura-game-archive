@@ -7,10 +7,18 @@ import { decideFriendRequestAction, isUnreadFriendRequestNotification } from '@/
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
   const db = await readDb();
+  const query = new URL(req.url).searchParams.get('q')?.trim().slice(0, 40) || '';
+  if (query) {
+    const matches = db.users.filter((candidate) => candidate.id !== user.id && candidate.status === 'active' && candidate.discoverable !== false)
+      .filter((candidate) => candidate.nickname.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+      .slice(0, 20)
+      .map((candidate) => ({ id: candidate.id, nickname: candidate.nickname, username: candidate.username, avatar: candidate.avatar, avatarFrame: candidate.avatarFrame || 'none' }));
+    return NextResponse.json({ matches });
+  }
   const users = new Map(db.users.filter((u) => u.status === 'active').map((u) => [u.id, u]));
   const rows = (db.friendships || []).filter((f) => f.requesterId === user.id || f.addresseeId === user.id);
   const shape = (f: Friendship) => {

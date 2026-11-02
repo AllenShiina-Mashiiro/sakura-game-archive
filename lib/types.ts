@@ -24,6 +24,7 @@ export type User = {
   themeColor?: string;
   themeMode?: 'light' | 'dark';
   sakuraEnabled?: boolean;
+  discoverable?: boolean;
 };
 export type ResourceUpdate = {
   id: string;
@@ -59,6 +60,7 @@ export type Guide = {
   bodyImage?: string;
   bodyImages?: string[];
   status?: 'pending' | 'approved' | 'rejected';
+  statusHistory?: { status: string; reply: string; at: string; by: string }[];
   updatedAt?: string;
   views?: number;
   favorites?: number;
@@ -115,7 +117,7 @@ export type Feedback = {
   description: string;
   image: string;
   images?: string[];
-  status: 'pending' | 'accepted' | 'rejected' | 'processing' | 'fixed' | 'failed';
+  status: 'pending' | 'approved' | 'accepted' | 'rejected' | 'processing' | 'fixed' | 'failed';
   reply: string;
   createdAt: string;
   statusHistory?: { status: string; reply: string; at: string; by: string }[];

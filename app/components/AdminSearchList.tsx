@@ -1,11 +1,6 @@
 'use client';
 import { useMemo, useState, type ReactNode } from 'react';
-export function AdminSearchList({ items, placeholder = '搜索名称、标签或内容…' }: { items: { id: string; search: string; content: ReactNode }[]; placeholder?: string }) {
- const [query,setQuery]=useState('');
- const filtered=useMemo(()=>items.filter(x=>x.search.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())),[items,query]);
- return <div className="admin-search-list">
-  <label className="admin-search-field">搜索<input value={query} onChange={e=>setQuery(e.target.value)} placeholder={placeholder}/></label>
-  <div className="admin-search-results">{filtered.map(x=><div key={x.id}>{x.content}</div>)}</div>
-  {!filtered.length && <p className="muted">没有找到匹配内容。</p>}
- </div>;
+export function AdminSearchList({ items, placeholder = '搜索名称、标签或内容…', pageSize = 10 }: { items: { id: string; search: string; content: ReactNode }[]; placeholder?: string; pageSize?: number }) {
+ const [query,setQuery]=useState('');const [page,setPage]=useState(0);const filtered=useMemo(()=>items.filter(x=>x.search.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())),[items,query]);const pages=Math.max(1,Math.ceil(filtered.length/pageSize));const current=Math.min(page,pages-1);
+ return <div className="admin-search-list"><label className="admin-search-field">搜索<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}} placeholder={placeholder}/></label><div className="admin-list-toolbar"><small>共 {filtered.length} 条 · 第 {current+1}/{pages} 页</small><div><button type="button" className="outline-btn" disabled={current===0} onClick={()=>setPage(p=>Math.max(0,p-1))}>上一页</button><button type="button" className="outline-btn" disabled={current>=pages-1} onClick={()=>setPage(p=>Math.min(pages-1,p+1))}>下一页</button></div></div><div className="admin-search-results">{filtered.slice(current*pageSize,(current+1)*pageSize).map(x=><div key={x.id}>{x.content}</div>)}</div>{!filtered.length&&<p className="muted">没有找到匹配内容。</p>}</div>;
 }

@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import type { Database, Game, ShopProduct } from './types';
 import { getSupabaseAdmin, type SupabaseJson } from './supabase-admin';
 
@@ -172,12 +173,12 @@ async function saveWithVersion(
 
 const readVersions = new WeakMap<Database, number>();
 
-export async function readDb(): Promise<Database> {
+export const readDb = cache(async function readDb(): Promise<Database> {
   const row = await getRow();
   const db = normalizeDb(row.data);
   readVersions.set(db, row.version);
   return db;
-}
+});
 
 let queue: Promise<unknown> = Promise.resolve();
 

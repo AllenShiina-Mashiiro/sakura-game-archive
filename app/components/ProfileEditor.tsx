@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { mediaUrl } from '@/lib/media';
 import { uploadImageDirect } from '@/lib/upload-image';
 import { ImageCropUpload } from '@/app/components/ImageCropUpload';
-export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, cardBackground, badges }: { nickname: string; avatar: string; selectedBadge: string; avatarFrame: string; cardBackground: string; badges: string[] }) {
+export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, cardBackground, badges, discoverable }: { nickname: string; avatar: string; selectedBadge: string; avatarFrame: string; cardBackground: string; badges: string[]; discoverable: boolean }) {
   const [name, setName] = useState(nickname);
   const [image, setImage] = useState(avatar || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -12,6 +12,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
   const [badge, setBadge] = useState(selectedBadge);
   const [frame, setFrame] = useState(avatarFrame);
   const [background, setBackground] = useState(cardBackground);
+  const [searchable, setSearchable] = useState(discoverable);
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,6 +46,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
           selectedBadge: badge,
           avatarFrame: frame,
           cardBackground: nextBackground,
+          discoverable: searchable,
         }),
       });
       const data = await res.json();
@@ -63,6 +65,9 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
   }
   return (
     <form className="stack-form" onSubmit={submit}>
+      <label className="check-label">
+        <input type="checkbox" checked={searchable} onChange={(event) => setSearchable(event.target.checked)} /> 允许其他用户通过昵称搜索到我
+      </label>
       <label>
         昵称
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} required />

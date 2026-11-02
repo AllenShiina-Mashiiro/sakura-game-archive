@@ -26,6 +26,9 @@ export function FriendsClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [search, setSearch] = useState('');
+  const [matches, setMatches] = useState<Friend[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,7 +56,7 @@ export function FriendsClient() {
     void run();
   }, [load]);
 
-  async function act(friend: Friend, action: 'accept' | 'reject' | 'remove') {
+  async function act(friend: Friend, action: 'accept' | 'reject' | 'remove' | 'request') {
     if (action === 'remove' && !window.confirm(`确定解除与 ${friend.nickname} 的好友关系吗？`)) return;
     setBusyId(friend.id);
     setError('');
@@ -75,7 +78,16 @@ export function FriendsClient() {
     }
   }
 
-  function card(friend: Friend, kind: 'friend' | 'incoming' | 'outgoing') {
+  async function searchUsers() {
+    const q = search.trim();
+    if (!q) { setMatches([]); return; }
+    setSearching(true); setError('');
+    try { const response = await fetch('/api/friends?q=' + encodeURIComponent(q), { cache: 'no-store' }); const result = await response.json(); if (!response.ok) throw new Error(result.error || '搜索失败'); setMatches((result.matches || []).map((x: Friend) => ({ ...x, status: 'pending', direction: 'outgoing' }))); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : '搜索失败'); }
+    finally { setSearching(false); }
+  }
+
+  function card(friend: Friend, kind: 'friend' | 'incoming' | 'outgoing' | 'search') {
     return (
       <article className="content-card friend-list-card" key={friend.id}>
         <Link className="friend-list-avatar" href={`/users/${encodeURIComponent(friend.id)}`} title={`查看${friend.nickname}的主页`}>
@@ -95,6 +107,7 @@ export function FriendsClient() {
               <button className="outline-btn" disabled={busyId === friend.id} onClick={() => void act(friend, 'reject')}>拒绝</button>
             </>}
             {kind === 'outgoing' && <span className="tag">等待对方处理</span>}
+            {kind === 'search' && <button className="primary-btn" disabled={busyId === friend.id} onClick={() => void act(friend, 'request')}>添加好友</button>}
           </div>
         </div>
       </article>
@@ -106,6 +119,12 @@ export function FriendsClient() {
       {error && <p className="error-box">{error}</p>}
       {loading && <p className="muted">正在加载好友列表…</p>}
       {message && <p className="success-inline" role="status">{message}</p>}
+      <section className="detail-section friend-search-panel">
+        <div className="section-head"><div><h2>搜索好友</h2><p className="muted">输入昵称查找允许被搜索的社区成员。</p></div></div>
+        <form className="archive-search" onSubmit={(event) => { event.preventDefault(); void searchUsers(); }}><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="输入好友昵称…" maxLength={40} /><button className="primary-btn" disabled={searching || !search.trim()}>{searching ? "搜索中…" : "搜索"}</button></form>
+        <div className="content-grid">{matches.map((friend) => card(friend, "search"))}</div>
+        {!searching && search.trim() && !matches.length && <p className="muted">没有找到匹配用户，或对方关闭了好友搜索。</p>}
+      </section>
       <section className="detail-section">
         <div className="section-head">
           <div><h2>我的好友 · {data.friends.length}</h2><p className="muted">点击头像或昵称即可查看公开主页。</p></div>

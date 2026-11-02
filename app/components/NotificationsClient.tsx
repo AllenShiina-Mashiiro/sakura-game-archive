@@ -86,7 +86,7 @@ export function NotificationsClient() {
               <button className="text-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'ignore', n.id)}>忽略</button></>}
             </>}
             {n.href && (
-              <Link className="subtle-link" href={n.href} onClick={() => !n.readAt && n.title !== '收到好友请求' && mark(n.id)}>
+              <Link className="subtle-link" href={n.href === '/admin#reviews' ? '/admin?section=reviews#reviews' : n.href} onClick={() => !n.readAt && n.title !== '收到好友请求' && mark(n.id)}>
                 查看详情 →
               </Link>
             )}

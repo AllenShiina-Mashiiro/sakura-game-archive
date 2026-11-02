@@ -1,6 +1,17 @@
-# Sakura Game Archive · V2.24-dev
+# Sakura Game Archive · V2.25-dev
 
 本项目沿用 V2.3 以来的 Next.js App Router 与 TypeScript 架构持续迭代。下方各版本记录描述对应版本发布时的功能与存储状态；其中早期版本提到的本地 JSON 文件存储属于历史说明，不代表当前分支的数据后端。当前数据架构以「数据说明」章节为准。
+
+## V2.25-dev（开发中）
+
+本分支重点修复 Bug 公示与审核状态机、审核队列分页、好友昵称搜索、站内通知跳转及性能瓶颈。
+
+- 问题反馈新增公示问题页：仅展示通过审核的 Bug，按提交时间倒序排列，显示警告/严重/高危标签和处理进度。
+- Bug 审核采用严格状态机：待审核只能通过或拒绝；拒绝后删除该 Bug；通过后公开公示，进入待处理；管理员开始处理后才可选择修复成功或修复失败，结束状态不可再次操作。教程同样只能审核一次。
+- 内容审核按教程待审、反馈待审、Bug 处理中和已结束问题分区，每个列表支持关键词搜索和分页。
+- 好友列表增加昵称搜索；个人资料可关闭被昵称搜索，关闭后不会出现在搜索结果中。
+- 新反馈和教程投稿通知直接进入管理后台的内容审核分区；旧通知链接也会自动修正。
+- 性能优化：同一次页面请求复用数据库快照读取，减少根布局和站点布局的重复 Supabase 往返；公共图片代理覆盖新旧公开桶并延长 CDN/浏览器缓存；减少粒子动画和低端设备上的昂贵模糊渲染。实际网络延迟仍取决于托管区、Supabase 区域与访问者网络。
 
 ## V2.24-dev（开发中）
 
@@ -101,6 +112,6 @@
 
 **历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据，升级前需备份该文件及 `public/uploads`；V2.3 为用户字段和站点配置增加了可选字段，旧数据可继续读取。
 
-**当前说明（V2.23 / V2.24-dev）**：应用数据通过 Supabase `public.app_state` 中的 JSONB 快照读写，图片文件存放于 Supabase Storage。V2.23 增加了 Database 2.0 Beta 的实体表、迁移记录、快照兼容 RPC 和备份机制，但当前应用仍走快照兼容接口，尚未切换为各业务实体的独立 SQL 读写。不要仅凭迁移脚本存在就启用 `DATABASE_V2_ENABLED`；启用前必须完成迁移核对及应用读写验收。部署或升级前请备份 Supabase 数据与 Storage 文件。
+**当前说明（V2.23 / V2.24-dev / V2.25-dev）**：应用数据通过 Supabase `public.app_state` 中的 JSONB 快照读写，图片文件存放于 Supabase Storage。V2.23 增加了 Database 2.0 Beta 的实体表、迁移记录、快照兼容 RPC 和备份机制，但当前应用仍走快照兼容接口，尚未切换为各业务实体的独立 SQL 读写。不要仅凭迁移脚本存在就启用 `DATABASE_V2_ENABLED`；启用前必须完成迁移核对及应用读写验收。部署或升级前请备份 Supabase 数据与 Storage 文件。
 
 **新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量，以及该 Supabase 项目自己的 `SUPABASE_PUBLISHABLE_KEY`。不要沿用其他 Supabase 项目的公开 Key。
