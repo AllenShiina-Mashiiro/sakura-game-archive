@@ -23,10 +23,12 @@ type FriendData = {
 export function FriendsClient() {
   const [data, setData] = useState<FriendData>({ friends: [], incoming: [], outgoing: [] });
   const [busyId, setBusyId] = useState('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/friends', { cache: 'no-store' });
       const result = await response.json();
@@ -39,6 +41,8 @@ export function FriendsClient() {
       setError('');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '好友列表加载失败');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -100,6 +104,7 @@ export function FriendsClient() {
   return (
     <div className="friends-page-content">
       {error && <p className="error-box">{error}</p>}
+      {loading && <p className="muted">正在加载好友列表…</p>}
       {message && <p className="success-inline" role="status">{message}</p>}
       <section className="detail-section">
         <div className="section-head">
