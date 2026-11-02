@@ -110,7 +110,11 @@ async function uploadResumable(
         }
 
         if (response.status === 409) {
-          offset = await readTusOffset(uploadUrl, authHeaders);
+          const serverOffset = await readTusOffset(uploadUrl, authHeaders);
+          if (serverOffset <= offset) {
+            throw new Error('上传进度发生冲突，请重新选择图片上传');
+          }
+          offset = serverOffset;
           completed = true;
           onProgress?.(Math.min(offset, file.size), file.size);
           continue;
