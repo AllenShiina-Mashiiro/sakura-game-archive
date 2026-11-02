@@ -28,10 +28,23 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
     setProgress(0);
     const fileProgress = selected.map(() => 0);
     try {
-      const results = await Promise.allSettled(selected.map((file, index) => uploadImageDirect(file, folder, (uploaded, total) => {
-        fileProgress[index] = total > 0 ? uploaded / total : 0;
-        setProgress(Math.round(fileProgress.reduce((sum, value) => sum + value, 0) / selected.length * 100));
-      })));
+      const results: PromiseSettledResult<string>[] = new Array(selected.length);
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < selected.length) {
+          const index = cursor++;
+          try {
+            const url = await uploadImageDirect(selected[index], folder, (uploaded, total) => {
+              fileProgress[index] = total > 0 ? uploaded / total : 0;
+              setProgress(Math.round(fileProgress.reduce((sum, value) => sum + value, 0) / selected.length * 100));
+            });
+            results[index] = { status: 'fulfilled', value: url };
+          } catch (reason) {
+            results[index] = { status: 'rejected', reason };
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, selected.length) }, () => worker()));
       const uploaded = results.filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled').map((result) => result.value);
       const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
       if (uploaded.length) setUrls((old) => [...old, ...uploaded].slice(0, 20));
@@ -70,7 +83,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
-      <small className="muted">可按住 Ctrl / Shift 多选，最多 20 张；支持 JPG / PNG / WEBP / GIF，单张最大 12 MB。图片直接上传至 Supabase Storage，不经过网站函数。</small>
+      <small className="muted">可按住 Ctrl / Shift 多选，最多 20 张；支持 JPG / PNG / WEBP / GIF，单张最大 12 MB。图片直接上传至 Supabase Storage，不经过网站函数；多图同时最多上传 3 张，避免占满网络连接。</small>
     </div>
   );
 }
