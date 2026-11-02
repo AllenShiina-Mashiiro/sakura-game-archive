@@ -6,6 +6,7 @@ export function ActionForm({ action, children, button = '提交', className = 's
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [busy, setBusy] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const router = useRouter();
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,6 +30,7 @@ export function ActionForm({ action, children, button = '提交', className = 's
       if (!r.ok) throw Error(d.error || '提交失败');
       setOk(d.message || successMessage);
       form.reset();
+      setFormKey((value) => value + 1);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : '提交失败');
@@ -37,7 +39,7 @@ export function ActionForm({ action, children, button = '提交', className = 's
     }
   }
   return (
-    <form className={className} onSubmit={submit}>
+    <form key={formKey} className={className} onSubmit={submit}>
       {children}
       {error && <div className="error-box">{error}</div>}
       {ok && (
