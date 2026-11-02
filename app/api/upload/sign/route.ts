@@ -54,6 +54,9 @@ export async function POST(req: Request) {
       .from(bucket)
       .getPublicUrl(path);
     const supabaseUrl = process.env.SUPABASE_URL;
+    const resumableEndpoint = supabaseUrl
+      ? `${new URL(supabaseUrl).protocol}//${new URL(supabaseUrl).hostname.replace(/\\.supabase\\.co$/i, '.storage.supabase.co')}/storage/v1/upload/resumable`
+      : '';
     const publishableKey =
       process.env.SUPABASE_PUBLISHABLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
@@ -72,6 +75,7 @@ export async function POST(req: Request) {
       token: data.token,
       url: publicData.publicUrl,
       supabaseUrl,
+      resumableEndpoint,
       publishableKey,
     });
   } catch (error) {
