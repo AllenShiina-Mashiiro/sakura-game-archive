@@ -137,7 +137,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <MultiImageUploadField name="images" label="反馈附件图片" folder="feedback" initial={f.images || (f.image ? [f.image] : [])} />
                 <input type="hidden" name="gameId" value={f.gameId} />
               </ActionForm>
-              <Review id={f.id} action="review-feedback" />
+              <Review id={f.id} action="review-feedback" isBug={/bug/i.test(f.type)} />
             </article>
           ))}
         {!db.feedback.length && <p className="muted">暂无反馈记录。</p>}
@@ -585,6 +585,6 @@ function Stat({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-function Review({ id, action }: { id: string; action: string }) {
-  return <AdminReview id={id} action={action} />;
+function Review({ id, action, isBug = false }: { id: string; action: string; isBug?: boolean }) {
+  return <AdminReview id={id} action={action} isBug={isBug} />;
 }
