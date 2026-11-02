@@ -102,3 +102,5 @@
 **历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据，升级前需备份该文件及 `public/uploads`；V2.3 为用户字段和站点配置增加了可选字段，旧数据可继续读取。
 
 **当前说明（V2.23 / V2.24-dev）**：应用数据通过 Supabase `public.app_state` 中的 JSONB 快照读写，图片文件存放于 Supabase Storage。V2.23 增加了 Database 2.0 Beta 的实体表、迁移记录、快照兼容 RPC 和备份机制，但当前应用仍走快照兼容接口，尚未切换为各业务实体的独立 SQL 读写。不要仅凭迁移脚本存在就启用 `DATABASE_V2_ENABLED`；启用前必须完成迁移核对及应用读写验收。部署或升级前请备份 Supabase 数据与 Storage 文件。
+
+**新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量和公开 Publishable Key。
