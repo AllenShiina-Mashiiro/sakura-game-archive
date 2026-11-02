@@ -92,7 +92,7 @@
 ## 运行
 
 1. 复制 `.env.example` 为 `.env.local` 并设置 `SESSION_SECRET`（至少 32 位随机字符串）、Supabase 服务端变量及管理员初始密码。
-2. `SUPABASE_PUBLISHABLE_KEY` 是浏览器直传使用的公开密钥，可在部署环境中覆盖；严禁将 `SUPABASE_SERVICE_ROLE_KEY` 暴露给浏览器。
+2. 必须配置当前 Supabase 项目对应的 `SUPABASE_PUBLISHABLE_KEY`，供浏览器直传使用；它是公开密钥，可以下发给浏览器。严禁将 `SUPABASE_SERVICE_ROLE_KEY` 暴露给浏览器。
 3. 安装依赖：`npm install`
 4. 开发：`npm run dev`
 5. 自动化单元测试：`npm test`；类型检查：`npm run typecheck`；Lint：`npm run lint`；生产构建：`npm run build`
@@ -103,4 +103,4 @@
 
 **当前说明（V2.23 / V2.24-dev）**：应用数据通过 Supabase `public.app_state` 中的 JSONB 快照读写，图片文件存放于 Supabase Storage。V2.23 增加了 Database 2.0 Beta 的实体表、迁移记录、快照兼容 RPC 和备份机制，但当前应用仍走快照兼容接口，尚未切换为各业务实体的独立 SQL 读写。不要仅凭迁移脚本存在就启用 `DATABASE_V2_ENABLED`；启用前必须完成迁移核对及应用读写验收。部署或升级前请备份 Supabase 数据与 Storage 文件。
 
-**新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量和公开 Publishable Key。
+**新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量，以及该 Supabase 项目自己的 `SUPABASE_PUBLISHABLE_KEY`。不要沿用其他 Supabase 项目的公开 Key。
