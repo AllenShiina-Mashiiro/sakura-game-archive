@@ -90,6 +90,13 @@ export async function POST(req: Request) {
         }
         relation!.status = decision.status;
         relation!.updatedAt = now;
+        // Keep request notifications in sync regardless of whether the request
+        // was handled from the notification center or the sender's profile.
+        for (const notification of db.notifications || []) {
+          if (isUnreadFriendRequestNotification(notification, user.id, targetId)) {
+            notification.readAt = now;
+          }
+        }
         return { ok: true, message: decision.message };
       }
       if (action === 'remove') {
