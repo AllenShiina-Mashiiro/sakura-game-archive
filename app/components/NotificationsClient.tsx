@@ -81,12 +81,12 @@ export function NotificationsClient() {
           <div className="notification-actions">
             {n.title === '收到好友请求' && n.actorId && <>
               <Link className="subtle-link" href={`/users/${encodeURIComponent(n.actorId)}`}>查看对方主页</Link>
-              <button className="primary-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'accept', n.id)}>接受</button>
+              {!n.readAt && <><button className="primary-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'accept', n.id)}>接受</button>
               <button className="outline-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'reject', n.id)}>拒绝</button>
-              <button className="text-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'ignore', n.id)}>忽略</button>
+              <button className="text-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'ignore', n.id)}>忽略</button></>}
             </>}
             {n.href && (
-              <Link className="subtle-link" href={n.href} onClick={() => !n.readAt && mark(n.id)}>
+              <Link className="subtle-link" href={n.href} onClick={() => !n.readAt && n.title !== '收到好友请求' && mark(n.id)}>
                 查看详情 →
               </Link>
             )}
