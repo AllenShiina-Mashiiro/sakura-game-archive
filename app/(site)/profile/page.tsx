@@ -23,7 +23,7 @@ export default async function Profile() {
           <div className="eyebrow">ACCOUNT CENTER</div>
           <h1>个人资料</h1>
           <p className="subtitle">账户信息、等级经验与个人贡献。</p>
-          <Link className="subtle-link" href={`/users/${encodeURIComponent(user.id)}`}>查看公开主页 →</Link>
+          <div className="tag-row"><Link className="subtle-link" href={`/users/${encodeURIComponent(user.id)}`}>查看公开主页 →</Link><Link className="subtle-link" href="/friends">好友列表 →</Link><Link className="subtle-link" href="/messages">私信 →</Link></div>
         </div>
       </header>
       <section
