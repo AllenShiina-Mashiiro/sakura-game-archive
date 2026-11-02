@@ -16,3 +16,5 @@ export function buildFeedbackReviewUpdate(args: {
   reply: string;
   statusHistory: { status: string; reply: string; at: string; by: string }[];
 };
+
+export function isFeedbackRepairStatusAllowed(type: unknown, requestedStatus: unknown): boolean;
