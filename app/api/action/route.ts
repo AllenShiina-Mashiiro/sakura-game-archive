@@ -4,6 +4,7 @@ import { mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
 import { feedbackRewardFor, shouldGrantFeedbackReward } from '@/lib/feedback-rewards.mjs';
+import { buildFeedbackReviewUpdate } from '@/lib/feedback-review.mjs';
 import type {
   Collection,
   Feedback,
@@ -760,12 +761,21 @@ export async function POST(req: Request) {
         } else {
           const feedback = item as Feedback;
           const previousStatus = feedback.status;
-          const nextStatus = ['processing', 'fixed', 'failed'].includes(String(b.status)) ? String(b.status) : accepted ? 'accepted' : 'rejected';
-          feedback.status = nextStatus as Feedback['status'];
-          feedback.reply = String(b.reply || '');
-          feedback.bugSeverity = ['warning', 'error', 'critical'].includes(String(b.severity)) ? b.severity as Feedback['bugSeverity'] : feedback.bugSeverity;
-          feedback.statusHistory = feedback.statusHistory || [];
-          feedback.statusHistory.push({ status: nextStatus, reply: feedback.reply, at: new Date().toISOString(), by: user.nickname });
+          const reviewUpdate = buildFeedbackReviewUpdate({
+            requestedStatus: b.status,
+            accepted,
+            requestedSeverity: b.severity,
+            currentSeverity: feedback.bugSeverity,
+            reply: b.reply,
+            at: new Date().toISOString(),
+            by: user.nickname,
+            statusHistory: feedback.statusHistory,
+          });
+          const nextStatus = reviewUpdate.status;
+          feedback.status = nextStatus;
+          feedback.reply = reviewUpdate.reply;
+          feedback.bugSeverity = reviewUpdate.bugSeverity;
+          feedback.statusHistory = reviewUpdate.statusHistory;
           if (shouldGrantFeedbackReward({
             rewardGranted: feedback.rewardGranted,
             previousStatus,
