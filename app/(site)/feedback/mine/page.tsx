@@ -10,7 +10,7 @@ export default async function MyFeedback() {
   const mine = db.feedback.filter((f) => f.userId === user?.id);
   const statusLabel = (status: string) => status === 'pending' ? '待处理' : status === 'processing' ? '处理中' : status === 'fixed' ? '已修复' : status === 'failed' ? '修复失败' : status === 'accepted' ? '已采纳' : '已拒绝';
   return <div className="page-wrap">
-    <header className="topbar"><div><div className="eyebrow">PLAYER SUPPORT / MY REPORTS</div><h1>我的反馈</h1><p className="subtitle">查看处理进度与管理员回复；待处理、处理中或修复失败的反馈可继续修改。</p></div><div className="tag-row"><Link className="outline-btn" href="/feedback">反馈中心</Link><Link className="outline-btn" href="/feedback/submit">提交新反馈</Link></div></header>
+    <header className="topbar"><div><div className="eyebrow">PLAYER SUPPORT / MY REPORTS</div><h1>我的反馈</h1><p className="subtitle">查看处理进度与管理员回复；只有尚未开始处理的反馈可由提交者修改。</p></div><div className="tag-row"><Link className="outline-btn" href="/feedback">反馈中心</Link><Link className="outline-btn" href="/feedback/submit">提交新反馈</Link></div></header>
     <section className="detail-section"><div className="content-grid">
       {mine.map((f) => <article className="content-card" key={f.id}>
         <span className="tag">{statusLabel(f.status)}</span><h3>{f.title}</h3>
@@ -22,7 +22,7 @@ export default async function MyFeedback() {
           <div className="feedback-progress-timeline">{(f.statusHistory?.length ? f.statusHistory : [{status:'pending',reply:'反馈已提交，等待管理员处理',at:f.createdAt,by:f.username}]).map((step,index) => <div className="feedback-progress-step" key={step.at + '-' + index}><b>{statusLabel(step.status)}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div>
           {f.rewardGranted && <p className="muted">EXP 奖励已发放</p>}
         </details>
-        {['pending','processing','failed'].includes(f.status) && <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新">
+        {f.status === 'pending' && <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新">
           <input type="hidden" name="id" value={f.id} />
           <label>修改标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
           <label>修改类型<select name="type" defaultValue={f.type}><option>游戏 Bug</option><option>游戏运行问题</option><option>游戏内容问题</option><option>网站 Bug</option><option>功能建议</option><option>其他</option></select></label>
