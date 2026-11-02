@@ -16,7 +16,7 @@ export async function GET() {
   const shape = (f: Friendship) => {
     const id = f.requesterId === user.id ? f.addresseeId : f.requesterId;
     const peer = users.get(id);
-    return peer ? { id: peer.id, nickname: peer.nickname, avatar: peer.avatar, status: f.status, direction: f.requesterId === user.id ? 'outgoing' : 'incoming' } : null;
+    return peer ? { id: peer.id, nickname: peer.nickname, username: peer.username, avatar: peer.avatar, avatarFrame: peer.avatarFrame || 'none', status: f.status, direction: f.requesterId === user.id ? 'outgoing' : 'incoming' } : null;
   };
   return NextResponse.json({
     friends: rows.filter((f) => f.status === 'accepted').map(shape).filter(Boolean),
