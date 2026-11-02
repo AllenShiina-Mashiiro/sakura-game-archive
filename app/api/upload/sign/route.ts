@@ -2,34 +2,9 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { resolveImageUploadPolicy } from '@/lib/upload-policy.mjs';
 
 export const runtime = 'nodejs';
-
-const MIME_EXT: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-};
-
-const USER_FOLDERS = [
-  'content',
-  'tutorials',
-  'feedback',
-  'profile-cards',
-  'avatars',
-];
-
-const ADMIN_FOLDERS = [
-  'games',
-  'resources',
-  'notices',
-  'photos',
-  'contributors',
-  'branding',
-  'backgrounds',
-  'shop',
-];
 
 // A publishable key is designed for public clients. Keep it separate from the
 // server-only service role key; deployments may override it through env.
@@ -43,56 +18,21 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const folder = String(body.folder || 'content')
-      .replace(/[^a-z0-9_-]/gi, '')
-      .slice(0, 24) || 'content';
-    const contentType = String(body.contentType || '');
-    const ext = MIME_EXT[contentType];
-    const size = Number(body.size);
-
-    if (!ext) {
+    const policy = resolveImageUploadPolicy({
+      folder: body.folder,
+      role: user.role,
+      contentType: body.contentType,
+      size: Number(body.size),
+    });
+    if (!policy.ok) {
       return NextResponse.json(
-        { error: '仅支持 JPG、PNG、WEBP、GIF 图片' },
-        { status: 400 },
+        { error: policy.error },
+        { status: policy.status },
       );
     }
 
-    if (!Number.isSafeInteger(size) || size <= 0) {
-      return NextResponse.json({ error: '图片文件信息无效' }, { status: 400 });
-    }
-
-    const isUserFolder = USER_FOLDERS.includes(folder);
-    const isAdminFolder = ADMIN_FOLDERS.includes(folder);
-    if (!isUserFolder && !isAdminFolder) {
-      return NextResponse.json({ error: '不允许上传到该目录' }, { status: 400 });
-    }
-    if (isAdminFolder && user.role !== 'admin') {
-      return NextResponse.json(
-        { error: '该上传目录仅管理员可用' },
-        { status: 403 },
-      );
-    }
-
-    // These checks improve feedback; bucket-level limits are the authoritative
-    // server-side enforcement and cannot be bypassed by changing this request.
-    const maxBytes = folder === 'avatars'
-      ? 4 * 1024 * 1024
-      : folder === 'photos'
-        ? 50 * 1024 * 1024
-        : 12 * 1024 * 1024;
-    if (size > maxBytes) {
-      return NextResponse.json(
-        { error: `图片不能超过 ${maxBytes / 1024 / 1024} MB` },
-        { status: 400 },
-      );
-    }
-
-    const bucket = folder === 'avatars'
-      ? 'avatars'
-      : folder === 'photos'
-        ? 'photos'
-        : 'content';
-    const filename = `${Date.now()}-${randomUUID()}.${ext}`;
+    const { folder, bucket, extension } = policy;
+    const filename = `${Date.now()}-${randomUUID()}.${extension}`;
     const path = folder === 'avatars'
       ? `${user.id}/${filename}`
       : `${folder}/${filename}`;
