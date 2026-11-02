@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { resolveImageUploadPolicy } from '@/lib/upload-policy.mjs';
+import { buildTusUploadEndpoint } from '@/lib/tus-upload.mjs';
 
 export const runtime = 'nodejs';
 
@@ -54,9 +55,7 @@ export async function POST(req: Request) {
       .from(bucket)
       .getPublicUrl(path);
     const supabaseUrl = process.env.SUPABASE_URL;
-    const resumableEndpoint = supabaseUrl
-      ? `${new URL(supabaseUrl).protocol}//${new URL(supabaseUrl).hostname.replace(/\.supabase\.co$/i, '.storage.supabase.co')}/storage/v1/upload/resumable`
-      : '';
+    const resumableEndpoint = supabaseUrl ? buildTusUploadEndpoint(supabaseUrl) : '';
     const publishableKey =
       process.env.SUPABASE_PUBLISHABLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
