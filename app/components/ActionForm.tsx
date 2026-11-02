@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-export function ActionForm({ action, children, button = '提交', className = 'stack-form', successMessage = '操作成功，内容已保存' }: { action: string; children?: ReactNode; button?: string; className?: string; successMessage?: string }) {
+export function ActionForm({ action, children, button = '提交', className = 'stack-form', successMessage = '操作成功，内容已保存', resetAfterSubmit = true }: { action: string; children?: ReactNode; button?: string; className?: string; successMessage?: string; resetAfterSubmit?: boolean }) {
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [busy, setBusy] = useState(false);
@@ -30,7 +30,7 @@ export function ActionForm({ action, children, button = '提交', className = 's
       if (!r.ok) throw Error(d.error || '提交失败');
       setOk(d.message || successMessage);
       form.reset();
-      setFormKey((value) => value + 1);
+      if (resetAfterSubmit) setFormKey((value) => value + 1);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : '提交失败');
