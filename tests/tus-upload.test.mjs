@@ -18,6 +18,13 @@ test('builds the dedicated Supabase Storage hostname for resumable uploads', () 
   );
 });
 
+test('does not duplicate an already dedicated Storage hostname', () => {
+  assert.equal(
+    buildTusUploadEndpoint('https://project-ref.storage.supabase.co'),
+    'https://project-ref.storage.supabase.co/storage/v1/upload/resumable',
+  );
+});
+
 test('rejects non-HTTPS and unrecognized storage hosts', () => {
   assert.throws(() => buildTusUploadEndpoint('http://project-ref.supabase.co'));
   assert.throws(() => buildTusUploadEndpoint('https://storage.example.com'));
