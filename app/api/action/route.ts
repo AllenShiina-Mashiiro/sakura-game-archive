@@ -483,7 +483,7 @@ export async function POST(req: Request) {
         if (!item) return { error: '反馈记录不存在', status: 404 };
         const isAdmin = user.role === 'admin';
         if (item.userId !== user.id && !isAdmin) return { error: '只有反馈提交者或管理员可以修改', status: 403 };
-        if (!isAdmin && !['pending', 'processing', 'failed'].includes(item.status)) return { error: '已修复或已采纳的反馈不可由提交者修改', status: 409 };
+        if (!isAdmin && item.status !== 'pending') return { error: '只有待处理反馈可由提交者修改', status: 409 };
         item.title = title.trim().slice(0, 100);
         item.type = (feedbackType || item.type).slice(0, 40);
         item.gameId = gameId.slice(0, 100);
