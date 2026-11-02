@@ -25,6 +25,11 @@ export function GuideEditForm({
   const router = useRouter();
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
+    if (form.querySelector('[data-uploading="true"]')) {
+      setMessage('图片仍在上传，请等待上传完成后再保存。');
+      return;
+    }
     setBusy(true);
     setMessage('');
     const data = Object.fromEntries(new FormData(e.currentTarget).entries());
