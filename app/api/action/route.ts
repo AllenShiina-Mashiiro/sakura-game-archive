@@ -939,7 +939,13 @@ export async function POST(req: Request) {
     }
     if (b.action === 'site-background' || b.action === 'site-branding') {
       await requireAdmin();
-      await mutateDb((fresh) => {
+      const previousImages = await mutateDb((fresh) => {
+        const images = [
+          fresh.siteSettings?.background,
+          fresh.siteSettings?.logo,
+          fresh.siteSettings?.heroLogo,
+          fresh.siteSettings?.homeBackground,
+        ];
         fresh.siteSettings = {
         ...(fresh.siteSettings || {}),
         ...(typeof b.background === 'string' ? { background: b.background } : {}),
@@ -955,8 +961,15 @@ export async function POST(req: Request) {
         ...(b.defaultThemeMode === 'light' || b.defaultThemeMode === 'dark' ? { defaultThemeMode: b.defaultThemeMode } : {}),
         ...(typeof b.sakuraEnabled === 'boolean' ? { sakuraEnabled: b.sakuraEnabled } : typeof b.sakuraEnabled === 'string' ? { sakuraEnabled: b.sakuraEnabled === 'true' } : {}),
       };
+        return images;
       });
-      return NextResponse.json({ ok: true, message: '站点外观已保存' });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages(previousImages); }
+      catch (cleanupError) {
+        console.error('站点外观已保存，但旧图片清理失败:', cleanupError);
+        warning = '；旧图片清理失败，需稍后处理';
+      }
+      return NextResponse.json({ ok: true, message: '站点外观已保存' + warning, warning: warning || undefined });
     }
     if (b.action === 'contributor-settings') {
       await requireAdmin();
@@ -1053,6 +1066,8 @@ export async function POST(req: Request) {
           fresh.collections = fresh.collections.filter((x) => !(x.targetType === 'resource' && x.targetId === old.id));
           fresh.comments = fresh.comments.filter((x) => !(x.targetType === 'resource' && x.targetId === old.id));
         } else if (b.action === 'notice-delete') {
+          const old = fresh.notices.find((x) => x.id === String(b.id || ''));
+          if (old) removedImages.push(old);
           fresh.notices = fresh.notices.filter((x) => x.id !== String(b.id || ''));
         } else if (b.action === 'guide-delete') {
           const old = fresh.guides.find((x) => x.id === String(b.id || ''));
