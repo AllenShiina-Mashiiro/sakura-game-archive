@@ -102,7 +102,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
       </label>
       <label>
         个人名片背景图片 URL
-        <input type="url" value={background} onChange={(e) => { setBackground(e.target.value); setCardFile(null); }} placeholder="https://..." />
+        <input type="text" inputMode="url" value={background} onChange={(e) => { setBackground(e.target.value); setCardFile(null); }} placeholder="https://..." />
       </label>
       <ImageCropUpload
         label="名片背景裁剪（宽屏 16:5，最大 8 MB）"
