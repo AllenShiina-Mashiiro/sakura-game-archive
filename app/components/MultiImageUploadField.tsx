@@ -19,6 +19,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
     const invalid = selected.find((f) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type) || f.size > 12 * 1024 * 1024);
     if (invalid) {
       setError(`${invalid.name} 格式不支持或超过 12 MB`);
+      if (inputRef.current) inputRef.current.value = '';
       return;
     }
     setBusy(true);
@@ -46,7 +47,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
     }
   }
   return (
-    <div className="multi-upload-field">
+    <div className="multi-upload-field" data-uploading={busy ? "true" : "false"}>
       <div className="multi-upload-heading">
         <b>{label}</b>
         <span>{urls.length}/20 张</span>
