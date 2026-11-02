@@ -106,11 +106,11 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <article className="review-card" key={g.id}>
               <b>{g.title}</b>
               <small>
-                {g.author} · {g.date}
+                {g.userId ? <a href={`/users/${encodeURIComponent(g.userId)}`}>{g.author || '查看主页'}</a> : (g.author || '未知作者')} · {g.date}
               </small>
               {g.cover && <ImageViewer src={g.cover} alt={g.title + '封面'} className="review-image" />}
               <p className="multiline">{g.content}</p>
-              {!!g.bodyImages?.length && <div className="review-image-grid">{g.bodyImages.map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={g.title + '配图 ' + (index+1)} className="review-image" />)}</div>}
+              {(g.bodyImages?.length ? g.bodyImages : g.bodyImage ? [g.bodyImage] : []).length > 0 && <div className="review-image-grid">{(g.bodyImages?.length ? g.bodyImages : g.bodyImage ? [g.bodyImage] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={g.title + '配图 ' + (index+1)} className="review-image" />)}</div>}
               <Review id={g.id} action="review-guide" />
               <AdminDeleteButton action="guide-delete" id={g.id} label="删除教程" />
             </article>

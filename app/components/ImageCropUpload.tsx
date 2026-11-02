@@ -96,7 +96,10 @@ export function ImageCropUpload({
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={(event) => chooseFile(event.target.files?.[0])}
+          onChange={(event) => {
+            chooseFile(event.target.files?.[0]);
+            event.currentTarget.value = '';
+          }}
         />
       </label>
       {source && (

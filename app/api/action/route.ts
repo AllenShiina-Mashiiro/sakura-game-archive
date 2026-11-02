@@ -466,6 +466,16 @@ export async function POST(req: Request) {
       const gameId = typeof b.gameId === 'string' ? b.gameId : '';
       const image = typeof b.image === 'string' ? b.image : '';
       const rawImages = b.images;
+      const parsedImages = (() => {
+        if (rawImages === undefined) return null;
+        let value: unknown = rawImages;
+        if (typeof value === 'string') {
+          try { value = JSON.parse(value); } catch { value = []; }
+        }
+        return Array.isArray(value)
+          ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20)
+          : [];
+      })();
       const result = await mutateDb((fresh) => {
         const item = fresh.feedback.find((x) => x.id === feedbackId);
         if (!item) return { error: '反馈记录不存在', status: 404 };
@@ -476,8 +486,13 @@ export async function POST(req: Request) {
         item.type = (feedbackType || item.type).slice(0, 40);
         item.gameId = gameId.slice(0, 100);
         item.description = description.trim().slice(0, 10000);
-        if (image) item.image = image.slice(0, 1000);
-        item.images = (() => { let value: unknown = rawImages; if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = []; } } return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string' && (x.startsWith('https://') || x.startsWith('/uploads/'))).slice(0, 20) : item.images || []; })();
+        if (parsedImages !== null) {
+          item.images = parsedImages;
+          // Keep the legacy single-image field synchronized so removing every attachment works.
+          item.image = parsedImages[0] || '';
+        } else if (image) {
+          item.image = image.slice(0, 1000);
+        }
         return { ok: true };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
