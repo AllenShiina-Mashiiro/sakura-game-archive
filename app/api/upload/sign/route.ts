@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { resolveImageUploadPolicy } from '@/lib/upload-policy.mjs';
 import { buildTusUploadEndpoint } from '@/lib/tus-upload.mjs';
+import { isSupabasePublicKey } from '@/lib/supabase-public-key.mjs';
 
 export const runtime = 'nodejs';
 
@@ -37,9 +38,10 @@ export async function POST(req: Request) {
     const supabaseAdmin = getSupabaseAdmin();
     const supabaseUrl = process.env.SUPABASE_URL;
     const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-    if (!supabaseUrl || !publishableKey) {
-      return NextResponse.json({ error: '请配置 SUPABASE_URL 和当前项目的 SUPABASE_PUBLISHABLE_KEY' }, { status: 500 });
+    if (!supabaseUrl || !publishableKey || !isSupabasePublicKey(publishableKey)) {
+      return NextResponse.json({ error: '请配置当前项目的 SUPABASE_URL 和浏览器安全的 SUPABASE_PUBLISHABLE_KEY（不能使用 Service Role Key）' }, { status: 500 });
     }
+    const resumableEndpoint = buildTusUploadEndpoint(supabaseUrl);
 
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
@@ -56,8 +58,6 @@ export async function POST(req: Request) {
     const { data: publicData } = supabaseAdmin.storage
       .from(bucket)
       .getPublicUrl(path);
-    const resumableEndpoint = buildTusUploadEndpoint(supabaseUrl);
-
     return NextResponse.json({
       bucket,
       path,
