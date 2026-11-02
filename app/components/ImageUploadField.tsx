@@ -7,6 +7,7 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
   const [url, setUrl] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState(0);
   const limit = maxSizeMB ?? (folder === 'photos' ? 50 : 12);
   async function upload(file?: File) {
     if (!file) return;
@@ -15,9 +16,12 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
       return;
     }
     setBusy(true);
+    setProgress(0);
     setError('');
     try {
-      const nextUrl = await uploadImageDirect(file, folder);
+      const nextUrl = await uploadImageDirect(file, folder, (uploaded, total) => {
+        setProgress(total > 0 ? Math.round((uploaded / total) * 100) : 0);
+      });
       setUrl(nextUrl);
     } catch (e) {
       setError(e instanceof Error ? e.message : '上传失败');
@@ -44,7 +48,7 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
           </button>
         </div>
       )}
-      {busy && <small>正在直传 Supabase Storage…</small>}
+      {busy && <><progress className="upload-progress" value={progress} max={100} /><small>正在直传 Supabase Storage… {progress}%</small></>}
       {error && <small className="error-text">{error}</small>}
       <small className="muted">JPG / PNG / WEBP / GIF，最大 {limit} MB；照片墙保留原始分辨率</small>
     </div>
