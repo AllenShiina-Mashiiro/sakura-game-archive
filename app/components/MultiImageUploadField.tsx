@@ -7,6 +7,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
   const [urls, setUrls] = useState<string[]>(initial.filter(Boolean).slice(0, 20));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   async function addFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -24,8 +25,13 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
       return;
     }
     setBusy(true);
+    setProgress(0);
+    const fileProgress = selected.map(() => 0);
     try {
-      const results = await Promise.allSettled(selected.map((file) => uploadImageDirect(file, folder)));
+      const results = await Promise.allSettled(selected.map((file, index) => uploadImageDirect(file, folder, (uploaded, total) => {
+        fileProgress[index] = total > 0 ? uploaded / total : 0;
+        setProgress(Math.round(fileProgress.reduce((sum, value) => sum + value, 0) / selected.length * 100));
+      })));
       const uploaded = results.filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled').map((result) => result.value);
       const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
       if (uploaded.length) setUrls((old) => [...old, ...uploaded].slice(0, 20));
@@ -34,6 +40,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
       setError(e instanceof Error ? e.message : '上传失败，请重试');
     } finally {
       setBusy(false);
+      setProgress(0);
       if (inputRef.current) inputRef.current.value = '';
     }
   }
@@ -44,8 +51,9 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         <span>{urls.length}/20 张</span>
       </div>
       <button type="button" className="multi-upload-picker" onClick={() => inputRef.current?.click()} disabled={busy || urls.length >= 20}>
-        {busy ? '正在直传 Supabase Storage…' : '＋ 选择图片（支持多选）'}
+        {busy ? `正在直传 Supabase Storage… ${progress}%` : '＋ 选择图片（支持多选）'}
       </button>
+      {busy && <progress className="upload-progress" value={progress} max={100} />}
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => addFiles(e.target.files)} />
       <input type="hidden" name={name} value={JSON.stringify(urls)} />
       {urls.length > 0 && (
