@@ -211,7 +211,7 @@ export async function POST(req: Request) {
         if (!u) return null;
         const previous = [u.avatar, u.cardBackground];
         u.nickname = b.nickname!.toString().trim();
-        u.avatar = typeof b.avatar === 'string' ? b.avatar.slice(0, 500) : u.avatar;
+        u.avatar = typeof b.avatar === 'string' && (/^https:\/\//i.test(b.avatar) || b.avatar.startsWith('/uploads/') || b.avatar === '') ? b.avatar.slice(0, 1000) : u.avatar;
         u.selectedBadge = typeof b.selectedBadge === 'string' && (u.badges || []).includes(b.selectedBadge) ? b.selectedBadge : '';
         u.avatarFrame = b.avatarFrame === 'none' || b.avatarFrame === 'sakura' || b.avatarFrame === 'gold' || b.avatarFrame === 'glass' ? b.avatarFrame : 'none';
         u.cardBackground = typeof b.cardBackground === 'string' && (/^https:\/\//i.test(b.cardBackground) || b.cardBackground.startsWith('/uploads/') || b.cardBackground === '') ? b.cardBackground.slice(0, 1000) : u.cardBackground;
