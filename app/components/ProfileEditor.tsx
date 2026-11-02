@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { mediaUrl } from '@/lib/media';
+import { uploadImageDirect } from '@/lib/upload-image';
 import { ImageCropUpload } from '@/app/components/ImageCropUpload';
 export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, cardBackground, badges }: { nickname: string; avatar: string; selectedBadge: string; avatarFrame: string; cardBackground: string; badges: string[] }) {
   const [name, setName] = useState(nickname);
@@ -23,22 +24,11 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
     try {
       let nextAvatar = image;
       if (avatarFile) {
-        const fd = new FormData();
-        fd.append('avatar', avatarFile);
-        const up = await fetch('/api/upload/avatar', { method: 'POST', body: fd });
-        const ud = await up.json();
-        if (!up.ok) throw new Error(ud.error || '头像上传失败');
-        nextAvatar = ud.url;
+        nextAvatar = await uploadImageDirect(avatarFile, 'avatars');
       }
       let nextBackground = background;
       if (cardFile) {
-        const fd = new FormData();
-        fd.set('image', cardFile);
-        fd.set('folder', 'profile-cards');
-        const up = await fetch('/api/upload/content', { method: 'POST', body: fd });
-        const ud = await up.json();
-        if (!up.ok) throw new Error(ud.error || '名片背景上传失败');
-        nextBackground = ud.url;
+        nextBackground = await uploadImageDirect(cardFile, 'profile-cards');
       }
       const res = await fetch('/api/action', {
         method: 'POST',
@@ -127,7 +117,7 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
       {error && <div className="error-box">{error}</div>}
       {ok && <div className="success-inline">{ok}</div>}
       <button className="primary-btn" disabled={busy}>
-        {busy ? '保存中…' : '保存资料与装饰'}
+        {busy ? '保存中…（图片直传中）' : '保存资料与装饰'}
       </button>
     </form>
   );
