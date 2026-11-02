@@ -792,7 +792,7 @@ export async function POST(req: Request) {
                 const oldLevel = levelOf(owner.exp);
                 owner.exp += reward;
                 feedback.rewardGranted = true;
-                pushNotification(fresh, owner.id, 'feedback', '反馈修复奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id);
+                pushNotification(fresh, owner.id, 'feedback', nextStatus === 'fixed' ? '反馈修复奖励已发放' : '反馈采纳奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id);
                 if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
               }
             }
