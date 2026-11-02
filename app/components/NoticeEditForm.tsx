@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ImageUploadField } from '@/app/components/ImageUploadField';
 export function NoticeEditForm({
   notice,
 }: {
@@ -20,6 +21,11 @@ export function NoticeEditForm({
   const router = useRouter();
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
+    if (form.querySelector('[data-uploading="true"]')) {
+      setMessage('公告图片仍在上传，请等待上传完成后再保存。');
+      return;
+    }
     setBusy(true);
     setMessage('');
     const data = Object.fromEntries(new FormData(e.currentTarget).entries());
@@ -62,10 +68,7 @@ export function NoticeEditForm({
             副标题
             <input name="subtitle" defaultValue={notice.subtitle} />
           </label>
-          <label>
-            封面 URL
-            <input name="cover" defaultValue={notice.cover} />
-          </label>
+          <ImageUploadField name="cover" label="公告封面" folder="notices" initial={notice.cover} />
           <label>
             正文
             <textarea name="content" rows={6} defaultValue={notice.content} required />
