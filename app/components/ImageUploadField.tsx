@@ -24,10 +24,14 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
     }
   }
   return (
-    <div className="image-upload-field">
+    <div className="image-upload-field" data-uploading={busy ? "true" : "false"}>
       <label>
         {label}
-        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={busy} onChange={(e) => upload(e.target.files?.[0])} />
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={busy} onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          void upload(file);
+        }} />
       </label>
       <input type="hidden" name={name} value={url} />
       {url && (
