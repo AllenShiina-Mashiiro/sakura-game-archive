@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { mutateDb, readDb } from '@/lib/db';
 import type { Friendship } from '@/lib/types';
+import { decideFriendRequestAction, isUnreadFriendRequestNotification } from '@/lib/friend-requests.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,19 +77,20 @@ export async function POST(req: Request) {
         return { ok: true, message: '好友请求已发送' };
       }
       if (action === 'accept' || action === 'reject' || action === 'ignore') {
-        if (!relation || relation.status !== 'pending' || relation.addresseeId !== user.id) return { error: '没有可处理的好友请求' };
-        if (action === 'ignore') {
+        const decision = decideFriendRequestAction({ action, relation, userId: user.id });
+        if ('error' in decision) return { error: decision.error };
+        if (decision.kind === 'ignore') {
           // 忽略只隐藏当前通知，不改变好友请求状态，用户之后仍可在主页处理。
           for (const notification of db.notifications || []) {
-            if (notification.userId === user.id && notification.actorId === targetId && notification.title === '收到好友请求' && !notification.readAt) {
+            if (isUnreadFriendRequestNotification(notification, user.id, targetId)) {
               notification.readAt = now;
             }
           }
-          return { ok: true, message: '已忽略该请求，之后仍可处理' };
+          return { ok: true, message: decision.message };
         }
-        relation.status = action === 'accept' ? 'accepted' : 'rejected';
-        relation.updatedAt = now;
-        return { ok: true, message: action === 'accept' ? '已成为好友' : '已拒绝好友请求' };
+        relation!.status = decision.status;
+        relation!.updatedAt = now;
+        return { ok: true, message: decision.message };
       }
       if (action === 'remove') {
         if (!relation || relation.status !== 'accepted') return { error: '好友关系不存在' };
