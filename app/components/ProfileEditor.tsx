@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { mediaUrl } from '@/lib/media';
+import { ImageCropUpload } from '@/app/components/ImageCropUpload';
 export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, cardBackground, badges }: { nickname: string; avatar: string; selectedBadge: string; avatarFrame: string; cardBackground: string; badges: string[] }) {
   const [name, setName] = useState(nickname);
   const [image, setImage] = useState(avatar || '');
-  const [file, setFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [cardFile, setCardFile] = useState<File | null>(null);
   const [badge, setBadge] = useState(selectedBadge);
   const [frame, setFrame] = useState(avatarFrame);
   const [background, setBackground] = useState(cardBackground);
@@ -20,13 +22,23 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
     setOk('');
     try {
       let nextAvatar = image;
-      if (file) {
+      if (avatarFile) {
         const fd = new FormData();
-        fd.append('avatar', file);
+        fd.append('avatar', avatarFile);
         const up = await fetch('/api/upload/avatar', { method: 'POST', body: fd });
         const ud = await up.json();
         if (!up.ok) throw new Error(ud.error || '头像上传失败');
         nextAvatar = ud.url;
+      }
+      let nextBackground = background;
+      if (cardFile) {
+        const fd = new FormData();
+        fd.set('image', cardFile);
+        fd.set('folder', 'profile-cards');
+        const up = await fetch('/api/upload/content', { method: 'POST', body: fd });
+        const ud = await up.json();
+        if (!up.ok) throw new Error(ud.error || '名片背景上传失败');
+        nextBackground = ud.url;
       }
       const res = await fetch('/api/action', {
         method: 'POST',
@@ -37,13 +49,15 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
           avatar: nextAvatar,
           selectedBadge: badge,
           avatarFrame: frame,
-          cardBackground: background,
+          cardBackground: nextBackground,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '保存失败');
       setImage(nextAvatar);
-      setFile(null);
+      setAvatarFile(null);
+      setCardFile(null);
+      setBackground(nextBackground);
       setOk('个人资料与装饰已保存');
       router.refresh();
     } catch (err) {
@@ -58,13 +72,18 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
         昵称
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} required />
       </label>
-      <label>
-        头像图片（JPG / PNG / WEBP / GIF，最大 4 MB）
-        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-      </label>
+      <ImageCropUpload
+        label="头像图片裁剪（正方形，最大 4 MB）"
+        aspectRatio={1}
+        maxSizeMB={4}
+        onCrop={(croppedFile, preview) => {
+          setAvatarFile(croppedFile);
+          setImage(preview);
+        }}
+      />
       <div className="avatar-preview-row">
         <span className={`avatar avatar-large avatar-frame-${frame}`}>{image ? <img src={mediaUrl(image)} alt="头像预览" /> : name.slice(0, 1)}</span>
-        <small>{file ? `待上传：${file.name}` : image ? '当前头像' : '尚未设置头像'}</small>
+        <small>{avatarFile ? `已裁剪：${avatarFile.name}` : image ? '当前头像' : '尚未设置头像'}</small>
       </div>
       <label>
         佩戴徽章
@@ -88,30 +107,18 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
       </label>
       <label>
         个人名片背景图片 URL
-        <input type="url" value={background} onChange={(e) => setBackground(e.target.value)} placeholder="https://..." />
+        <input type="url" value={background} onChange={(e) => { setBackground(e.target.value); setCardFile(null); }} placeholder="https://..." />
       </label>
-      <label>
-        或上传名片背景图片（最大 8 MB）
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            const fd = new FormData();
-            fd.set('image', f);
-            fd.set('folder', 'profile-cards');
-            const up = await fetch('/api/upload/content', { method: 'POST', body: fd });
-            const d = await up.json();
-            if (!up.ok) {
-              setError(d.error || '背景上传失败');
-              return;
-            }
-            setBackground(d.url);
-            setError('');
-          }}
-        />
-      </label>
+      <ImageCropUpload
+        label="名片背景裁剪（宽屏 16:5，最大 8 MB）"
+        aspectRatio={16 / 5}
+        maxSizeMB={8}
+        onCrop={(croppedFile, preview) => {
+          setCardFile(croppedFile);
+          setBackground(preview);
+          setError('');
+        }}
+      />
       {background && (
         <div className="upload-preview">
           <img src={mediaUrl(background)} alt="名片背景预览" />

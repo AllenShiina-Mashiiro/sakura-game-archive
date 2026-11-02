@@ -3,6 +3,7 @@ import { readDb } from '@/lib/db';
 import { FavoriteButton } from '@/app/components/ActionForm';
 import { SearchBar } from '@/app/components/SearchBar';
 import { mediaUrl } from '@/lib/media';
+import { ImageViewer } from '@/app/components/ImageViewer';
 export const dynamic = 'force-dynamic';
 export default async function Resources({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string; type?: string; platform?: string }> }) {
   const sp = await searchParams;
@@ -34,6 +35,18 @@ export default async function Resources({ searchParams }: { searchParams: Promis
               <Link href={`/resources/${r.id}`}>
                 <img className="wide-cover" src={mediaUrl(r.cover)} alt="" />
               </Link>
+            )}
+            {!!r.images?.length && (
+              <div className="review-image-grid resource-list-gallery" aria-label={r.title + '资源配图'}>
+                {r.images.slice(0, 20).map((src, index) => (
+                  <ImageViewer
+                    key={src + '-' + index}
+                    src={src}
+                    alt={r.title + '配图 ' + (index + 1)}
+                    className="review-image"
+                  />
+                ))}
+              </div>
             )}
             <small>
               {r.gameName} · {r.version}{r.userId && <> · 贡献者：<Link href={'/users/' + encodeURIComponent(r.userId)}>{r.username || '查看主页'}</Link></>}
