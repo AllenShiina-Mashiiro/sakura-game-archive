@@ -29,8 +29,10 @@ export function ActionForm({ action, children, button = '提交', className = 's
       const d = await r.json();
       if (!r.ok) throw Error(d.error || '提交失败');
       setOk(d.message || successMessage);
-      form.reset();
-      if (resetAfterSubmit) setFormKey((value) => value + 1);
+      if (resetAfterSubmit) {
+        form.reset();
+        setFormKey((value) => value + 1);
+      }
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : '提交失败');
