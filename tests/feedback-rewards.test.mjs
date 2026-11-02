@@ -31,3 +31,15 @@ test('reward marker and previous final states prevent another grant', () => {
   assert.equal(shouldGrantFeedbackReward({ rewardGranted: false, previousStatus: 'fixed', nextStatus: 'accepted' }), false);
   assert.equal(shouldGrantFeedbackReward({ rewardGranted: false, previousStatus: 'accepted', nextStatus: 'fixed' }), false);
 });
+
+test('failed feedback can be rewarded if it is later fixed', () => {
+  assert.equal(shouldGrantFeedbackReward({ rewardGranted: false, previousStatus: 'failed', nextStatus: 'fixed' }), true);
+});
+
+test('a reward remains one-time even if a fixed item is later failed and fixed again', () => {
+  assert.equal(shouldGrantFeedbackReward({ rewardGranted: true, previousStatus: 'failed', nextStatus: 'fixed' }), false);
+});
+
+test('rejected feedback does not trigger an EXP reward', () => {
+  assert.equal(shouldGrantFeedbackReward({ rewardGranted: false, previousStatus: 'pending', nextStatus: 'rejected' }), false);
+});
