@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { mutateDb, readDb } from '@/lib/db';
 import type { DirectMessage, UserNotification } from '@/lib/types';
+import { normalizeDirectMessageContent } from '@/lib/direct-messages.mjs';
 const areFriends = (db: Awaited<ReturnType<typeof readDb>>, a: string, b: string) =>
   (db.friendships || []).some((f) => f.status === 'accepted' && ((f.requesterId === a && f.addresseeId === b) || (f.requesterId === b && f.addresseeId === a)));
 export const dynamic = 'force-dynamic';
@@ -65,9 +66,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const toId = String(body.toId || '');
-    const content = String(body.content || '').trim();
+    const normalized = normalizeDirectMessageContent(body.content);
+    const content = normalized.content;
     if (!toId || toId === user.id) return NextResponse.json({ error: '请选择有效的收件人' }, { status: 400 });
-    if (!content || content.length > 2000) return NextResponse.json({ error: '消息需为 1-2000 个字符' }, { status: 400 });
+    if (normalized.error) return NextResponse.json({ error: normalized.error }, { status: 400 });
     const result = await mutateDb((db) => {
       const peer = db.users.find((u) => u.id === toId && u.status === 'active');
       if (!peer) return { error: '收件人不存在或不可用' };
