@@ -7,10 +7,6 @@ import { buildTusUploadEndpoint } from '@/lib/tus-upload.mjs';
 
 export const runtime = 'nodejs';
 
-// A publishable key is designed for public clients. Keep it separate from the
-// server-only service role key; deployments may override it through env.
-const DEFAULT_PUBLISHABLE_KEY = 'sb_publishable_dXqRhoNmTwYbs_5QGSLSGw_HVFu8_w9';
-
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) {
@@ -39,6 +35,12 @@ export async function POST(req: Request) {
       : `${folder}/${filename}`;
 
     const supabaseAdmin = getSupabaseAdmin();
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    if (!supabaseUrl || !publishableKey) {
+      return NextResponse.json({ error: '请配置 SUPABASE_URL 和当前项目的 SUPABASE_PUBLISHABLE_KEY' }, { status: 500 });
+    }
+
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
       .createSignedUploadUrl(path);
@@ -54,19 +56,7 @@ export async function POST(req: Request) {
     const { data: publicData } = supabaseAdmin.storage
       .from(bucket)
       .getPublicUrl(path);
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const resumableEndpoint = supabaseUrl ? buildTusUploadEndpoint(supabaseUrl) : '';
-    const publishableKey =
-      process.env.SUPABASE_PUBLISHABLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      DEFAULT_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl) {
-      return NextResponse.json(
-        { error: 'Supabase URL 未配置' },
-        { status: 500 },
-      );
-    }
+    const resumableEndpoint = buildTusUploadEndpoint(supabaseUrl);
 
     return NextResponse.json({
       bucket,
