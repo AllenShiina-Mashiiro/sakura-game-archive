@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFeedbackReviewUpdate } from '../lib/feedback-review.mjs';
+import { buildFeedbackReviewUpdate, isFeedbackRepairStatusAllowed } from '../lib/feedback-review.mjs';
 
 const base = {
   accepted: false,
@@ -46,4 +46,12 @@ test('missing history starts a new history list', () => {
   const result = buildFeedbackReviewUpdate({ ...base, requestedStatus: 'fixed', statusHistory: undefined });
   assert.equal(result.statusHistory.length, 1);
   assert.equal(result.statusHistory[0].status, 'fixed');
+});
+
+test('repair statuses are allowed only for Bug feedback', () => {
+  assert.equal(isFeedbackRepairStatusAllowed('游戏 Bug', 'fixed'), true);
+  assert.equal(isFeedbackRepairStatusAllowed('website BUG', 'failed'), true);
+  assert.equal(isFeedbackRepairStatusAllowed('功能建议', 'processing'), true);
+  assert.equal(isFeedbackRepairStatusAllowed('功能建议', 'fixed'), false);
+  assert.equal(isFeedbackRepairStatusAllowed('游戏运行问题', 'failed'), false);
 });
