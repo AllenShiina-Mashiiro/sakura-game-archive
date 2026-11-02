@@ -1,22 +1,24 @@
 'use client';
 import { useState } from 'react';
 import { mediaUrl } from '@/lib/media';
+import { uploadImageDirect } from '@/lib/upload-image';
+
 export function ImageUploadField({ name, label = '上传图片', folder = 'content', initial = '', maxSizeMB }: { name: string; label?: string; folder?: string; initial?: string; maxSizeMB?: number }) {
   const [url, setUrl] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const limit = maxSizeMB ?? (folder === 'photos' ? 50 : 12);
   async function upload(file?: File) {
     if (!file) return;
+    if (file.size > limit * 1024 * 1024) {
+      setError(`图片不能超过 ${limit} MB`);
+      return;
+    }
     setBusy(true);
     setError('');
     try {
-      const fd = new FormData();
-      fd.set('image', file);
-      fd.set('folder', folder);
-      const r = await fetch('/api/upload/content', { method: 'POST', body: fd });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || '上传失败');
-      setUrl(d.url);
+      const nextUrl = await uploadImageDirect(file, folder);
+      setUrl(nextUrl);
     } catch (e) {
       setError(e instanceof Error ? e.message : '上传失败');
     } finally {
@@ -42,9 +44,9 @@ export function ImageUploadField({ name, label = '上传图片', folder = 'conte
           </button>
         </div>
       )}
-      {busy && <small>正在上传…</small>}
+      {busy && <small>正在直传 Supabase Storage…</small>}
       {error && <small className="error-text">{error}</small>}
-      <small className="muted">JPG / PNG / WEBP / GIF，最大 {maxSizeMB || (folder === 'photos' ? 50 : 12)} MB；照片墙保留原始分辨率</small>
+      <small className="muted">JPG / PNG / WEBP / GIF，最大 {limit} MB；照片墙保留原始分辨率</small>
     </div>
   );
 }
