@@ -79,6 +79,11 @@ export async function POST(req: Request) {
         if (!relation || relation.status !== 'pending' || relation.addresseeId !== user.id) return { error: '没有可处理的好友请求' };
         if (action === 'ignore') {
           // 忽略只隐藏当前通知，不改变好友请求状态，用户之后仍可在主页处理。
+          for (const notification of db.notifications || []) {
+            if (notification.userId === user.id && notification.actorId === targetId && notification.title === '收到好友请求' && !notification.readAt) {
+              notification.readAt = now;
+            }
+          }
           return { ok: true, message: '已忽略该请求，之后仍可处理' };
         }
         relation.status = action === 'accept' ? 'accepted' : 'rejected';

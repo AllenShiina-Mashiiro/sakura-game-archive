@@ -84,9 +84,9 @@ export function ImageCropUpload({
       const output = new File([blob], fileName.replace(/\.[^.]+$/, '') + '-cropped.jpg', {
         type: 'image/jpeg',
       });
-      onCrop(output, canvas.toDataURL('image/jpeg', 0.92));
+      onCrop(output, canvas.toDataURL('image/jpeg', 0.88));
       setError('');
-    }, 'image/jpeg', 0.92);
+    }, 'image/jpeg', 0.88);
   }
 
   return (

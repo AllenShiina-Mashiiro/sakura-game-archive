@@ -3964,6 +3964,8 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
 
 /* v2.24: contact names open public profiles while the preview selects a thread */
 .conversation-person-main{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:3px;flex:1;min-width:0;padding:5px}
+.conversation-person-heading{display:flex;align-items:center;gap:8px;min-width:0}
+.conversation-person-heading .conversation-person-name{flex:1}
 .conversation-person-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:var(--text);text-decoration:none}
 .conversation-person-name:hover{text-decoration:underline;color:var(--accent)}
 .conversation-person-open{display:block;min-width:0;padding:0;border:0;background:transparent;color:var(--muted);text-align:left;cursor:pointer}

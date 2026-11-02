@@ -118,11 +118,13 @@ export function MessagesClient() {
               {avatar(p)}
             </Link>
             <div className="conversation-person-main">
-              <Link className="conversation-person-name" href={`/users/${encodeURIComponent(p.id)}`} title="查看用户主页">{p.nickname}</Link>
+              <div className="conversation-person-heading">
+                <Link className="conversation-person-name" href={`/users/${encodeURIComponent(p.id)}`} title="查看用户主页">{p.nickname}</Link>
+                {!!p.unread && <i className="unread-dot">{p.unread}</i>}
+              </div>
               <button type="button" className="conversation-person-open" onClick={() => choose(p.id)}>
                 <small>{p.lastMessage}</small>
               </button>
-              {!!p.unread && <i className="unread-dot">{p.unread}</i>}
             </div>
           </div>
         ))}
