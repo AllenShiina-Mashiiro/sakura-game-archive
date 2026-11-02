@@ -7,7 +7,7 @@ type FriendRequestDecision =
   | { kind: 'update'; status: 'accepted' | 'rejected'; message: string };
 
 export function decideFriendRequestAction(args: {
-  action: FriendRequestAction;
+  action: string;
   relation: Friendship | undefined;
   userId: string;
 }): FriendRequestDecision;
