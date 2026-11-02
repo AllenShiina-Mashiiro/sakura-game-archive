@@ -18,6 +18,11 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
   const progress = Math.max(0, Math.min(100, ((u.exp - start) / (next - start)) * 100));
   const guides = db.guides.filter((g) => g.userId === u.id && g.status === 'approved');
   const resources = db.resources.filter((r) => r.userId === u.id);
+  const gameContributions = db.games.flatMap((game) =>
+    game.updates
+      .filter((update) => update.contributorId === u.id)
+      .map((update) => ({ game, update })),
+  ).sort((a, b) => b.update.date.localeCompare(a.update.date));
   return (
     <div className="page-wrap">
       <header className="topbar">
@@ -91,6 +96,19 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
             </Link>
           ))}
           {!guides.length && <div className="empty-state">暂未发布公开教程。</div>}
+        </div>
+      </section>
+      <section className="detail-section">
+        <h2>游戏版本贡献 · {gameContributions.length}</h2>
+        <div className="content-grid">
+          {gameContributions.map(({ game, update }) => (
+            <Link className="content-card" href={`/games/${game.slug}#updates`} key={game.id + '-' + update.id}>
+              <h3>{update.title}</h3>
+              <small>{game.name} · {update.version} · {update.date}</small>
+              <p>{update.notes || '参与了该游戏版本档案的维护。'}</p>
+            </Link>
+          ))}
+          {!gameContributions.length && <div className="empty-state">暂未参与游戏版本记录。</div>}
         </div>
       </section>
       <section className="detail-section">
