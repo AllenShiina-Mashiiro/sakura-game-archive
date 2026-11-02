@@ -101,6 +101,7 @@ export function ImageCropUpload({
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
+          disabled={cropping}
           onChange={(event) => {
             chooseFile(event.target.files?.[0]);
             event.currentTarget.value = '';
@@ -114,15 +115,15 @@ export function ImageCropUpload({
           </div>
           <label>
             缩放
-            <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} />
+            <input type="range" min="1" max="3" step="0.01" value={zoom} disabled={cropping} onChange={(event) => setZoom(Number(event.target.value))} />
           </label>
           <label>
             水平位置
-            <input type="range" min="-1" max="1" step="0.01" value={horizontal} onChange={(event) => setHorizontal(Number(event.target.value))} />
+            <input type="range" min="-1" max="1" step="0.01" value={horizontal} disabled={cropping} onChange={(event) => setHorizontal(Number(event.target.value))} />
           </label>
           <label>
             垂直位置
-            <input type="range" min="-1" max="1" step="0.01" value={vertical} onChange={(event) => setVertical(Number(event.target.value))} />
+            <input type="range" min="-1" max="1" step="0.01" value={vertical} disabled={cropping} onChange={(event) => setVertical(Number(event.target.value))} />
           </label>
           <button type="button" className="outline-btn" onClick={applyCrop} disabled={cropping}>{cropping ? "正在生成裁剪图…" : "应用裁剪结果"}</button>
         </div>
