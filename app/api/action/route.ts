@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
-import { feedbackRewardFor, shouldGrantFeedbackReward } from '@/lib/feedback-rewards.mjs';
-import { buildFeedbackReviewUpdate, isFeedbackRepairStatusAllowed } from '@/lib/feedback-review.mjs';
+import { feedbackRewardFor } from '@/lib/feedback-rewards.mjs';
+import { resolveFeedbackTransition } from '@/lib/feedback-workflow.mjs';
 import type {
   Collection,
   Feedback,
@@ -215,6 +215,7 @@ export async function POST(req: Request) {
         u.selectedBadge = typeof b.selectedBadge === 'string' && (u.badges || []).includes(b.selectedBadge) ? b.selectedBadge : '';
         u.avatarFrame = b.avatarFrame === 'none' || b.avatarFrame === 'sakura' || b.avatarFrame === 'gold' || b.avatarFrame === 'glass' ? b.avatarFrame : 'none';
         u.cardBackground = typeof b.cardBackground === 'string' && (/^https:\/\//i.test(b.cardBackground) || b.cardBackground.startsWith('/uploads/') || b.cardBackground === '') ? b.cardBackground.slice(0, 1000) : u.cardBackground;
+        if (typeof b.discoverable === 'boolean') u.discoverable = b.discoverable;
         return previous;
       });
       if (!previousProfileImages) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
@@ -559,7 +560,7 @@ export async function POST(req: Request) {
           statusHistory: [{ status: 'pending', reply: '反馈已提交，等待管理员处理', at: submittedAt, by: user.nickname }],
         });
         for (const admin of fresh.users.filter((x) => x.role === 'admin' && x.status === 'active'))
-          pushNotification(fresh, admin.id, 'feedback', '收到新的问题反馈', `${user.nickname} 提交了：${(b.title as string).trim().slice(0, 80)}`, '/admin#reviews', user.id);
+          pushNotification(fresh, admin.id, 'feedback', '收到新的问题反馈', `${user.nickname} 提交了：${(b.title as string).trim().slice(0, 80)}`, '/admin?section=reviews#reviews', user.id);
       });
       return NextResponse.json({ ok: true });
     }
@@ -601,7 +602,7 @@ export async function POST(req: Request) {
         });
         if (b.action === 'guide') {
           for (const admin of fresh.users.filter((x) => x.role === 'admin' && x.status === 'active'))
-            pushNotification(fresh, admin.id, 'system', '收到新的教程投稿', user.nickname + ' 投稿了《' + values.title + '》，等待审核。', '/admin#reviews', user.id);
+            pushNotification(fresh, admin.id, 'system', '收到新的教程投稿', user.nickname + ' 投稿了《' + values.title + '》，等待审核。', '/admin?section=reviews#reviews', user.id);
         }
         return { created: true as const };
       });
@@ -769,75 +770,58 @@ export async function POST(req: Request) {
     if (b.action === 'review-guide' || b.action === 'review-feedback') {
       await requireAdmin();
       const result = await mutateDb((fresh) => {
-        const list = b.action === 'review-guide' ? fresh.guides : fresh.feedback;
+        const isGuide = b.action === 'review-guide';
+        const list = isGuide ? fresh.guides : fresh.feedback;
         const item = list.find((x) => x.id === String(b.id || ''));
-        if (!item) return { error: '记录不存在' };
-        const accepted = b.status === 'accepted';
-        if (b.action === 'review-guide') {
+        if (!item) return { error: '记录不存在', status: 404 };
+        const requested = String(b.status || '');
+        const at = new Date().toISOString();
+        const isBug = !isGuide && /bug/i.test((item as Feedback).type);
+        if (isGuide) {
           const guide = item as Guide;
-          const wasApproved = guide.status === 'approved';
-          // Preserve the one-time reward marker when an already-approved guide is later rejected.
-          if (wasApproved) guide.rewardGranted = true;
-          guide.status = accepted ? 'approved' : 'rejected';
-          if (accepted && !wasApproved && !guide.rewardGranted) {
-            const owner = fresh.users.find((u) => u.id === item.userId);
-            if (owner) {
-              const oldLevel = levelOf(owner.exp);
-              owner.exp += 30;
-              guide.rewardGranted = true;
-              pushNotification(fresh, owner.id, 'system', '教程审核奖励已发放', '教程《' + guide.title + '》通过审核，获得 30 EXP。', '/tutorials/' + guide.id, user.id);
-              if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
-            }
+          if (guide.status !== 'pending') return { error: '该教程已完成审核，不能重复操作', status: 409 };
+          if (requested !== 'accepted' && requested !== 'rejected') return { error: '教程只能通过或拒绝', status: 400 };
+          guide.status = requested === 'accepted' ? 'approved' : 'rejected';
+          guide.statusHistory = [...(guide.statusHistory || []), { status: guide.status, reply: String(b.reply || ''), at, by: user.nickname }];
+          if (requested === 'accepted' && !guide.rewardGranted) {
+            const owner = fresh.users.find((u) => u.id === guide.userId);
+            if (owner) { const oldLevel = levelOf(owner.exp); owner.exp += 30; guide.rewardGranted = true; pushNotification(fresh, owner.id, 'system', '教程审核奖励已发放', '教程《' + guide.title + '》通过审核，获得 30 EXP。', '/tutorials/' + guide.id, user.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
           }
-        } else {
-          const feedback = item as Feedback;
-          const previousStatus = feedback.status;
-          const requestedReviewStatus = String(b.status || '');
-          const isBugFeedback = /bug/i.test(feedback.type);
-          if (!isFeedbackRepairStatusAllowed(feedback.type, requestedReviewStatus)) {
-            return { error: '只有 Bug 反馈可以标记为已修复或修复失败', status: 400 };
-          }
-          const reviewUpdate = buildFeedbackReviewUpdate({
-            requestedStatus: requestedReviewStatus,
-            accepted,
-            requestedSeverity: isBugFeedback ? b.severity : undefined,
-            currentSeverity: feedback.bugSeverity,
-            reply: b.reply,
-            at: new Date().toISOString(),
-            by: user.nickname,
-            statusHistory: feedback.statusHistory,
-          });
-          const nextStatus = reviewUpdate.status;
-          feedback.status = nextStatus;
-          feedback.reply = reviewUpdate.reply;
-          feedback.bugSeverity = reviewUpdate.bugSeverity;
-          feedback.statusHistory = reviewUpdate.statusHistory;
-          if (shouldGrantFeedbackReward({
-            rewardGranted: feedback.rewardGranted,
-            previousStatus,
-            nextStatus,
-          })) {
-            const owner = fresh.users.find((u) => u.id === feedback.userId);
-            if (owner) {
-              const reward = feedbackRewardFor({
-                type: feedback.type,
-                nextStatus,
-                severity: feedback.bugSeverity,
-              });
-              if (reward !== null) {
-                const oldLevel = levelOf(owner.exp);
-                owner.exp += reward;
-                feedback.rewardGranted = true;
-                pushNotification(fresh, owner.id, 'feedback', nextStatus === 'fixed' ? '反馈修复奖励已发放' : '反馈采纳奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id);
-                if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
-              }
-            }
-          }
+          pushNotification(fresh, String(guide.userId || ''), 'system', requested === 'accepted' ? '教程审核通过' : '教程审核未通过', String(b.reply || (requested === 'accepted' ? '你的教程已通过审核。' : '你的教程未通过审核。')), '/tutorials/' + guide.id, user.id);
+          return { ok: true };
         }
-        pushNotification(fresh, String(item.userId || ''), b.action === 'review-guide' ? 'system' : 'feedback', b.action === 'review-guide' ? (accepted ? '教程审核通过' : '教程审核未通过') : '反馈处理进度已更新', String(b.reply || (accepted ? '你的内容已通过审核。' : '管理员已更新处理状态。')), b.action === 'review-guide' ? '/tutorials/' + item.id : '/feedback', user.id);
+        const feedback = item as Feedback;
+        const previousStatus = feedback.status;
+        const transition = resolveFeedbackTransition({ currentStatus: previousStatus, requestedStatus: requested, isBug });
+        if (!transition.ok) return { error: transition.error, status: 409 };
+        if (transition.remove) {
+          pushNotification(fresh, feedback.userId, 'feedback', '反馈未通过审核', String(b.reply || '该问题未通过审核，已从公示队列移除。'), '/feedback/mine', user.id);
+          fresh.feedback = fresh.feedback.filter((x) => x.id !== feedback.id);
+          return { ok: true, removed: feedback };
+        }
+        feedback.status = transition.status;
+        if (isBug && previousStatus === 'pending' && requested === 'accepted') {
+          feedback.bugSeverity = ['warning','error','critical'].includes(String(b.severity)) ? String(b.severity) as Feedback['bugSeverity'] : 'warning';
+        }
+        if (!isBug && previousStatus === 'pending' && requested === 'accepted' && !feedback.rewardGranted) {
+          const owner = fresh.users.find((u) => u.id === feedback.userId);
+          const reward = feedbackRewardFor({ type: feedback.type, nextStatus: 'accepted', severity: feedback.bugSeverity });
+          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈采纳奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
+        }
+        feedback.reply = String(b.reply || '');
+        feedback.statusHistory = [...(feedback.statusHistory || []), { status: feedback.status, reply: feedback.reply, at, by: user.nickname }];
+        if (feedback.status === 'fixed' && !feedback.rewardGranted) {
+          const owner = fresh.users.find((u) => u.id === feedback.userId);
+          const reward = feedbackRewardFor({ type: feedback.type, nextStatus: 'fixed', severity: feedback.bugSeverity });
+          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈修复奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
+        }
+        const title = feedback.status === 'approved' ? '问题已通过审核并公示' : feedback.status === 'processing' ? '问题已进入处理中' : feedback.status === 'fixed' ? '问题已修复' : feedback.status === 'failed' ? '问题处理结束' : feedback.status === 'rejected' ? '反馈未通过审核' : '反馈处理进度已更新';
+        const href = isBug && feedback.status !== 'rejected' ? '/feedback/public#' + feedback.id : '/feedback/mine';
+        pushNotification(fresh, feedback.userId, 'feedback', title, String(b.reply || title), href, user.id);
         return { ok: true };
       });
-      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 'status' in result ? result.status : 404 });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status || 404 });
+      if ('removed' in result && result.removed) { try { await deleteUnreferencedStorageImages([result.removed]); } catch (cleanupError) { console.error('已拒绝的问题已删除，但附件清理失败:', cleanupError); } }
       return NextResponse.json({ ok: true });
     }
     if (b.action === 'admin-user-create') {

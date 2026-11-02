@@ -99,48 +99,15 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       {section === "reviews" && (
       <section id="reviews" className="admin-section">
         <h2>内容审核</h2>
-        <h3>教程投稿</h3>
-        {db.guides
-          .filter((g) => g.status === 'pending')
-          .map((g) => (
-            <article className="review-card" key={g.id}>
-              <b>{g.title}</b>
-              <small>
-                {g.userId ? <a href={`/users/${encodeURIComponent(g.userId)}`}>{g.author || '查看主页'}</a> : (g.author || '未知作者')} · {g.date}
-              </small>
-              {g.cover && <ImageViewer src={g.cover} alt={g.title + '封面'} className="review-image" />}
-              <p className="multiline">{g.content}</p>
-              {(g.bodyImages?.length ? g.bodyImages : g.bodyImage ? [g.bodyImage] : []).length > 0 && <div className="review-image-grid">{(g.bodyImages?.length ? g.bodyImages : g.bodyImage ? [g.bodyImage] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={g.title + '配图 ' + (index+1)} className="review-image" />)}</div>}
-              <Review id={g.id} action="review-guide" />
-              <AdminDeleteButton action="guide-delete" id={g.id} label="删除教程" />
-            </article>
-          ))}
-        {!db.guides.some((g) => g.status === 'pending') && <p className="muted">暂无待审核教程。</p>}
-        <h3>问题反馈</h3>
-        {db.feedback
-          .slice(0, 200)
-          .map((f) => (
-            <article className="review-card" key={f.id}>
-              <b>
-                {f.title} · {f.type}
-              </b>
-              <small>
-                {f.userId ? <a href={`/users/${encodeURIComponent(f.userId)}`}>{f.username}</a> : f.username} · {f.createdAt}
-              </small>
-              <details open><summary>反馈详情与处理记录（{f.status === 'pending' ? '待处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '已拒绝'}）</summary><p className="multiline">{f.description}</p><p><b>管理员回复：</b>{f.reply || '暂无回复'}</p><div className="feedback-progress-timeline">{(f.statusHistory?.length ? f.statusHistory : [{status:'pending',reply:'反馈已提交，等待管理员处理',at:f.createdAt,by:f.username}]).map((step,index)=><div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status === 'pending' ? '已提交' : step.status === 'processing' ? '处理中' : step.status === 'fixed' ? '已修复' : step.status === 'failed' ? '修复失败' : step.status === 'accepted' ? '已采纳' : step.status === 'rejected' ? '未采纳' : step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div></details>
-              {(f.images?.length ? f.images : f.image ? [f.image] : []).length > 0 && <div className="review-image-grid">{(f.images?.length ? f.images : f.image ? [f.image] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={'反馈附件 ' + (index+1)} className="review-image" />)}</div>}
-              <ActionForm action="feedback-update" button="保存反馈修改" successMessage="反馈内容已更新" resetAfterSubmit={false}>
-                <input type="hidden" name="id" value={f.id} />
-                <label>反馈标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
-                <label>反馈类型<input name="type" required defaultValue={f.type} /></label>
-                <label>反馈描述<textarea name="description" rows={4} required minLength={5} defaultValue={f.description} /></label>
-                <MultiImageUploadField name="images" label="反馈附件图片" folder="feedback" initial={f.images || (f.image ? [f.image] : [])} />
-                <input type="hidden" name="gameId" value={f.gameId} />
-              </ActionForm>
-              <Review id={f.id} action="review-feedback" isBug={/bug/i.test(f.type)} />
-            </article>
-          ))}
-        {!db.feedback.length && <p className="muted">暂无反馈记录。</p>}
+        <p className="muted">审核队列按类型和状态分区，每页最多 10 条，可搜索定位。Bug 必须依次通过审核、开始处理、修复成功/失败；结束后锁定，不能重复操作。</p>
+        <h3>教程投稿 · 待审核 {db.guides.filter((g) => g.status === 'pending').length}</h3>
+        <AdminSearchList items={db.guides.filter((g) => g.status === 'pending').map((g) => ({ id:g.id, search:[g.title,g.author,g.category,g.gameName,g.content].join(' '), content:<article className="review-card" key={g.id}><b>{g.title}</b><small>{g.userId ? <a href={`/users/${encodeURIComponent(g.userId)}`}>{g.author || '查看主页'}</a> : (g.author || '未知作者')} · {g.date}</small>{g.cover && <ImageViewer src={g.cover} alt={g.title + '封面'} className="review-image" />}<p className="multiline">{g.content}</p>{(g.bodyImages?.length ? g.bodyImages : g.bodyImage ? [g.bodyImage] : []).length > 0 && <div className="review-image-grid">{(g.bodyImages?.length ? g.bodyImages : g.bodyImage ? [g.bodyImage] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={g.title + '配图 ' + (index+1)} className="review-image" />)}</div>}<Review id={g.id} action="review-guide" status={g.status || 'pending'} /><AdminDeleteButton action="guide-delete" id={g.id} label="删除教程" /></article> }))} placeholder="搜索教程标题、作者或正文…" />
+        <h3>问题反馈 · 待审核 {db.feedback.filter((f) => f.status === 'pending').length}</h3>
+        <AdminSearchList items={db.feedback.filter((f) => f.status === 'pending').map((f) => ({ id:f.id, search:[f.title,f.username,f.type,f.description].join(' '), content:<article className="review-card" key={f.id}><b>{f.title} · {f.type}</b><small>{f.userId ? <a href={`/users/${encodeURIComponent(f.userId)}`}>{f.username}</a> : f.username} · {f.createdAt}</small><p className="multiline">{f.description}</p>{(f.images?.length ? f.images : f.image ? [f.image] : []).length > 0 && <div className="review-image-grid">{(f.images?.length ? f.images : f.image ? [f.image] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={'反馈附件 ' + (index+1)} className="review-image" />)}</div>}<Review id={f.id} action="review-feedback" isBug={/bug/i.test(f.type)} status={f.status} /></article> }))} placeholder="搜索反馈标题、用户或描述…" />
+        <h3>Bug 处理队列 · {db.feedback.filter((f) => /bug/i.test(f.type) && ['approved','accepted','processing'].includes(f.status)).length}</h3>
+        <AdminSearchList items={db.feedback.filter((f) => /bug/i.test(f.type) && ['approved','accepted','processing'].includes(f.status)).map((f) => ({ id:f.id, search:[f.title,f.username,f.type,f.description,f.status].join(' '), content:<article className="review-card" key={f.id}><b>{f.title} · {f.bugSeverity === 'critical' ? '高危' : f.bugSeverity === 'error' ? '严重' : '警告'}</b><small>{f.username} · {f.createdAt} · {f.status === 'processing' ? '处理中' : '已通过，待开始处理'}</small><p className="multiline">{f.description}</p><div className="feedback-progress-timeline">{(f.statusHistory || []).map((step,index)=><div className="feedback-progress-step" key={step.at+'-'+index}><b>{step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div><Review id={f.id} action="review-feedback" isBug status={f.status} /></article> }))} placeholder="搜索 Bug 标题、用户或描述…" />
+        <h3>已结束问题（只读）· {db.feedback.filter((f) => /bug/i.test(f.type) && ['fixed','failed'].includes(f.status)).length}</h3>
+        <AdminSearchList items={db.feedback.filter((f) => /bug/i.test(f.type) && ['fixed','failed'].includes(f.status)).map((f) => ({ id:f.id, search:[f.title,f.username,f.type,f.description].join(' '), content:<article className="review-card"><b>{f.title}</b><small>{f.username} · {f.createdAt} · {f.status === 'fixed' ? '修复成功' : '修复失败'}</small><p className="multiline">{f.description}</p></article> }))} placeholder="搜索已结束问题…" />
       </section>
       )}
       {section === "tutorials" && (
@@ -585,6 +552,6 @@ function Stat({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-function Review({ id, action, isBug = false }: { id: string; action: string; isBug?: boolean }) {
-  return <AdminReview id={id} action={action} isBug={isBug} />;
+function Review({ id, action, isBug = false, status = 'pending' }: { id: string; action: string; isBug?: boolean; status?: 'pending' | 'approved' | 'processing' | 'accepted' | 'rejected' | 'fixed' | 'failed' }) {
+  return <AdminReview id={id} action={action} isBug={isBug} status={status} />;
 }

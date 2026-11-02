@@ -10,7 +10,7 @@ export default async function MyFeedback() {
   const mine = db.feedback.filter((f) => f.userId === user?.id);
   const statusLabel = (status: string) => status === 'pending' ? '待处理' : status === 'processing' ? '处理中' : status === 'fixed' ? '已修复' : status === 'failed' ? '修复失败' : status === 'accepted' ? '已采纳' : '已拒绝';
   return <div className="page-wrap">
-    <header className="topbar"><div><div className="eyebrow">PLAYER SUPPORT / MY REPORTS</div><h1>我的反馈</h1><p className="subtitle">查看处理进度与管理员回复；只有尚未开始处理的反馈可由提交者修改。</p></div><div className="tag-row"><Link className="outline-btn" href="/feedback">反馈中心</Link><Link className="outline-btn" href="/feedback/submit">提交新反馈</Link></div></header>
+    <header className="topbar"><div><div className="eyebrow">PLAYER SUPPORT / MY REPORTS</div><h1>我的反馈</h1><p className="subtitle">查看处理进度与管理员回复；只有尚未开始处理的反馈可由提交者修改。</p></div><div className="tag-row"><Link className="outline-btn" href="/feedback">反馈中心</Link><Link className="outline-btn" href="/feedback/submit">提交新反馈</Link><Link className="primary-btn" href="/feedback/public">公示问题</Link></div></header>
     <section className="detail-section"><div className="content-grid">
       {mine.map((f) => <article className="content-card" key={f.id}>
         <span className="tag">{statusLabel(f.status)}</span><h3>{f.title}</h3>

@@ -38,7 +38,7 @@ export function ThemeEffects({ initialMode, initialColor, initialPetals }: { ini
   return (
     <>
       <div className="sakura-particles" aria-hidden="true" data-enabled={petals}>
-        {Array.from({ length: 18 }, (_, i) => (
+        {Array.from({ length: 8 }, (_, i) => (
           <i
             key={i}
             style={{

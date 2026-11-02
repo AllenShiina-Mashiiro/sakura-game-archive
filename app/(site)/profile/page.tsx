@@ -90,7 +90,7 @@ export default async function Profile() {
       </section>
       <section className="detail-section">
         <h2>修改资料</h2>
-        <ProfileEditor nickname={user.nickname} avatar={user.avatar} selectedBadge={user.selectedBadge || ''} avatarFrame={user.avatarFrame || 'none'} cardBackground={user.cardBackground || ''} badges={owned} />
+        <ProfileEditor nickname={user.nickname} avatar={user.avatar} selectedBadge={user.selectedBadge || ''} avatarFrame={user.avatarFrame || 'none'} cardBackground={user.cardBackground || ''} badges={owned} discoverable={user.discoverable !== false} />
       </section>
       <section className="detail-section">
         <h2>每日签到</h2>
