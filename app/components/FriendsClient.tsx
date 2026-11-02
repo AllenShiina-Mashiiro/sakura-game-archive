@@ -43,7 +43,10 @@ export function FriendsClient() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const run = async () => {
+      await load();
+    };
+    void run();
   }, [load]);
 
   async function act(friend: Friend, action: 'accept' | 'reject' | 'remove') {
