@@ -27,6 +27,7 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
     setBusy(true);
     setProgress(0);
     const fileProgress = selected.map(() => 0);
+    const totalBytes = selected.reduce((sum, file) => sum + file.size, 0);
     try {
       const results: PromiseSettledResult<string>[] = new Array(selected.length);
       let cursor = 0;
@@ -34,9 +35,10 @@ export function MultiImageUploadField({ name = 'bodyImages', label = '教程正�
         while (cursor < selected.length) {
           const index = cursor++;
           try {
-            const url = await uploadImageDirect(selected[index], folder, (uploaded, total) => {
-              fileProgress[index] = total > 0 ? uploaded / total : 0;
-              setProgress(Math.round(fileProgress.reduce((sum, value) => sum + value, 0) / selected.length * 100));
+            const url = await uploadImageDirect(selected[index], folder, (uploaded) => {
+              fileProgress[index] = uploaded;
+              const uploadedBytes = fileProgress.reduce((sum, value) => sum + value, 0);
+              setProgress(totalBytes > 0 ? Math.round(uploadedBytes / totalBytes * 100) : 0);
             });
             results[index] = { status: 'fulfilled', value: url };
           } catch (reason) {
