@@ -66,6 +66,11 @@ export async function POST(req: Request) {
           if (relation.addresseeId === user.id) {
             relation.status = 'accepted';
             relation.updatedAt = now;
+            for (const notification of db.notifications || []) {
+              if (isUnreadFriendRequestNotification(notification, user.id, targetId)) {
+                notification.readAt = now;
+              }
+            }
             return { ok: true, message: '已接受好友请求' };
           }
           return { error: '好友请求已发送，请等待对方处理' };
