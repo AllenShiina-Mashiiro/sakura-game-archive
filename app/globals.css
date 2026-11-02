@@ -3998,3 +3998,48 @@ html[data-theme='light'] .profile-badge-chip { color: #493448; background: #f7ea
   object-fit: cover;
   border-radius: 10px;
 }
+
+
+/* v2.24 friends list */
+.friend-list-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.friend-list-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+.friend-list-info {
+  flex: 1;
+  min-width: 0;
+}
+.friend-list-info h3 {
+  margin: 0 0 3px;
+}
+.friend-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.friend-list-actions .tag {
+  align-self: center;
+}
+@media (max-width: 560px) {
+  .friend-list-card {
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px;
+  }
+  .friend-list-card .avatar-large {
+    width: 48px;
+    height: 48px;
+  }
+  .friend-list-actions > * {
+    max-width: 100%;
+  }
+}
