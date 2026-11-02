@@ -27,7 +27,7 @@ function responseError(response: Response, fallback: string) {
   });
 }
 
-async function readTusOffset(uploadUrl: string, headers: HeadersInit) {
+async function readTusOffset(uploadUrl: string, headers: Record<string, string>) {
   const response = await fetch(uploadUrl, {
     method: 'HEAD',
     headers: {
