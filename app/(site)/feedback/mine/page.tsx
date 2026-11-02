@@ -22,7 +22,7 @@ export default async function MyFeedback() {
           <div className="feedback-progress-timeline">{(f.statusHistory?.length ? f.statusHistory : [{status:'pending',reply:'反馈已提交，等待管理员处理',at:f.createdAt,by:f.username}]).map((step,index) => <div className="feedback-progress-step" key={step.at + '-' + index}><b>{statusLabel(step.status)}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div>
           {f.rewardGranted && <p className="muted">EXP 奖励已发放</p>}
         </details>
-        {f.status === 'pending' && <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新">
+        {f.status === 'pending' && <ActionForm action="feedback-update" button="保存修改" successMessage="反馈已更新" resetAfterSubmit={false}>
           <input type="hidden" name="id" value={f.id} />
           <label>修改标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
           <label>修改类型<select name="type" defaultValue={f.type}><option>游戏 Bug</option><option>游戏运行问题</option><option>游戏内容问题</option><option>网站 Bug</option><option>功能建议</option><option>其他</option></select></label>
