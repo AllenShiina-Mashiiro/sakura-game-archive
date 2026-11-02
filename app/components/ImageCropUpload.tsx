@@ -41,7 +41,7 @@ export function ImageCropUpload({
       const canvas = canvasRef.current;
       const context = canvas?.getContext('2d');
       if (!canvas || !context) return;
-      canvas.width = Math.max(1, Math.min(1920, Math.round(cropWidth)));
+      canvas.width = Math.max(1, Math.min(1280, Math.round(cropWidth)));
       canvas.height = Math.max(1, Math.round(canvas.width / aspectRatio));
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
