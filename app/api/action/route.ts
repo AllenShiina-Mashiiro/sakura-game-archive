@@ -795,6 +795,7 @@ export async function POST(req: Request) {
         const transition = resolveFeedbackTransition({ currentStatus: previousStatus, requestedStatus: requested, isBug });
         if (!transition.ok) return { error: transition.error, status: 409 };
         if (transition.remove) {
+          pushNotification(fresh, feedback.userId, 'feedback', '反馈未通过审核', String(b.reply || '该问题未通过审核，已从公示队列移除。'), '/feedback/mine', user.id);
           fresh.feedback = fresh.feedback.filter((x) => x.id !== feedback.id);
           return { ok: true, removed: feedback };
         }
