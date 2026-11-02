@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { readDb, mutateDb, createDefaultShopProducts } from '@/lib/db';
+import { mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
 import type {
@@ -48,7 +48,6 @@ export async function POST(req: Request) {
         .map((x: string) => x.trim())
         .filter(Boolean);
     if (typeof b.minimum === 'string' || typeof b.recommended === 'string') b.config = { minimum: b.minimum || '', recommended: b.recommended || '' };
-    const db = await readDb();
     const now = new Date().toISOString();
 
     // 管理员专用：将现有三个头像框商品价格同步为最新定价，不影响库存、图片或用户数据。

@@ -37,10 +37,13 @@ export async function POST(req: Request) {
   if (
     !b ||
     typeof b.username !== 'string' ||
-    typeof b.password !== 'string'
+    typeof b.password !== 'string' ||
+    !/^[a-z0-9_]{3,24}$/i.test(b.username.trim()) ||
+    b.password.length < 1 ||
+    b.password.length > 128
   ) {
     return NextResponse.json(
-      { error: '请输入用户名和密码' },
+      { error: '请输入有效的用户名和密码（用户名 3-24 位，密码不超过 128 位）' },
       { status: 400 }
     );
   }
