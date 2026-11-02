@@ -18,6 +18,7 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
   const progress = Math.max(0, Math.min(100, ((u.exp - start) / (next - start)) * 100));
   const guides = db.guides.filter((g) => g.userId === u.id && g.status === 'approved');
   const resources = db.resources.filter((r) => r.userId === u.id);
+  const contributorProfiles = (db.contributors || []).filter((item) => item.userId === u.id);
   const gameContributions = db.games.flatMap((game) =>
     game.updates
       .filter((update) => update.contributorId === u.id)
@@ -109,6 +110,28 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
             </Link>
           ))}
           {!gameContributions.length && <div className="empty-state">暂未参与游戏版本记录。</div>}
+        </div>
+      </section>
+      <section className="detail-section">
+        <h2>社区贡献者档案 · {contributorProfiles.length}</h2>
+        <div className="content-grid">
+          {contributorProfiles.map((item) => (
+            <article className="content-card" key={item.id}>
+              <div className="comment-head">
+                <span className="avatar avatar-frame-none">
+                  {item.avatar ? <img src={mediaUrl(item.avatar)} alt="" /> : item.name.slice(0, 1)}
+                </span>
+                <div>
+                  <h3>{item.name}</h3>
+                  <small>{item.role} · {item.kind === 'technical' ? '技术贡献' : item.kind === 'content' ? '内容贡献' : item.kind === 'financial' ? '资金支持' : '志愿者'}</small>
+                </div>
+              </div>
+              <p>{item.description}</p>
+              {typeof item.exp === 'number' && <small>{item.exp} EXP</small>}
+              {!!item.badges?.length && <div className="tag-row">{item.badges.map((badge) => <span className="tag" key={badge}>{badge}</span>)}</div>}
+            </article>
+          ))}
+          {!contributorProfiles.length && <div className="empty-state">暂未关联社区贡献者档案。</div>}
         </div>
       </section>
       <section className="detail-section">
