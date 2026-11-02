@@ -1027,12 +1027,12 @@ export async function POST(req: Request) {
         const old = b.action === 'contributor-update' ? fresh.contributors.find((x) => x.id === String(b.id || '')) : undefined;
         if (b.action === 'contributor-update' && !old) return { error: '贡献者记录不存在' as const };
         const linkedUserId = String(b.userId || '');
-        if (linkedUserId && !fresh.users.some((candidate) => candidate.id === linkedUserId && candidate.status === 'active')) return { error: '关联用户不存在或不可用' as const };
+        if (linkedUserId && !fresh.users.some((candidate) => candidate.id === linkedUserId && candidate.status === 'active')) return { error: '关联用户不存在或不可用' as const, status: 400 as const };
         const item = { id: old?.id || randomUUID(), name: name.slice(0, 60), role: String(b.role || '社区贡献者').slice(0, 80), description: description.slice(0, 1000), kind, userId: linkedUserId || undefined, avatar: String(b.avatar || '').slice(0, 1000), exp: Math.max(0, Math.min(1000000, Math.floor(Number(b.exp) || 0))), badges: [...new Set(String(b.badges || '').split(',').map((x: string) => x.trim()).filter(Boolean))].slice(0, 30), createdAt: old?.createdAt || now };
         if (old) fresh.contributors[fresh.contributors.indexOf(old)] = item; else fresh.contributors.unshift(item);
         return { oldAvatar: old?.avatar, avatar: item.avatar, updated: Boolean(old) };
       });
-      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
+      if ('error' in result) return NextResponse.json({ error: result.error }, { status: 'status' in result ? result.status : 404 });
       let warning = '';
       try { if (result.updated && result.oldAvatar !== result.avatar) await deleteUnreferencedStorageImages([result.oldAvatar]); }
       catch (cleanupError) { console.error('贡献者资料已保存，但旧头像清理失败:', cleanupError); warning = '；旧头像清理失败，需稍后处理'; }
