@@ -80,6 +80,9 @@ export function Sidebar({ user, logo }: { user: User; logo?: string }) {
             <Link href="/favorites" onClick={() => setOpen(false)}>
               我的收藏
             </Link>
+            <Link href="/friends" onClick={() => setOpen(false)}>
+              好友列表
+            </Link>
             <Link href="/messages" onClick={() => setOpen(false)}>
               私信
             </Link>
