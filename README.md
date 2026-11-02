@@ -13,6 +13,7 @@
 - 个人资料图片：头像与名片背景支持 1:1、16:5 裁剪预览，可调整缩放和位置，保存时上传裁剪结果。
 - 后台审核：教程、资源与反馈使用帖子式内容卡片；教程封面/正文图集、资源封面/配图和反馈多图以缩略图网格显示，点击可查看原图。资源列表和详情页同步展示配图，资源最多支持 20 张。
 - 游戏档案：在「运行配置」下方增加「更多图片」模块；后台支持最多 20 张图片上传、缩略图网格排列和原图查看，沿用统一缩略图容器，避免图片挤压或错位。上传中的图片尚未完成时，相关表单会阻止提前提交。
+- 图片上传：浏览器向同源接口申请短时签名后，直接上传 Supabase Storage；文件内容不经过 Next.js / Netlify Functions。`content`、`avatars`、`photos` 三个公开桶分别限制 12 MB、4 MB、50 MB，并限制为 JPG / PNG / WEBP / GIF；原有 `uploads` 桶及历史图片 URL 保持不变。
 - CI：推送本分支自动执行 npm ci、Node.js 单元测试（npm test）、TypeScript、Lint 与生产 Build。真实部署、Emoji 往返测试、奖励并发验收和完整 UI 验收仍须在目标环境完成。
 
 ## V2.23.0
@@ -39,10 +40,11 @@
 
 ## 运行
 
-1. 复制 `.env.example` 为 `.env.local` 并设置 `SESSION_SECRET`（至少 32 位随机字符串）及管理员初始密码。
-2. 安装依赖：`npm install`
-3. 开发：`npm run dev`
-4. 自动化单元测试：`npm test`；类型检查：`npm run typecheck`；Lint：`npm run lint`；生产构建：`npm run build`
+1. 复制 `.env.example` 为 `.env.local` 并设置 `SESSION_SECRET`（至少 32 位随机字符串）、Supabase 服务端变量及管理员初始密码。
+2. `SUPABASE_PUBLISHABLE_KEY` 是浏览器直传使用的公开密钥，可在部署环境中覆盖；严禁将 `SUPABASE_SERVICE_ROLE_KEY` 暴露给浏览器。
+3. 安装依赖：`npm install`
+4. 开发：`npm run dev`
+5. 自动化单元测试：`npm test`；类型检查：`npm run typecheck`；Lint：`npm run lint`；生产构建：`npm run build`
 
 ## 数据说明
 
