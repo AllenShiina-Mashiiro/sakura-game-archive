@@ -4,7 +4,7 @@ import { mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
 import { feedbackRewardFor, shouldGrantFeedbackReward } from '@/lib/feedback-rewards.mjs';
-import { buildFeedbackReviewUpdate } from '@/lib/feedback-review.mjs';
+import { buildFeedbackReviewUpdate, isFeedbackRepairStatusAllowed } from '@/lib/feedback-review.mjs';
 import type {
   Collection,
   Feedback,
@@ -763,7 +763,7 @@ export async function POST(req: Request) {
           const previousStatus = feedback.status;
           const requestedReviewStatus = String(b.status || '');
           const isBugFeedback = /bug/i.test(feedback.type);
-          if (['fixed', 'failed'].includes(requestedReviewStatus) && !isBugFeedback) {
+          if (!isFeedbackRepairStatusAllowed(feedback.type, requestedReviewStatus)) {
             return { error: '只有 Bug 反馈可以标记为已修复或修复失败', status: 400 };
           }
           const reviewUpdate = buildFeedbackReviewUpdate({
