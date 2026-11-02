@@ -484,6 +484,7 @@ export async function POST(req: Request) {
         const isAdmin = user.role === 'admin';
         if (item.userId !== user.id && !isAdmin) return { error: '只有反馈提交者或管理员可以修改', status: 403 };
         if (!isAdmin && item.status !== 'pending') return { error: '只有待处理反馈可由提交者修改', status: 409 };
+        const previousImages = [item.image, item.images];
         item.title = title.trim().slice(0, 100);
         item.type = (feedbackType || item.type).slice(0, 40);
         item.gameId = gameId.slice(0, 100);
@@ -495,10 +496,16 @@ export async function POST(req: Request) {
         } else if (image) {
           item.image = image.slice(0, 1000);
         }
-        return { ok: true };
+        return { ok: true, previousImages };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
-      return NextResponse.json({ ok: true, message: '反馈已更新' });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages(result.previousImages); }
+      catch (cleanupError) {
+        console.error('反馈已更新，但旧附件清理失败:', cleanupError);
+        warning = '；旧附件清理失败，需稍后处理';
+      }
+      return NextResponse.json({ ok: true, message: '反馈已更新' + warning, warning: warning || undefined });
     }
     if (b.action === 'feedback-delete') {
       const result = await mutateDb((fresh) => {
@@ -506,10 +513,16 @@ export async function POST(req: Request) {
         if (!item) return { error: '反馈记录不存在', status: 404 };
         if (item.status !== 'pending') return { error: '只有尚未处理的反馈可以撤回', status: 409 };
         fresh.feedback = fresh.feedback.filter((x) => x.id !== item.id);
-        return { ok: true };
+        return { ok: true, removed: item };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
-      return NextResponse.json({ ok: true, message: '反馈已撤回' });
+      let warning = '';
+      try { await deleteUnreferencedStorageImages([result.removed]); }
+      catch (cleanupError) {
+        console.error('反馈已撤回，但附件清理失败:', cleanupError);
+        warning = '；附件清理失败，需稍后处理';
+      }
+      return NextResponse.json({ ok: true, message: '反馈已撤回' + warning, warning: warning || undefined });
     }
     if (b.action === 'feedback') {
       if (typeof b.title !== 'string' || b.title.trim().length < 3 || typeof b.description !== 'string' || b.description.trim().length < 5) return NextResponse.json({ error: '请填写标题和详细描述' }, { status: 400 });
