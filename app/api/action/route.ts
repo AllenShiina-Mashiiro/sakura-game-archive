@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mutateDb, createDefaultShopProducts } from '@/lib/db';
 import { deleteUnreferencedStorageImages } from '@/lib/storage-cleanup';
 import { getSessionUser, requireAdmin, hashPassword } from '@/lib/auth';
+import { feedbackRewardFor, shouldGrantFeedbackReward } from '@/lib/feedback-rewards.mjs';
 import type {
   Collection,
   Feedback,
@@ -765,16 +766,25 @@ export async function POST(req: Request) {
           feedback.bugSeverity = ['warning', 'error', 'critical'].includes(String(b.severity)) ? b.severity as Feedback['bugSeverity'] : feedback.bugSeverity;
           feedback.statusHistory = feedback.statusHistory || [];
           feedback.statusHistory.push({ status: nextStatus, reply: feedback.reply, at: new Date().toISOString(), by: user.nickname });
-          const isBug = /bug/i.test(feedback.type);
-          const wasAlreadyRewardedStatus = previousStatus === 'accepted' || previousStatus === 'fixed';
-          const finalReward = nextStatus === 'fixed' || nextStatus === 'accepted';
-          if (finalReward && !feedback.rewardGranted && !wasAlreadyRewardedStatus) {
+          if (shouldGrantFeedbackReward({
+            rewardGranted: feedback.rewardGranted,
+            previousStatus,
+            nextStatus,
+          })) {
             const owner = fresh.users.find((u) => u.id === feedback.userId);
             if (owner) {
-              const reward = isBug && nextStatus === 'fixed' ? feedback.bugSeverity === 'critical' ? 300 : feedback.bugSeverity === 'error' ? 150 : 50 : 100;
-              const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true;
-              pushNotification(fresh, owner.id, 'feedback', '反馈修复奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id);
-              if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
+              const reward = feedbackRewardFor({
+                type: feedback.type,
+                nextStatus,
+                severity: feedback.bugSeverity,
+              });
+              if (reward !== null) {
+                const oldLevel = levelOf(owner.exp);
+                owner.exp += reward;
+                feedback.rewardGranted = true;
+                pushNotification(fresh, owner.id, 'feedback', '反馈修复奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id);
+                if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id);
+              }
             }
           }
         }
