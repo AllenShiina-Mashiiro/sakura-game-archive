@@ -129,7 +129,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
               </small>
               <details open><summary>反馈详情与处理记录（{f.status === 'pending' ? '待处理' : f.status === 'processing' ? '处理中' : f.status === 'fixed' ? '已修复' : f.status === 'failed' ? '修复失败' : f.status === 'accepted' ? '已采纳' : '已拒绝'}）</summary><p className="multiline">{f.description}</p><p><b>管理员回复：</b>{f.reply || '暂无回复'}</p><div className="feedback-progress-timeline">{(f.statusHistory?.length ? f.statusHistory : [{status:'pending',reply:'反馈已提交，等待管理员处理',at:f.createdAt,by:f.username}]).map((step,index)=><div className="feedback-progress-step" key={`${step.at}-${index}`}><b>{step.status === 'pending' ? '已提交' : step.status === 'processing' ? '处理中' : step.status === 'fixed' ? '已修复' : step.status === 'failed' ? '修复失败' : step.status === 'accepted' ? '已采纳' : step.status === 'rejected' ? '未采纳' : step.status}</b><small>{new Date(step.at).toLocaleString('zh-CN')} · {step.by}</small>{step.reply && <p>{step.reply}</p>}</div>)}</div></details>
               {(f.images?.length ? f.images : f.image ? [f.image] : []).length > 0 && <div className="review-image-grid">{(f.images?.length ? f.images : f.image ? [f.image] : []).map((src,index)=><ImageViewer key={src + '-' + index} src={src} alt={'反馈附件 ' + (index+1)} className="review-image" />)}</div>}
-              <ActionForm action="feedback-update" button="保存反馈修改" successMessage="反馈内容已更新">
+              <ActionForm action="feedback-update" button="保存反馈修改" successMessage="反馈内容已更新" resetAfterSubmit={false}>
                 <input type="hidden" name="id" value={f.id} />
                 <label>反馈标题<input name="title" required minLength={3} defaultValue={f.title} /></label>
                 <label>反馈类型<input name="type" required defaultValue={f.type} /></label>
@@ -439,7 +439,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       <section id="appearance" className="admin-section">
         <h2>站点外观</h2>
         <p className="muted">管理 Logo、首页背景、默认主题色和樱花粒子。用户可以在右下角单独覆盖主题。</p>
-        <ActionForm action="site-branding" button="保存站点外观">
+        <ActionForm action="site-branding" button="保存站点外观" resetAfterSubmit={false}>
           <ImageUploadField name="logo" label="网站左上角 Logo（侧边栏与登录页）" folder="branding" initial={db.siteSettings?.logo || ''} />
           <ImageUploadField name="heroLogo" label="首页右侧 G+ 品牌标识" folder="branding" initial={db.siteSettings?.heroLogo || ''} />
           <ImageUploadField name="background" label="首页页面背景图片" folder="backgrounds" initial={db.siteSettings?.background || ''} />
@@ -490,7 +490,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       <section id="contributors" className="admin-section">
         <h2>贡献者中心管理</h2>
         <p className="muted">维护开发者介绍、捐赠二维码和贡献者榜单。捐赠信息请保持自愿、透明。</p>
-        <ActionForm action="contributor-settings" button="保存开发者资料">
+        <ActionForm action="contributor-settings" button="保存开发者资料" resetAfterSubmit={false}>
           <label>
             开发者昵称
             <input name="nickname" defaultValue={db.siteSettings?.contributor?.nickname || '开发者'} />
