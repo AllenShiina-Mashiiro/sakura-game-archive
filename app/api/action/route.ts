@@ -805,7 +805,7 @@ export async function POST(req: Request) {
         if (!isBug && previousStatus === 'pending' && requested === 'accepted' && !feedback.rewardGranted) {
           const owner = fresh.users.find((u) => u.id === feedback.userId);
           const reward = feedbackRewardFor({ type: feedback.type, nextStatus: 'accepted', severity: feedback.bugSeverity });
-          if (owner && reward !== null) { owner.exp += reward; feedback.rewardGranted = true; }
+          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈采纳奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
         }
         feedback.reply = String(b.reply || '');
         feedback.statusHistory = [...(feedback.statusHistory || []), { status: feedback.status, reply: feedback.reply, at, by: user.nickname }];
