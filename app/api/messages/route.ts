@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { getSessionUser } from '@/lib/auth';
 import { mutateDb, readDb } from '@/lib/db';
 import type { DirectMessage, UserNotification } from '@/lib/types';
+import { hasUnreadDirectMessageActivity } from '@/lib/direct-messages.mjs';
 import { normalizeDirectMessageContent } from '@/lib/direct-messages.mjs';
 const areFriends = (db: Awaited<ReturnType<typeof readDb>>, a: string, b: string) =>
   (db.friendships || []).some((f) => f.status === 'accepted' && ((f.requesterId === a && f.addresseeId === b) || (f.requesterId === b && f.addresseeId === a)));
@@ -24,18 +25,55 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const withId = url.searchParams.get('with');
   if (withId) {
+    // Polling is read-only unless this thread actually contains unread activity.
+    const snapshot = await readDb();
+    const snapshotPeer = snapshot.users.find((u) => u.id === withId && u.status === 'active');
+    if (!snapshotPeer) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
+    if (!areFriends(snapshot, user.id, withId)) {
+      return NextResponse.json({ error: '双方成为好友后才能私信' }, { status: 404 });
+    }
+    const snapshotMessages = (snapshot.messages || [])
+      .filter((m) => (m.fromId === user.id && m.toId === withId) || (m.fromId === withId && m.toId === user.id))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const needsReadUpdate = hasUnreadDirectMessageActivity({
+      messages: snapshotMessages,
+      notifications: snapshot.notifications || [],
+      userId: user.id,
+      peerId: withId,
+    });
+
+    if (!needsReadUpdate) {
+      return NextResponse.json({
+        peer: publicUser(snapshotPeer),
+        me: snapshot.users.find((u) => u.id === user.id)
+          ? publicUser(snapshot.users.find((u) => u.id === user.id)!)
+          : null,
+        messages: snapshotMessages,
+      });
+    }
+
     const result = await mutateDb((db) => {
       const peer = db.users.find((u) => u.id === withId && u.status === 'active');
       if (!peer) return { error: '用户不存在' };
       if (!areFriends(db, user.id, withId)) return { error: '双方成为好友后才能私信' };
-      const messages = (db.messages || []).filter((m) => (m.fromId === user.id && m.toId === withId) || (m.fromId === withId && m.toId === user.id)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      for (const m of messages) if (m.toId === user.id && !m.readAt) m.readAt = new Date().toISOString();
-      for (const n of db.notifications || []) if (n.userId === user.id && n.type === 'message' && n.actorId === withId && !n.readAt) n.readAt = new Date().toISOString();
+      const messages = (db.messages || [])
+        .filter((m) => (m.fromId === user.id && m.toId === withId) || (m.fromId === withId && m.toId === user.id))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      const readAt = new Date().toISOString();
+      for (const message of messages) {
+        if (message.toId === user.id && !message.readAt) message.readAt = readAt;
+      }
+      for (const notification of db.notifications || []) {
+        if (notification.userId === user.id && notification.type === 'message'
+          && notification.actorId === withId && !notification.readAt) {
+          notification.readAt = readAt;
+        }
+      }
       return {
         peer: publicUser(peer),
         me: db.users.find((u) => u.id === user.id)
-  ? publicUser(db.users.find((u) => u.id === user.id)!)
-  : null,
+          ? publicUser(db.users.find((u) => u.id === user.id)!)
+          : null,
         messages,
       };
     });
