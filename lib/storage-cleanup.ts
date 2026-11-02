@@ -3,18 +3,20 @@ import 'server-only';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { readDb } from '@/lib/db';
 
-const BUCKET = 'uploads';
-const PUBLIC_PREFIX = '/storage/v1/object/public/uploads/';
+const OWNED_BUCKETS = new Set(['uploads', 'content', 'avatars', 'photos']);
 
-function extractOwnedStoragePath(value: string): string | null {
+type StorageObject = { bucket: string; path: string };
+
+function extractOwnedStorageObject(value: string): StorageObject | null {
   try {
     const url = new URL(value);
     const configuredUrl = process.env.SUPABASE_URL;
     if (!configuredUrl || url.origin !== new URL(configuredUrl).origin) return null;
-    if (!url.pathname.startsWith(PUBLIC_PREFIX)) return null;
-    const path = decodeURIComponent(url.pathname.slice(PUBLIC_PREFIX.length));
+    const match = url.pathname.match(/^\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
+    if (!match || !OWNED_BUCKETS.has(match[1])) return null;
+    const path = decodeURIComponent(match[2]);
     if (!path || path.split('/').some((part) => !part || part === '.' || part === '..')) return null;
-    return path;
+    return { bucket: match[1], path };
   } catch {
     return null;
   }
@@ -26,9 +28,9 @@ function collectStrings(value: unknown, output: Set<string>, seen = new Set<obje
     const matches = value.match(/https?:\/\/[^\s"'<>]+/g) || [];
     for (const match of matches) {
       const clean = match.replace(/[),.;]+$/, '');
-      if (extractOwnedStoragePath(clean)) output.add(clean);
+      if (extractOwnedStorageObject(clean)) output.add(clean);
     }
-    if (extractOwnedStoragePath(value)) output.add(value);
+    if (extractOwnedStorageObject(value)) output.add(value);
     return;
   }
   if (!value || typeof value !== 'object' || seen.has(value as object)) return;
@@ -41,8 +43,9 @@ function collectStrings(value: unknown, output: Set<string>, seen = new Set<obje
 }
 
 /**
- * Deletes only uploads owned by this project and no longer referenced anywhere
- * in the current app_state JSON. Database changes must be committed first.
+ * Deletes only project-owned public uploads that are no longer referenced in
+ * app_state. Handles both legacy uploads and the newer size-limited buckets.
+ * Database changes must be committed first.
  */
 export async function deleteUnreferencedStorageImages(candidates: unknown[]) {
   const candidateUrls = new Set<string>();
@@ -53,23 +56,30 @@ export async function deleteUnreferencedStorageImages(candidates: unknown[]) {
   const referenced = new Set<string>();
   collectStrings(db, referenced);
 
-  const paths = [...candidateUrls]
-    .filter((url) => !referenced.has(url))
-    .map((url) => extractOwnedStoragePath(url))
-    .filter((path): path is string => Boolean(path));
+  const unreferenced = [...candidateUrls].filter((url) => !referenced.has(url));
+  const grouped = new Map<string, string[]>();
+  for (const url of unreferenced) {
+    const object = extractOwnedStorageObject(url);
+    if (!object) continue;
+    const paths = grouped.get(object.bucket) || [];
+    paths.push(object.path);
+    grouped.set(object.bucket, paths);
+  }
 
-  if (!paths.length) return { deleted: 0, skipped: candidateUrls.size };
+  if (!grouped.size) return { deleted: 0, skipped: candidateUrls.size };
 
   const supabase = getSupabaseAdmin();
   let deleted = 0;
-  for (let i = 0; i < paths.length; i += 100) {
-    const batch = paths.slice(i, i + 100);
-    const { error } = await supabase.storage.from(BUCKET).remove(batch);
-    if (error) {
-      console.error('Supabase 孤立图片清理失败:', error.message, batch);
-      throw new Error('数据已保存，但旧图片清理失败；请稍后重试清理。');
+  for (const [bucket, paths] of grouped) {
+    for (let i = 0; i < paths.length; i += 100) {
+      const batch = paths.slice(i, i + 100);
+      const { error } = await supabase.storage.from(bucket).remove(batch);
+      if (error) {
+        console.error('Supabase 孤立图片清理失败:', error.message, { bucket, batch });
+        throw new Error('数据已保存，但旧图片清理失败；请稍后重试清理。');
+      }
+      deleted += batch.length;
     }
-    deleted += batch.length;
   }
-  return { deleted, skipped: candidateUrls.size - paths.length };
+  return { deleted, skipped: candidateUrls.size - deleted };
 }
