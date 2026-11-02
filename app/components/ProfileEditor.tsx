@@ -18,6 +18,11 @@ export function ProfileEditor({ nickname, avatar, selectedBadge, avatarFrame, ca
   const router = useRouter();
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const form = e.currentTarget;
+    if (form.querySelector('[data-cropping="true"]')) {
+      setError('裁剪图片仍在生成，请稍后再保存。');
+      return;
+    }
     setBusy(true);
     setError('');
     setOk('');
