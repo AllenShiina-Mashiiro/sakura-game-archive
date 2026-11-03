@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
@@ -14,6 +14,18 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const [busy, setBusy] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get('error');
+    if (oauthError) {
+      const messages: Record<string, string> = {
+        access_denied: '你取消了第三方登录。',
+        oauth_state: '登录验证已过期，请重新尝试。',
+      };
+      setError(messages[oauthError] || decodeURIComponent(oauthError));
+    }
+  }, []);
 
   async function sendCode() {
     setError('');
