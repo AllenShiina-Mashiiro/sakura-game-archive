@@ -13,7 +13,6 @@ import {
 } from "@/drizzle/schema";
 
 type Executor = typeof db;
-type RevisionRow = { revision: number };
 const readVersions = new WeakMap<Database, number>();
 
 const iso = (value: Date | string | null | undefined): string | undefined => {
@@ -462,7 +461,7 @@ async function persistSnapshot(client: Executor, source: Database) {
   })));
   const settingEntries = Object.entries(data.siteSettings || {});
   if (settingEntries.length) await client.insert(siteSettings).values(settingEntries.map(([key, value]) => ({
-    key, value: JSON.stringify(value), updatedAt: now,
+    key, value: JSON.stringify(value) ?? "null", updatedAt: now,
   })));
 }
 
