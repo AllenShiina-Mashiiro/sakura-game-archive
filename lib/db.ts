@@ -5,7 +5,7 @@ import type { Database, Game, Guide, ShopProduct } from "./types";
 import { db } from "./postgres";
 import {
   appRevisions, users, games, gameImages, gameUpdates, gameFiles,
-  guides, guideImages, guideStatusHistory, resources, resourceImages,
+  guides, guideImages, guideStatusHistory, guideFavoriteRewards, resources, resourceImages,
   feedback, feedbackImages, feedbackStatusHistory, notices, noticeHistory,
   collections, comments, commentLikes, photos, shopProducts, inventory,
   coinTransactions, loginLogs, directMessages, friendships, notifications,
@@ -74,7 +74,7 @@ async function ensureRevision(client: Executor) {
 async function loadSnapshot(client: Executor): Promise<Database> {
   const [
     userRows, gameRows, gameImageRows, updateRows, fileRows,
-    guideRows, guideImageRows, guideHistoryRows, resourceRows, resourceImageRows,
+    guideRows, guideImageRows, guideHistoryRows, guideRewardRows, resourceRows, resourceImageRows,
     feedbackRows, feedbackImageRows, feedbackHistoryRows, noticeRows, noticeHistoryRows,
     collectionRows, commentRows, likeRows, photoRows, productRows, inventoryRows,
     transactionRows, loginRows, messageRows, friendshipRows, notificationRows,
@@ -83,7 +83,7 @@ async function loadSnapshot(client: Executor): Promise<Database> {
     client.select().from(users), client.select().from(games), client.select().from(gameImages),
     client.select().from(gameUpdates), client.select().from(gameFiles), client.select().from(guides),
     client.select().from(guideImages), client.select().from(guideStatusHistory),
-    client.select().from(resources), client.select().from(resourceImages),
+    client.select().from(guideFavoriteRewards), client.select().from(resources), client.select().from(resourceImages),
     client.select().from(feedback), client.select().from(feedbackImages),
     client.select().from(feedbackStatusHistory), client.select().from(notices),
     client.select().from(noticeHistory), client.select().from(collections),
@@ -100,6 +100,7 @@ async function loadSnapshot(client: Executor): Promise<Database> {
   const filesByGame = group(fileRows, (row) => row.gameId);
   const guideImagesById = group(guideImageRows, (row) => row.guideId);
   const guideHistoryById = group(guideHistoryRows, (row) => row.guideId);
+  const guideRewardsById = group(guideRewardRows, (row) => row.guideId);
   const resourceImagesById = group(resourceImageRows, (row) => row.resourceId);
   const feedbackImagesById = group(feedbackImageRows, (row) => row.feedbackId);
   const feedbackHistoryById = group(feedbackHistoryRows, (row) => row.feedbackId);
@@ -113,6 +114,7 @@ async function loadSnapshot(client: Executor): Promise<Database> {
     content: row.content, cover: row.cover ?? undefined, bodyImage: row.bodyImage ?? undefined,
     bodyImages: (guideImagesById.get(row.id) || []).sort(byOrder).map((item) => item.url),
     status: row.status as Guide["status"], updatedAt: iso(row.updatedAt),
+    favoriteRewards: (guideRewardsById.get(row.id) || []).map((item) => item.userId),
     statusHistory: (guideHistoryById.get(row.id) || []).sort(byCreated).map((item) => ({
       status: item.status, reply: item.reply, at: iso(item.at) || "", by: item.by,
     })),
@@ -307,6 +309,7 @@ async function persistSnapshot(client: Executor, source: Database) {
   await client.delete(commentLikes);
   await client.delete(feedbackStatusHistory);
   await client.delete(guideStatusHistory);
+  await client.delete(guideFavoriteRewards);
   await client.delete(gameImages);
   await client.delete(guideImages);
   await client.delete(resourceImages);
@@ -366,6 +369,9 @@ async function persistSnapshot(client: Executor, source: Database) {
     status: guide.status || "pending", updatedAt: guide.updatedAt ? date(guide.updatedAt) : null,
     views: guide.views || 0, favorites: guide.favorites || 0, rewardGranted: guide.rewardGranted || false,
   })));
+  for (const guide of guideRowsData) {
+    if (guide.favoriteRewards?.length) await client.insert(guideFavoriteRewards).values(guide.favoriteRewards.map((userId) => ({ guideId: guide.id, userId })));
+  }
   for (const guide of guideRowsData) {
     if (guide.bodyImages?.length) await client.insert(guideImages).values(guide.bodyImages.map((url, sortOrder) => ({ guideId: guide.id, url, sortOrder })));
     if (guide.statusHistory?.length) await client.insert(guideStatusHistory).values(guide.statusHistory.map((item) => ({
