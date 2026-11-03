@@ -136,19 +136,19 @@ export function MessagesClient() {
             <header className="chat-header">
               <Link href={`/users/${encodeURIComponent(peer.username)}`}>{avatar(peer)}</Link>
               <div>
-                <Link href={`/users/${peer.id}`}>
+                <Link href={`/users/${encodeURIComponent(peer.username)}`}>
                   <b>{peer.nickname}</b>
                 </Link>
                 <small>@{peer.username} · 点击头像查看主页</small>
               </div>
-              <Link className="outline-btn" href={`/users/${peer.id}`}>
+              <Link className="outline-btn" href={`/users/${encodeURIComponent(peer.username)}`}>
                 查看主页
               </Link>
             </header>
             <div className="chat-messages">
               {messages.map((m) => (
                 <div key={m.id} className={`message-row ${m.fromId === peer.id ? 'incoming' : 'outgoing'}`}>
-                  {m.fromId === peer.id && <Link href={`/users/${peer.id}`}>{avatar(peer)}</Link>}
+                  {m.fromId === peer.id && <Link href={`/users/${encodeURIComponent(peer.username)}`}>{avatar(peer)}</Link>}
                   {m.fromId !== peer.id && myself && <Link href="/profile">{avatar(myself)}</Link>}
                   <div>
                     <p>{m.content}</p>
