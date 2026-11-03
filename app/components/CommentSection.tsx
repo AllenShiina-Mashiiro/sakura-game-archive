@@ -10,6 +10,7 @@ export async function CommentSection({ targetType, targetId }: { targetType: 'ga
       return {
         ...c,
         nickname: u?.nickname || '已注销用户',
+        username: u?.username || '',
         avatar: u?.avatar || '',
         level: Math.max(1, Math.floor(Math.sqrt((u?.exp || 0) / 40)) + 1),
         badges: u?.badges || [],
