@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS games (
   id varchar(80) PRIMARY KEY,
   name varchar(200) NOT NULL,
-  slug varchar(220) NOT NULL UNIQUE,
+  slug varchar(220) NOT NULL,
   cover text NOT NULL DEFAULT '',
   genre varchar(100) NOT NULL DEFAULT '',
   platforms text[] NOT NULL DEFAULT ARRAY[]::text[],
@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS games (
   views integer NOT NULL DEFAULT 0,
   favorites integer NOT NULL DEFAULT 0,
   minimum_config text,
-  recommended_config text
+  recommended_config text,
+  CONSTRAINT games_slug_uq UNIQUE (slug)
 );
 
 CREATE TABLE IF NOT EXISTS game_images (
