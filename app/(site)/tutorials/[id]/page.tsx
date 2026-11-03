@@ -14,6 +14,7 @@ export default async function TutorialDetail({ params }: { params: Promise<{ id:
   const g = db.guides.find((x) => x.id === id && x.status === 'approved');
   if (!g) notFound();
   const canEdit = !!user && (user.id === g.userId || user.role === 'admin');
+  const author = db.users.find((candidate) => candidate.id === g.userId);
   return (
     <div className="page-wrap article-page">
       <Link className="back-link" href="/tutorials">
@@ -23,7 +24,7 @@ export default async function TutorialDetail({ params }: { params: Promise<{ id:
       <div className="eyebrow">TUTORIAL / {g.category}</div>
       <h1>{g.title}</h1>
       <p className="subtitle">
-        <Link href={`/users/${encodeURIComponent(g.userId || '')}`}>{g.author || '档案成员'}</Link> · 发布于 {g.date}
+        <Link href={`/users/${encodeURIComponent(author?.username || g.userId || '')}`}>{g.author || '档案成员'}</Link> · 发布于 {g.date}
         {g.updatedAt && ` · 最后修改 ${new Date(g.updatedAt).toLocaleString('zh-CN')}`} · {g.views || 0} 次浏览
       </p>
       <div className="article-body">
