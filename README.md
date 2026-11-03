@@ -2,6 +2,38 @@
 
 本项目沿用 V2.3 以来的 Next.js App Router 与 TypeScript 架构持续迭代。下方各版本记录描述对应版本发布时的功能与存储状态；其中早期版本提到的本地 JSON 文件存储属于历史说明，不代表当前分支的数据后端。当前数据架构以「数据说明」章节为准。
 
+## V2.6-dev：本地 PostgreSQL 改造
+
+本分支以 Docker Compose + PostgreSQL 为本地开发和验收基准。现有页面与主要业务操作继续沿用，数据读写改为 PostgreSQL 关系表；不导入旧 JSON 数据，也不再使用 Supabase 的 app_state 快照表。
+
+### 当前已提交的改造
+
+- Docker Compose 同时定义 PostgreSQL 与 Next.js 应用容器；PostgreSQL 使用命名卷持久化，数据库端口默认仅绑定本机回环地址。
+- Drizzle 关系表迁移覆盖账号、会话、验证码、OAuth 绑定、游戏档案、更新记录、文件、教程、资源、反馈、公告、收藏、评论、照片、商城、私信、好友、通知及站点设置。
+- 原有业务操作入口保留，通过 PostgreSQL 关系表兼容层读写，不再依赖 app_state JSONB；该兼容层目前以事务方式重写业务表集合，适合当前小规模本地迁移阶段，后续正式部署前仍需将高频业务改为按记录增量写入并完成并发/性能验收。
+- 注册流程接入六位邮箱验证码；公开用户标识使用 `@username`，注册时只填写用户名本体（3-24 位小写字母、数字、下划线），数据库内部 UUID 继续用于关系外键。
+- 增加 Google 与 GitHub OAuth 授权回调；第三方邮箱必须由平台标记为已验证。
+- Compose 将 SMTP 与 OAuth 配置传入应用容器；樱花粒子组件沿用现有主题效果入口。
+
+### 本地运行与迁移
+
+1. 复制 `.env.example` 为 `.env`，填写 PostgreSQL 密码（建议使用随机十六进制字符串）、至少 32 位 `SESSION_SECRET`、初始管理员密码及 SMTP 配置。
+2. 如果使用 Google / GitHub 登录，在对应开发者控制台登记回调地址：
+   - `http://localhost:3000/api/auth/oauth/google`
+   - `http://localhost:3000/api/auth/oauth/github`
+3. 启动数据库：`docker compose up -d postgres`。
+4. 在本机安装依赖后执行迁移：`npm install`、`npm run db:migrate`。本机运行 Next.js 时，`DATABASE_URL` 应连接 `127.0.0.1:5432`。
+5. 本机开发：`npm run dev`；Docker 全栈启动：`docker compose up -d --build`。
+6. 查看服务：`docker compose ps`；查看数据库日志：`docker compose logs -f postgres`；查看应用日志：`docker compose logs -f sakura-game-archive`。
+
+注意：PostgreSQL 官方镜像的 `/docker-entrypoint-initdb.d` 初始化脚本只会在空数据目录首次初始化时运行。已经初始化过的命名卷不会因为新增 SQL 文件而自动重跑；这种情况必须执行 `npm run db:migrate`。不要随意使用 `docker compose down -v`，该命令会删除数据库命名卷。
+
+### 尚需验收的边界
+
+- 需要在真实本机 Docker 环境执行迁移、类型检查、Lint、单元测试、生产构建和完整业务回归；当前 GitHub 分支尚未返回新的 CI 运行结果。
+- 图片上传与历史图片 URL 仍有 Supabase Storage 兼容代码；这不再承担业务数据库职责，但图片存储尚未完全自托管。
+- Ubuntu 虚拟机部署、反向代理/TLS、备份恢复、OAuth 线上回调及真实 SMTP 收发将在本地验收通过后进行。
+
 ## V2.25.0 更新记录
 
 <badge>代码完成</badge> <badge>CI 全部通过</badge> <badge>待生产部署</badge>
@@ -137,6 +169,6 @@
 
 **历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据，升级前需备份该文件及 `public/uploads`；V2.3 为用户字段和站点配置增加了可选字段，旧数据可继续读取。
 
-**当前说明（V2.23 / V2.24-dev / V2.25.0）**：应用数据通过 Supabase `public.app_state` 中的 JSONB 快照读写，图片文件存放于 Supabase Storage。V2.23 增加了 Database 2.0 Beta 的实体表、迁移记录、快照兼容 RPC 和备份机制，但当前应用仍走快照兼容接口，尚未切换为各业务实体的独立 SQL 读写。不要仅凭迁移脚本存在就启用 `DATABASE_V2_ENABLED`；启用前必须完成迁移核对及应用读写验收。部署或升级前请备份 Supabase 数据与 Storage 文件。
+**V2.6-dev 当前说明**：业务数据由本地 PostgreSQL 关系表承载，Drizzle schema 与 SQL migration 为结构依据。旧 `json.db` / `data/db.json` / Supabase `app_state` 中的业务数据不导入，也不作为运行时数据源。历史 Supabase Storage 图片仍由兼容接口提供，图片存储迁移与业务数据库迁移是两项独立工作。
 
 **新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量，以及该 Supabase 项目自己的 `SUPABASE_PUBLISHABLE_KEY`。不要沿用其他 Supabase 项目的公开 Key。
