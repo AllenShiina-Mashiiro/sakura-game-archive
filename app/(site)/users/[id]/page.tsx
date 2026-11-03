@@ -9,7 +9,7 @@ const thresholds = [0, 50, 120, 220, 350, 500, 680, 880, 1100, 1350, 1650, 2000,
 export default async function PublicUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [db, viewer] = await Promise.all([readDb(), getSessionUser()]);
-  const found = db.users.find((x) => x.id === id && x.status === 'active');
+  const found = db.users.find((x) => (x.id === id || x.username === id.replace(/^@/, '').toLowerCase()) && x.status === 'active');
   if (!found) notFound();
   const u = found!;
   const level = calcLevel(u.exp);
