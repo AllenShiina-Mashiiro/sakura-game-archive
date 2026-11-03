@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { asc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/postgres';
 import { guides } from '@/drizzle/schema';
 import { SearchBar } from '@/app/components/SearchBar';
