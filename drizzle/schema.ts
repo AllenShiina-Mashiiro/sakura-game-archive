@@ -58,3 +58,9 @@ export const appState = pgTable("app_state", {
   version: integer("version").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const loginFailures = pgTable("login_failures", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
+});
