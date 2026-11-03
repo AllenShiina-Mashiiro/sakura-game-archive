@@ -81,7 +81,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
                       <code>{update.version}</code>
                     </div>
                     <p>{update.notes}</p>
-                    {update.contributorId && <small className="muted">贡献者：<Link href={`/users/${encodeURIComponent(update.contributorId)}`}>{update.contributorName || '查看主页'}</Link></small>}
+                    {update.contributorId && <small className="muted">贡献者：<Link href={`/users/${encodeURIComponent(db.users.find((candidate) => candidate.id === update.contributorId)?.username || update.contributorId)}`}>{update.contributorName || '查看主页'}</Link></small>}
                   </div>
                 </article>
               ))}
