@@ -15,7 +15,8 @@ function providerFrom(value: string): Provider | null {
 }
 
 function callbackUrl(request: NextRequest, provider: Provider) {
-  return new URL(`/api/auth/oauth/${provider}`, request.url).toString();
+  const base = process.env.AUTH_BASE_URL || request.url;
+  return new URL(`/api/auth/oauth/${provider}`, base).toString();
 }
 
 function config(provider: Provider) {
