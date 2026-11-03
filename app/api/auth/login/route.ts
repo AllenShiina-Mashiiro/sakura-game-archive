@@ -1,6 +1,8 @@
 
 import { NextResponse } from 'next/server';
-import { readDb, mutateDb } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
+import { db } from '@/lib/postgres';
+import { users, loginLogs, notifications } from '@/drizzle/schema';
 import {
   verifyPassword,
   createSession,
@@ -48,79 +50,45 @@ export async function POST(req: Request) {
     );
   }
 
-  const db = await readDb();
+  const [userRow] = await db.select().from(users).where(eq(users.username, b.username.trim().toLowerCase())).limit(1);
+  const user = userRow ? {
+    ...userRow,
+    passwordHash: userRow.passwordHash ?? "",
+  } : null;
 
-  const user = db.users.find(
-    (u) => u.username === b.username.trim().toLowerCase()
-  );
-
-  // 用户名或密码错误，记录一次失败
-  if (!user || !(await verifyPassword(b.password, user.passwordHash))) {
+  if (!user || !user.passwordHash || !(await verifyPassword(b.password, user.passwordHash))) {
     await recordLoginFailure(ip);
-
-    return NextResponse.json(
-      { error: '用户名或密码不正确' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: '用户名或密码不正确' }, { status: 401 });
   }
-
-  // 检查账号状态
   if (user.status !== 'active') {
-    return NextResponse.json(
-      { error: '该账户已被封禁，请联系管理员' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: '该账户已被封禁，请联系管理员' }, { status: 403 });
   }
-
-  // 登录成功，清除该 IP 的失败次数
   await clearLoginFailures(ip);
 
-  const loginResult = await mutateDb((fresh) => {
-    const current = fresh.users.find((u) => u.id === user.id);
-    if (!current || current.status !== 'active' || current.passwordHash !== user.passwordHash) {
-      return { ok: false as const, error: '账户状态已变化，请重新登录' };
-    }
-
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const oldLevel = levelOf(current.exp);
-
-    // 每日首次登录奖励和登录日志在同一次原子快照更新中完成。
-    if (current.lastDailyLogin !== today) {
-      current.exp += 5;
-      current.lastDailyLogin = today;
-    }
-
-    if (levelOf(current.exp) > oldLevel) {
-      fresh.notifications = fresh.notifications || [];
-      fresh.notifications.unshift({
-        id: randomUUID(),
-        userId: current.id,
-        type: 'level',
-        title: '等级提升啦！',
-        body: `恭喜升级至 Lv.${levelOf(current.exp)}。`,
-        href: `/users/${current.id}`,
-        createdAt: now.toISOString(),
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const oldLevel = levelOf(user.exp);
+  const dailyReward = user.lastDailyLogin !== today;
+  const nextExp = user.exp + (dailyReward ? 5 : 0);
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({
+      exp: nextExp,
+      lastDailyLogin: dailyReward ? today : user.lastDailyLogin,
+      lastLoginAt: now,
+      lastLoginIp: ip,
+      updatedAt: now,
+    }).where(and(eq(users.id, user.id), eq(users.status, 'active')));
+    await tx.insert(loginLogs).values({
+      id: randomUUID(), userId: user.id, username: user.username, ip, date: now,
+    });
+    if (levelOf(nextExp) > oldLevel) {
+      await tx.insert(notifications).values({
+        id: randomUUID(), userId: user.id, type: 'level',
+        title: '等级提升啦！', body: `恭喜升级至 Lv.${levelOf(nextExp)}。`,
+        href: `/users/${user.id}`, createdAt: now,
       });
     }
-
-    current.lastLoginAt = now.toISOString();
-    current.lastLoginIp = ip;
-    fresh.loginLogs = fresh.loginLogs || [];
-    fresh.loginLogs.unshift({
-      id: randomUUID(),
-      userId: current.id,
-      username: current.username,
-      ip,
-      date: now.toISOString(),
-    });
-    fresh.loginLogs = fresh.loginLogs.slice(0, 5000);
-    return { ok: true as const };
   });
-
-  if (!loginResult.ok) {
-    return NextResponse.json({ error: loginResult.error }, { status: 409 });
-  }
 
   await createSession(user.id);
 
