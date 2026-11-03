@@ -46,7 +46,7 @@ function normalizeDb(raw: Partial<Database>): Database {
       ...user, sakuraCoins: Math.max(0, Number(user.sakuraCoins) || 0),
       expConverted: Math.max(0, Number(user.expConverted) || 0),
     })),
-    shopProducts: raw.shopProducts ?? defaults.shopProducts,
+    shopProducts: raw.shopProducts?.length ? raw.shopProducts : defaults.shopProducts,
     inventory: raw.inventory || [], coinTransactions: raw.coinTransactions || [],
     messages: raw.messages || [], friendships: raw.friendships || [],
     notifications: raw.notifications || [], contributors: raw.contributors || [],
