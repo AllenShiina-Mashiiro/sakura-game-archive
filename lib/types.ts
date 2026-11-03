@@ -3,6 +3,8 @@ export type AccountStatus = 'active' | 'banned';
 export type User = {
   id: string;
   username: string;
+  email?: string;
+  emailVerifiedAt?: string;
   passwordHash: string;
   nickname: string;
   avatar: string;
