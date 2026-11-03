@@ -291,4 +291,4 @@ CREATE INDEX IF NOT EXISTS feedback_user_idx ON feedback(user_id);
 CREATE INDEX IF NOT EXISTS collections_user_idx ON collections(user_id);
 CREATE INDEX IF NOT EXISTS comments_target_idx ON comments(target_type, target_id);
 CREATE INDEX IF NOT EXISTS messages_inbox_idx ON direct_messages(to_id, created_at);
-CREATE INDEX IF NOT EXISTS notifications_user_idx ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS notifications_user_idx ON notifications(user_id, created_at);
