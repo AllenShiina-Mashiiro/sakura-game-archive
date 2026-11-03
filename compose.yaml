@@ -11,7 +11,7 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./drizzle/migrations/0000_auth_foundation.sql:/docker-entrypoint-initdb.d/0000_auth_foundation.sql:ro
+      - ./drizzle/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sakura_admin} -d ${POSTGRES_DB:-sakura_game_archive}"]
       interval: 10s
@@ -37,11 +37,21 @@ services:
       PORT: 3000
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
       DATABASE_URL: postgresql://${POSTGRES_USER:-sakura_admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sakura_game_archive}
-      # Temporary compatibility for media endpoints until local file storage migration is complete.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Temporary compatibility for existing Supabase Storage uploads only.
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     healthcheck:
       test:
         - CMD
