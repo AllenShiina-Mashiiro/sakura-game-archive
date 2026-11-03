@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   expires_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS auth_sessions_user_id_idx ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS auth_sessions_user_idx ON auth_sessions(user_id);
 CREATE TABLE IF NOT EXISTS email_verification_codes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email varchar(320) NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS email_verification_codes (
   consumed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS email_verification_email_idx ON email_verification_codes(email);
+CREATE INDEX IF NOT EXISTS verification_email_idx ON email_verification_codes(email);
 CREATE INDEX IF NOT EXISTS email_verification_expiry_idx ON email_verification_codes(expires_at);
 CREATE TABLE IF NOT EXISTS oauth_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
