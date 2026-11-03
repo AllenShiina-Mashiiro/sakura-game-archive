@@ -50,7 +50,7 @@ export default async function PublicUserPage({ params }: { params: Promise<{ id:
           </div>
         </div>
         {viewer && viewer.id !== u.id && (
-          <FriendButton userId={u.id} />
+          <FriendButton userId={u.id} username={u.username} />
         )}
       </section>
       {u.cardBackground && (
