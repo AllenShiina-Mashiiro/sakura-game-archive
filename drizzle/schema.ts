@@ -1,66 +1,36 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
-import type { Database } from "@/lib/types";
-
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  username: varchar("username", { length: 24 }).notNull(),
-  email: varchar("email", { length: 320 }).notNull(),
-  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-  passwordHash: text("password_hash"),
-  nickname: varchar("nickname", { length: 24 }).notNull(),
-  avatar: text("avatar").notNull().default(""),
-  role: varchar("role", { length: 16 }).notNull().default("user"),
-  status: varchar("status", { length: 16 }).notNull().default("active"),
-  exp: integer("exp").notNull().default(0),
-  badges: jsonb("badges").$type<string[]>().notNull().default([]),
-  title: varchar("title", { length: 80 }).notNull().default("见习档案员"),
-  profile: jsonb("profile").$type<Record<string, unknown>>().notNull().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [
-  uniqueIndex("users_username_uq").on(t.username),
-  uniqueIndex("users_email_uq").on(t.email),
-]);
-
-export const authSessions = pgTable("auth_sessions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  tokenHash: text("token_hash").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("auth_sessions_token_hash_uq").on(t.tokenHash), index("auth_sessions_user_id_idx").on(t.userId)]);
-
-export const emailVerificationCodes = pgTable("email_verification_codes", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  email: varchar("email", { length: 320 }).notNull(),
-  codeHash: text("code_hash").notNull(),
-  purpose: varchar("purpose", { length: 24 }).notNull().default("register"),
-  attempts: integer("attempts").notNull().default(0),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  consumedAt: timestamp("consumed_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [index("email_verification_email_idx").on(t.email), index("email_verification_expiry_idx").on(t.expiresAt)]);
-
-export const oauthAccounts = pgTable("oauth_accounts", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: varchar("provider", { length: 24 }).notNull(),
-  providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("oauth_provider_account_uq").on(t.provider, t.providerAccountId), index("oauth_accounts_user_id_idx").on(t.userId)]);
-
-export type UserRecord = typeof users.$inferSelect;
-export type NewUserRecord = typeof users.$inferInsert;
-
-export const appState = pgTable("app_state", {
-  id: varchar("id", { length: 32 }).primaryKey(),
-  data: jsonb("data").$type<Partial<Database>>().notNull(),
-  version: integer("version").notNull().default(1),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const loginFailures = pgTable("login_failures", {
-  key: varchar("key", { length: 64 }).primaryKey(),
-  count: integer("count").notNull().default(0),
-  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
-});
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
+const uid=()=>uuid("id").defaultRandom().primaryKey();
+const created=()=>timestamp("created_at",{withTimezone:true}).notNull().defaultNow();
+export const users=pgTable("users",{id:uid(),username:varchar("username",{length:24}).notNull(),email:varchar("email",{length:320}).notNull(),emailVerifiedAt:timestamp("email_verified_at",{withTimezone:true}),passwordHash:text("password_hash"),nickname:varchar("nickname",{length:24}).notNull(),avatar:text("avatar").notNull().default(""),role:varchar("role",{length:16}).notNull().default("user"),status:varchar("status",{length:16}).notNull().default("active"),exp:integer("exp").notNull().default(0),badges:text("badges").array().notNull().default([]),title:varchar("title",{length:80}).notNull().default("见习档案员"),lastLoginAt:timestamp("last_login_at",{withTimezone:true}),lastLoginIp:varchar("last_login_ip",{length:64}),lastDailyLogin:varchar("last_daily_login",{length:10}),lastCheckIn:varchar("last_check_in",{length:10}),selectedBadge:varchar("selected_badge",{length:80}),avatarFrame:varchar("avatar_frame",{length:120}),cardBackground:varchar("card_background",{length:120}),sakuraCoins:integer("sakura_coins").notNull().default(0),expConverted:integer("exp_converted").notNull().default(0),themeColor:varchar("theme_color",{length:32}),themeMode:varchar("theme_mode",{length:8}),sakuraEnabled:boolean("sakura_enabled").notNull().default(true),discoverable:boolean("discoverable").notNull().default(true),createdAt:created(),updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow()},t=>[uniqueIndex("users_username_uq").on(t.username),uniqueIndex("users_email_uq").on(t.email)]);
+export const authSessions=pgTable("auth_sessions",{id:uid(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),tokenHash:text("token_hash").notNull(),expiresAt:timestamp("expires_at",{withTimezone:true}).notNull(),createdAt:created()},t=>[uniqueIndex("auth_sessions_token_hash_uq").on(t.tokenHash),index("auth_sessions_user_idx").on(t.userId)]);
+export const emailVerificationCodes=pgTable("email_verification_codes",{id:uid(),email:varchar("email",{length:320}).notNull(),codeHash:text("code_hash").notNull(),purpose:varchar("purpose",{length:24}).notNull().default("register"),attempts:integer("attempts").notNull().default(0),expiresAt:timestamp("expires_at",{withTimezone:true}).notNull(),consumedAt:timestamp("consumed_at",{withTimezone:true}),createdAt:created()},t=>[index("verification_email_idx").on(t.email)]);
+export const oauthAccounts=pgTable("oauth_accounts",{id:uid(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),provider:varchar("provider",{length:24}).notNull(),providerAccountId:varchar("provider_account_id",{length:255}).notNull(),createdAt:created()},t=>[uniqueIndex("oauth_provider_account_uq").on(t.provider,t.providerAccountId)]);
+export const loginFailures=pgTable("login_failures",{key:varchar("key",{length:64}).primaryKey(),count:integer("count").notNull().default(0),windowStartedAt:timestamp("window_started_at",{withTimezone:true}).notNull().defaultNow()});
+export const games=pgTable("games",{id:varchar("id",{length:80}).primaryKey(),name:varchar("name",{length:200}).notNull(),slug:varchar("slug",{length:220}).notNull(),cover:text("cover").notNull().default(""),genre:varchar("genre",{length:100}).notNull().default(""),platforms:text("platforms").array().notNull().default([]),status:varchar("status",{length:20}).notNull(),latestVersion:varchar("latest_version",{length:80}).notNull().default(""),updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),description:text("description").notNull().default(""),tags:text("tags").array().notNull().default([]),views:integer("views").notNull().default(0),favorites:integer("favorites").notNull().default(0),minimumConfig:text("minimum_config"),recommendedConfig:text("recommended_config")},t=>[uniqueIndex("games_slug_uq").on(t.slug)]);
+export const gameImages=pgTable("game_images",{id:uid(),gameId:varchar("game_id",{length:80}).notNull().references(()=>games.id,{onDelete:"cascade"}),url:text("url").notNull(),sortOrder:integer("sort_order").notNull().default(0)});
+export const gameUpdates=pgTable("game_updates",{id:varchar("id",{length:80}).primaryKey(),gameId:varchar("game_id",{length:80}).notNull().references(()=>games.id,{onDelete:"cascade"}),contributorId:uuid("contributor_id").references(()=>users.id,{onDelete:"set null"}),contributorName:varchar("contributor_name",{length:120}),date:varchar("date",{length:40}).notNull(),version:varchar("version",{length:80}).notNull(),title:varchar("title",{length:240}).notNull(),notes:text("notes").notNull().default("")});
+export const gameFiles=pgTable("game_files",{id:varchar("id",{length:80}).primaryKey(),gameId:varchar("game_id",{length:80}).notNull().references(()=>games.id,{onDelete:"cascade"}),name:varchar("name",{length:240}).notNull(),version:varchar("version",{length:80}).notNull(),size:varchar("size",{length:40}).notNull(),checksum:varchar("checksum",{length:255}).notNull(),date:varchar("date",{length:40}).notNull(),notes:text("notes").notNull().default(""),url:text("url")});
+export const guides=pgTable("guides",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").references(()=>users.id,{onDelete:"set null"}),author:varchar("author",{length:120}),gameId:varchar("game_id",{length:80}).references(()=>games.id,{onDelete:"set null"}),gameName:varchar("game_name",{length:200}),title:varchar("title",{length:240}).notNull(),category:varchar("category",{length:100}).notNull(),tags:text("tags").array().notNull().default([]),date:varchar("date",{length:40}).notNull(),content:text("content").notNull(),cover:text("cover"),bodyImage:text("body_image"),status:varchar("status",{length:20}).notNull().default("pending"),updatedAt:timestamp("updated_at",{withTimezone:true}),views:integer("views").notNull().default(0),favorites:integer("favorites").notNull().default(0),rewardGranted:boolean("reward_granted").notNull().default(false)});
+export const guideImages=pgTable("guide_images",{id:uid(),guideId:varchar("guide_id",{length:80}).notNull().references(()=>guides.id,{onDelete:"cascade"}),url:text("url").notNull(),sortOrder:integer("sort_order").notNull().default(0)});
+export const guideStatusHistory=pgTable("guide_status_history",{id:uid(),guideId:varchar("guide_id",{length:80}).notNull().references(()=>guides.id,{onDelete:"cascade"}),status:varchar("status",{length:24}).notNull(),reply:text("reply").notNull().default(""),at:created(),by:varchar("by",{length:120}).notNull()});
+export const resources=pgTable("resources",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").references(()=>users.id,{onDelete:"set null"}),username:varchar("username",{length:24}),title:varchar("title",{length:240}).notNull(),cover:text("cover").notNull().default(""),gameId:varchar("game_id",{length:80}).notNull().references(()=>games.id),gameName:varchar("game_name",{length:200}).notNull(),version:varchar("version",{length:80}).notNull(),description:text("description").notNull(),scope:text("scope").notNull(),install:text("install").notNull(),url:text("url").notNull(),tutorial:text("tutorial").notNull(),tags:text("tags").array().notNull().default([]),updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),views:integer("views").notNull().default(0),favorites:integer("favorites").notNull().default(0)});
+export const resourceImages=pgTable("resource_images",{id:uid(),resourceId:varchar("resource_id",{length:80}).notNull().references(()=>resources.id,{onDelete:"cascade"}),url:text("url").notNull(),sortOrder:integer("sort_order").notNull().default(0)});
+export const feedback=pgTable("feedback",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").notNull().references(()=>users.id),username:varchar("username",{length:24}).notNull(),title:varchar("title",{length:240}).notNull(),type:varchar("type",{length:80}).notNull(),gameId:varchar("game_id",{length:80}).notNull().default(""),description:text("description").notNull(),image:text("image").notNull().default(""),status:varchar("status",{length:24}).notNull().default("pending"),reply:text("reply").notNull().default(""),createdAt:created(),bugSeverity:varchar("bug_severity",{length:16}),rewardGranted:boolean("reward_granted").notNull().default(false)});
+export const feedbackImages=pgTable("feedback_images",{id:uid(),feedbackId:varchar("feedback_id",{length:80}).notNull().references(()=>feedback.id,{onDelete:"cascade"}),url:text("url").notNull(),sortOrder:integer("sort_order").notNull().default(0)});
+export const notices=pgTable("notices",{id:varchar("id",{length:80}).primaryKey(),title:varchar("title",{length:240}).notNull(),subtitle:varchar("subtitle",{length:240}).notNull().default(""),cover:text("cover").notNull().default(""),content:text("content").notNull(),date:varchar("date",{length:40}).notNull(),pinned:boolean("pinned").notNull().default(false),published:boolean("published").notNull().default(false),updatedBy:varchar("updated_by",{length:120}).notNull(),updatedById:uuid("updated_by_id").references(()=>users.id,{onDelete:"set null"}),updatedAt:timestamp("updated_at",{withTimezone:true})});
+export const noticeHistory=pgTable("notice_history",{id:varchar("id",{length:80}).primaryKey(),noticeId:varchar("notice_id",{length:80}).notNull().references(()=>notices.id,{onDelete:"cascade"}),date:varchar("date",{length:40}).notNull(),content:text("content").notNull(),title:varchar("title",{length:240}).notNull(),subtitle:varchar("subtitle",{length:240}).notNull(),cover:text("cover").notNull().default("")});
+export const collections=pgTable("collections",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),targetType:varchar("target_type",{length:20}).notNull(),targetId:varchar("target_id",{length:80}).notNull(),createdAt:created()},t=>[uniqueIndex("collections_target_uq").on(t.userId,t.targetType,t.targetId)]);
+export const comments=pgTable("comments",{id:varchar("id",{length:80}).primaryKey(),targetType:varchar("target_type",{length:20}).notNull(),targetId:varchar("target_id",{length:80}).notNull(),userId:uuid("user_id").notNull().references(()=>users.id),content:text("content").notNull(),createdAt:created(),updatedAt:timestamp("updated_at",{withTimezone:true}),parentId:varchar("parent_id",{length:80}),pinned:boolean("pinned").notNull().default(false),deleted:boolean("deleted").notNull().default(false)});
+export const commentLikes=pgTable("comment_likes",{id:uid(),commentId:varchar("comment_id",{length:80}).notNull().references(()=>comments.id,{onDelete:"cascade"}),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"})},t=>[uniqueIndex("comment_likes_uq").on(t.commentId,t.userId)]);
+export const photos=pgTable("photos",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").references(()=>users.id,{onDelete:"set null"}),username:varchar("username",{length:24}),title:varchar("title",{length:240}).notNull(),description:text("description").notNull(),image:text("image").notNull(),createdAt:created(),downloads:integer("downloads").notNull().default(0),tags:text("tags").array().notNull().default([])});
+export const shopProducts=pgTable("shop_products",{id:varchar("id",{length:80}).primaryKey(),name:varchar("name",{length:160}).notNull(),description:text("description").notNull(),image:text("image").notNull().default(""),category:varchar("category",{length:40}).notNull(),price:integer("price").notNull(),active:boolean("active").notNull().default(true),stock:integer("stock"),effectValue:varchar("effect_value",{length:160}),createdAt:created(),updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow()});
+export const inventory=pgTable("inventory",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),productId:varchar("product_id",{length:80}).notNull().references(()=>shopProducts.id),productName:varchar("product_name",{length:160}).notNull(),category:varchar("category",{length:40}).notNull(),purchasedAt:created(),price:integer("price").notNull()});
+export const coinTransactions=pgTable("coin_transactions",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),type:varchar("type",{length:32}).notNull(),amount:integer("amount").notNull(),balanceBefore:integer("balance_before").notNull(),balanceAfter:integer("balance_after").notNull(),description:text("description").notNull(),createdAt:created(),relatedId:varchar("related_id",{length:80})});
+export const loginLogs=pgTable("login_logs",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),username:varchar("username",{length:24}).notNull(),ip:varchar("ip",{length:64}).notNull(),date:created()});
+export const directMessages=pgTable("direct_messages",{id:varchar("id",{length:80}).primaryKey(),fromId:uuid("from_id").notNull().references(()=>users.id),toId:uuid("to_id").notNull().references(()=>users.id),content:text("content").notNull(),createdAt:created(),readAt:timestamp("read_at",{withTimezone:true})});
+export const friendships=pgTable("friendships",{id:varchar("id",{length:80}).primaryKey(),requesterId:uuid("requester_id").notNull().references(()=>users.id),addresseeId:uuid("addressee_id").notNull().references(()=>users.id),status:varchar("status",{length:16}).notNull().default("pending"),createdAt:created(),updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow()});
+export const notifications=pgTable("notifications",{id:varchar("id",{length:80}).primaryKey(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),type:varchar("type",{length:24}).notNull(),title:varchar("title",{length:240}).notNull(),body:text("body").notNull(),href:text("href").notNull(),createdAt:created(),readAt:timestamp("read_at",{withTimezone:true}),actorId:uuid("actor_id").references(()=>users.id,{onDelete:"set null"})});
+export const contributors=pgTable("contributors",{id:varchar("id",{length:80}).primaryKey(),name:varchar("name",{length:160}).notNull(),role:varchar("role",{length:120}).notNull(),description:text("description").notNull(),kind:varchar("kind",{length:24}).notNull(),userId:uuid("user_id").references(()=>users.id,{onDelete:"set null"}),avatar:text("avatar"),exp:integer("exp").notNull().default(0),badges:text("badges").array().notNull().default([]),createdAt:created()});
+export const siteSettings=pgTable("site_settings",{key:varchar("key",{length:100}).primaryKey(),value:text("value").notNull(),updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow()});
+export type UserRecord=typeof users.$inferSelect;
+export type NewUserRecord=typeof users.$inferInsert;
