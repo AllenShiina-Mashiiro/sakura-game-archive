@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import SakuraPetals from '@/components/SakuraPetals';
 const colors = ['#ec8eb8', '#b99bea', '#83c8e8', '#9ccf9b', '#e6b96b', '#e78f8f'];
 export function ThemeEffects({ initialMode, initialColor, initialPetals }: { initialMode: 'light' | 'dark'; initialColor: string; initialPetals: boolean }) {
   const [mode, setMode] = useState(initialMode);
@@ -37,22 +38,7 @@ export function ThemeEffects({ initialMode, initialColor, initialPetals }: { ini
   }
   return (
     <>
-      <div className="sakura-particles" aria-hidden="true" data-enabled={petals}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <i
-            key={i}
-            style={{
-              left: `${(i * 37 + 7) % 100}%`,
-              animationDelay: `${(i % 9) * -2.3}s`,
-              animationDuration: `${13 + (i % 7) * 2}s`,
-              fontSize: `${10 + (i % 5) * 3}px`,
-              color: colors[i % colors.length],
-            }}
-          >
-            ✿
-          </i>
-        ))}
-      </div>
+      {petals && <SakuraPetals count={40} opacity={0.82} wind={1} motes zIndex={10} />}
       <div className="appearance-float">
         <button type="button" className="appearance-toggle" onClick={() => setOpen((v) => !v)} aria-label="外观设置">
           ✿
