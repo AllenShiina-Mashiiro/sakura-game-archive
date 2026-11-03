@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Database, Game, Guide, ShopProduct } from "./types";
 import { db } from "./postgres";
 import {
@@ -288,15 +288,18 @@ async function persistSnapshot(client: Executor, source: Database) {
     await client.insert(users).values(userRows).onConflictDoUpdate({
       target: users.id,
       set: {
-        username: users.username, email: users.email, emailVerifiedAt: users.emailVerifiedAt,
-        passwordHash: users.passwordHash, nickname: users.nickname, avatar: users.avatar,
-        role: users.role, status: users.status, exp: users.exp, badges: users.badges,
-        title: users.title, lastLoginAt: users.lastLoginAt, lastLoginIp: users.lastLoginIp,
-        lastDailyLogin: users.lastDailyLogin, lastCheckIn: users.lastCheckIn,
-        selectedBadge: users.selectedBadge, avatarFrame: users.avatarFrame,
-        cardBackground: users.cardBackground, sakuraCoins: users.sakuraCoins,
-        expConverted: users.expConverted, themeColor: users.themeColor, themeMode: users.themeMode,
-        sakuraEnabled: users.sakuraEnabled, discoverable: users.discoverable, updatedAt: now,
+        username: sql`excluded.username`, email: sql`excluded.email`,
+        emailVerifiedAt: sql`excluded.email_verified_at`, passwordHash: sql`excluded.password_hash`,
+        nickname: sql`excluded.nickname`, avatar: sql`excluded.avatar`,
+        role: sql`excluded.role`, status: sql`excluded.status`, exp: sql`excluded.exp`,
+        badges: sql`excluded.badges`, title: sql`excluded.title`,
+        lastLoginAt: sql`excluded.last_login_at`, lastLoginIp: sql`excluded.last_login_ip`,
+        lastDailyLogin: sql`excluded.last_daily_login`, lastCheckIn: sql`excluded.last_check_in`,
+        selectedBadge: sql`excluded.selected_badge`, avatarFrame: sql`excluded.avatar_frame`,
+        cardBackground: sql`excluded.card_background`, sakuraCoins: sql`excluded.sakura_coins`,
+        expConverted: sql`excluded.exp_converted`, themeColor: sql`excluded.theme_color`,
+        themeMode: sql`excluded.theme_mode`, sakuraEnabled: sql`excluded.sakura_enabled`,
+        discoverable: sql`excluded.discoverable`, updatedAt: now,
       },
     });
   }
