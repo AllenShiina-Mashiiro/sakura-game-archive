@@ -22,8 +22,9 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       const messages: Record<string, string> = {
         access_denied: '你取消了第三方登录。',
         oauth_state: '登录验证已过期，请重新尝试。',
+        oauth_not_configured: '第三方登录尚未配置，请先使用邮箱密码登录。',
       };
-      setError(messages[oauthError] || decodeURIComponent(oauthError));
+      setError(messages[oauthError] || '第三方登录失败，请检查授权配置后重试。');
     }
   }, []);
 
