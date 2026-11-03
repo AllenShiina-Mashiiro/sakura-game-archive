@@ -9,9 +9,21 @@ CREATE TABLE IF NOT EXISTS users (
   role varchar(16) NOT NULL DEFAULT 'user',
   status varchar(16) NOT NULL DEFAULT 'active',
   exp integer NOT NULL DEFAULT 0,
-  badges jsonb NOT NULL DEFAULT '[]'::jsonb,
+  badges text[] NOT NULL DEFAULT ARRAY[]::text[],
   title varchar(80) NOT NULL DEFAULT '见习档案员',
-  profile jsonb NOT NULL DEFAULT '{}'::jsonb,
+  last_login_at timestamptz,
+  last_login_ip varchar(64),
+  last_daily_login varchar(10),
+  last_check_in varchar(10),
+  selected_badge varchar(80),
+  avatar_frame varchar(120),
+  card_background varchar(120),
+  sakura_coins integer NOT NULL DEFAULT 0,
+  exp_converted integer NOT NULL DEFAULT 0,
+  theme_color varchar(32),
+  theme_mode varchar(8),
+  sakura_enabled boolean NOT NULL DEFAULT true,
+  discoverable boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT users_username_uq UNIQUE (username),
@@ -49,13 +61,6 @@ CREATE TABLE IF NOT EXISTS oauth_accounts (
   CONSTRAINT oauth_provider_account_uq UNIQUE(provider, provider_account_id)
 );
 CREATE INDEX IF NOT EXISTS oauth_accounts_user_id_idx ON oauth_accounts(user_id);
-
-CREATE TABLE IF NOT EXISTS app_state (
-  id varchar(32) PRIMARY KEY,
-  data jsonb NOT NULL,
-  version integer NOT NULL DEFAULT 1,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
 
 CREATE TABLE IF NOT EXISTS login_failures (
   key varchar(64) PRIMARY KEY,
