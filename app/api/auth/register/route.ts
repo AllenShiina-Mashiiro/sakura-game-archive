@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { randomUUID, createHmac } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/lib/postgres";
 import { emailVerificationCodes, users } from "@/drizzle/schema";
-import { mutateDb } from "@/lib/db";
 import { hashPassword, createSession, bootstrapAdmin } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -44,34 +43,19 @@ export async function POST(req: Request) {
   if (existing.length) return NextResponse.json({ error: "用户名已被使用" }, { status: 409 });
   if (existingEmail.length) return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
 
-  const id = randomUUID();
   const passwordHash = await hashPassword(b.password);
   const now = new Date();
   try {
-    await db.insert(users).values({
-      id, username, email, emailVerifiedAt: now, passwordHash,
+    const [created] = await db.insert(users).values({
+      username, email, emailVerifiedAt: now, passwordHash,
       nickname, avatar: "", role: "user", status: "active",
-      exp: 0, badges: [], title: "见习档案员", profile: {},
-    });
-    const created = await mutateDb((fresh) => {
-      if (fresh.users.some((u) => u.username === username || u.email === email)) return false;
-      fresh.users.push({
-        id, username, email, emailVerifiedAt: now.toISOString(), passwordHash,
-        nickname, avatar: "", role: "user", status: "active",
-        createdAt: now.toISOString(), exp: 0, badges: [], title: "见习档案员",
-      });
-      return true;
-    });
-    if (!created) {
-      await db.delete(users).where(eq(users.id, id));
-      return NextResponse.json({ error: "用户名或邮箱已被使用" }, { status: 409 });
-    }
+      exp: 0, badges: [], title: "见习档案员",
+    }).returning({ id: users.id });
     await db.update(emailVerificationCodes).set({ consumedAt: now }).where(eq(emailVerificationCodes.id, verification.id));
-    await createSession(id);
-    return NextResponse.json({ ok: true });
+    await createSession(created.id);
+    return NextResponse.json({ ok: true, username: created.username });
   } catch (error) {
-    await db.delete(users).where(eq(users.id, id)).catch(() => undefined);
     console.error("注册失败", error);
-    return NextResponse.json({ error: "注册失败，请稍后重试" }, { status: 500 });
+    return NextResponse.json({ error: "用户名或邮箱已注册，或注册暂时失败" }, { status: 409 });
   }
 }
