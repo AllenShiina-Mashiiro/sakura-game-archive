@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Database, Game, ShopProduct } from "./types";
 import { db } from "./postgres";
 import { appState } from "@/drizzle/schema";
@@ -66,7 +66,7 @@ async function getRow(): Promise<DbRow> {
 async function saveWithVersion(nextDb: Database, expectedVersion: number): Promise<boolean> {
   const rows = await db.update(appState)
     .set({ data: nextDb, version: expectedVersion + 1, updatedAt: new Date() })
-    .where(eq(appState.version, expectedVersion))
+    .where(and(eq(appState.id, "main"), eq(appState.version, expectedVersion)))
     .returning({ id: appState.id });
   return rows.length > 0;
 }
