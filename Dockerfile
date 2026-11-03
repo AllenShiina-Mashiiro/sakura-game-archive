@@ -5,7 +5,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install --package-lock-only --ignore-scripts && npm ci
 
 COPY . .
 RUN npm run build
