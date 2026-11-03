@@ -1,12 +1,17 @@
-import { readDb } from '@/lib/db';
+import { asc } from 'drizzle-orm';
+import { db } from '@/lib/postgres';
+import { games } from '@/drizzle/schema';
 import { GameCard } from '../components/GameCard';
 import { SearchBar } from '@/app/components/SearchBar';
+
 export const dynamic = 'force-dynamic';
+
 export default async function Games({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string; type?: string; platform?: string }> }) {
   const sp = await searchParams;
-  const { games } = await readDb();
+  const gameRows = await db.select().from(games).orderBy(asc(games.name));
+  const allGames = gameRows.map((g) => ({ ...g, tags: g.tags ?? [], platforms: g.platforms ?? [], views: g.views ?? 0, favorites: g.favorites ?? 0, updates: [], files: [], guides: [] }));
   const norm = (x: string) => x.toLocaleLowerCase();
-  const filtered = games.filter(
+  const filtered = allGames.filter(
     (g) =>
       (!sp.q || norm([g.name, g.description, ...g.tags].join(' ')).includes(norm(sp.q))) &&
       (!sp.tag || g.tags.some((t) => norm(t).includes(norm(sp.tag!)))) &&
@@ -20,7 +25,7 @@ export default async function Games({ searchParams }: { searchParams: Promise<{ 
           <div className="eyebrow">LIBRARY / ALL GAMES</div>
           <h1>游戏档案</h1>
           <p className="subtitle">
-            共收录 {filtered.length} / {games.length} 款游戏。
+            共收录 {filtered.length} / {allGames.length} 款游戏。
           </p>
         </div>
       </header>
