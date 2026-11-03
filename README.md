@@ -18,7 +18,7 @@
 ### 本地运行与迁移
 
 1. 复制 `.env.example` 为 `.env`，填写 PostgreSQL 密码（建议使用随机十六进制字符串）、至少 32 位 `SESSION_SECRET`、初始管理员密码及 SMTP 配置。
-2. 如果使用 Google / GitHub 登录，在对应开发者控制台登记回调地址：
+2. 如果使用 Google / GitHub 登录，在对应开发者控制台登记回调地址；本机使用 localhost，远程测试时将 `AUTH_BASE_URL` 设置为虚拟机可访问的地址或 HTTPS 域名：
    - `http://localhost:3000/api/auth/oauth/google`
    - `http://localhost:3000/api/auth/oauth/github`
 3. 启动数据库：`docker compose up -d postgres`。
