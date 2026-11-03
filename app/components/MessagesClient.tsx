@@ -114,12 +114,12 @@ export function MessagesClient() {
         </div>
         {ordered.map((p) => (
           <div key={p.id} className={`conversation-person ${selected === p.id ? 'active' : ''}`}>
-            <Link className="conversation-avatar" href={`/users/${p.id}`} title="查看用户主页">
+            <Link className="conversation-avatar" href={`/users/${encodeURIComponent(p.username)}`} title="查看用户主页">
               {avatar(p)}
             </Link>
             <div className="conversation-person-main">
               <div className="conversation-person-heading">
-                <Link className="conversation-person-name" href={`/users/${encodeURIComponent(p.id)}`} title="查看用户主页">{p.nickname}</Link>
+                <Link className="conversation-person-name" href={`/users/${encodeURIComponent(p.username)}`} title="查看用户主页">{p.nickname}</Link>
                 {!!p.unread && <i className="unread-dot">{p.unread}</i>}
               </div>
               <button type="button" className="conversation-person-open" onClick={() => choose(p.id)}>
@@ -134,7 +134,7 @@ export function MessagesClient() {
         {peer ? (
           <>
             <header className="chat-header">
-              <Link href={`/users/${peer.id}`}>{avatar(peer)}</Link>
+              <Link href={`/users/${encodeURIComponent(peer.username)}`}>{avatar(peer)}</Link>
               <div>
                 <Link href={`/users/${peer.id}`}>
                   <b>{peer.nickname}</b>
