@@ -100,7 +100,7 @@ export function FriendsClient() {
           <small>@{friend.username}</small>
           <div className="friend-list-actions">
             <Link className="outline-btn" href={`/users/${encodeURIComponent(friend.username)}`}>查看主页</Link>
-            {kind === 'friend' && <Link className="primary-btn" href={`/messages?with=${encodeURIComponent(friend.username)}`}>发送私信</Link>}
+            {kind === 'friend' && <Link className="primary-btn" href={`/messages?with=${encodeURIComponent(friend.id)}`}>发送私信</Link>}
             {kind === 'friend' && <button className="text-btn" disabled={busyId === friend.id} onClick={() => void act(friend, 'remove')}>解除好友</button>}
             {kind === 'incoming' && <>
               <button className="primary-btn" disabled={busyId === friend.id} onClick={() => void act(friend, 'accept')}>接受</button>
