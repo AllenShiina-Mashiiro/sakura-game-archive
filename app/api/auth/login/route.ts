@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { and, eq, or } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { db } from '@/lib/postgres';
-import { users, loginLogs, notifications } from '@/drizzle/schema';
+import { users } from '@/drizzle/schema';
 import { verifyPassword, createSession, bootstrapAdmin } from '@/lib/auth';
 import { randomUUID } from 'node:crypto';
+import { mutateDb } from '@/lib/db';
 import { isLoginBlocked, recordLoginFailure, clearLoginFailures } from '@/lib/login-rate-limit';
 
 export async function POST(req: Request) {
@@ -44,23 +45,26 @@ export async function POST(req: Request) {
   const dailyReward = user.lastDailyLogin !== today;
   const nextExp = user.exp + (dailyReward ? 5 : 0);
 
-  await db.transaction(async (tx) => {
-    await tx.update(users).set({
-      exp: nextExp,
-      lastDailyLogin: dailyReward ? today : user.lastDailyLogin,
-      lastLoginAt: now,
-      lastLoginIp: ip,
-      updatedAt: now,
-    }).where(and(eq(users.id, user.id), eq(users.status, 'active')));
-    await tx.insert(loginLogs).values({ id: randomUUID(), userId: user.id, username: user.username, ip, date: now });
+  const updated = await mutateDb((snapshot) => {
+    const current = snapshot.users.find((item) => item.id === user.id);
+    if (!current || current.status !== 'active') return false;
+    current.exp = nextExp;
+    current.lastDailyLogin = dailyReward ? today : current.lastDailyLogin;
+    current.lastLoginAt = now.toISOString();
+    current.lastLoginIp = ip;
+    snapshot.loginLogs.unshift({
+      id: randomUUID(), userId: user.id, username: user.username, ip, date: now.toISOString(),
+    });
     if (levelOf(nextExp) > oldLevel) {
-      await tx.insert(notifications).values({
+      snapshot.notifications.unshift({
         id: randomUUID(), userId: user.id, type: 'level',
         title: '等级提升啦！', body: `恭喜升级至 Lv.${levelOf(nextExp)}。`,
-        href: `/users/${user.username}`, createdAt: now,
+        href: `/users/${user.username}`, createdAt: now.toISOString(),
       });
     }
+    return true;
   });
+  if (!updated) return NextResponse.json({ error: '账户状态已变化，请重新登录' }, { status: 409 });
 
   await createSession(user.id);
   return NextResponse.json({ ok: true, username: user.username });
