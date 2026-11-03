@@ -43,6 +43,9 @@ jobs:
           DATABASE_URL: postgresql://sakura_admin:ci-only-password@localhost:5432/sakura_game_archive
           SESSION_SECRET: ci-only-placeholder-session-secret-32chars
           ADMIN_PASSWORD: ci-only-admin-password
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+          SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
           SMTP_HOST: ""
           SMTP_USER: ""
           SMTP_PASSWORD: ""
