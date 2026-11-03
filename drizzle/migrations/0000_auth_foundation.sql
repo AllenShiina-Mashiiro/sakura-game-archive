@@ -49,3 +49,10 @@ CREATE TABLE IF NOT EXISTS oauth_accounts (
   CONSTRAINT oauth_provider_account_uq UNIQUE(provider, provider_account_id)
 );
 CREATE INDEX IF NOT EXISTS oauth_accounts_user_id_idx ON oauth_accounts(user_id);
+
+CREATE TABLE IF NOT EXISTS app_state (
+  id varchar(32) PRIMARY KEY,
+  data jsonb NOT NULL,
+  version integer NOT NULL DEFAULT 1,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
