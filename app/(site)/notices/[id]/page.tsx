@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { readDb } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
+import { db } from '@/lib/postgres';
+import { notices } from '@/drizzle/schema';
 export const dynamic = 'force-dynamic';
 export default async function NoticeDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const n = (await readDb()).notices.find((x) => x.id === id && x.published);
+  const [n] = await db.select().from(notices)
+    .where(and(eq(notices.id, id), eq(notices.published, true))).limit(1);
   if (!n) notFound();
   return (
     <div className="page-wrap article-page">
