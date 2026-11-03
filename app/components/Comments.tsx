@@ -6,6 +6,7 @@ import Link from 'next/link';
 type C = {
   id: string;
   userId: string;
+  username: string;
   content: string;
   createdAt: string;
   updatedAt?: string;
@@ -58,9 +59,9 @@ export function Comments({ targetType, targetId, items, me, admin }: { targetTyp
     return (
       <article className={`comment-card ${c.pinned ? 'comment-pinned' : ''}`} key={c.id}>
         <div className="comment-head">
-          <Link href={`/users/${encodeURIComponent(c.userId)}`} className="comment-author-avatar" aria-label={`查看${c.nickname}的主页`}><span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={mediaUrl(c.avatar)} alt="" /> : c.nickname.slice(0, 1)}</span></Link>
+          <Link href={`/users/${encodeURIComponent(c.username || c.userId)}`} className="comment-author-avatar" aria-label={`查看${c.nickname}的主页`}><span className={`avatar avatar-frame-${c.avatarFrame || 'none'}`}>{c.avatar ? <img src={mediaUrl(c.avatar)} alt="" /> : c.nickname.slice(0, 1)}</span></Link>
           <div>
-            <b><Link href={`/users/${encodeURIComponent(c.userId)}`}>{c.nickname}</Link></b>
+            <b><Link href={`/users/${encodeURIComponent(c.username || c.userId)}`}>{c.nickname}</Link></b>
             <small>
               Lv.{c.level}{' '}
               {c.badges.map((x) => (
