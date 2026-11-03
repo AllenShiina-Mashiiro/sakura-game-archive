@@ -69,7 +69,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             value={identifier}
             onChange={(event) => setIdentifier(event.target.value)}
             minLength={mode === 'register' ? 3 : undefined}
-            maxLength={24}
+            maxLength={mode === 'login' ? 320 : 24}
             required
             autoComplete="username"
             placeholder={mode === 'login' ? '@用户名或邮箱地址' : '小写字母、数字、下划线，3-24 位'}
