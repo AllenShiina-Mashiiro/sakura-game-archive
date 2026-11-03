@@ -159,13 +159,25 @@
 
 ## 运行
 
-1. 复制 `.env.example` 为 `.env.local` 并设置 `SESSION_SECRET`（至少 32 位随机字符串）、Supabase 服务端变量及管理员初始密码。
-2. 必须配置当前 Supabase 项目对应的 `SUPABASE_PUBLISHABLE_KEY`，供浏览器直传使用；它是公开密钥，可以下发给浏览器。严禁将 `SUPABASE_SERVICE_ROLE_KEY` 暴露给浏览器。
-3. 安装依赖：`npm install`
-4. 开发：`npm run dev`
-5. 自动化单元测试：`npm test`；类型检查：`npm run typecheck`；Lint：`npm run lint`；生产构建：`npm run build`
+本分支以根目录 `.env` 提供 Docker Compose 配置，以 `.env.local` 提供 Next.js 本机开发配置。复制 `.env.example` 后，确保本机开发的 `DATABASE_URL` 指向 `127.0.0.1:5432`，并填写 SMTP / OAuth 变量。
+
+- 启动 PostgreSQL：`docker compose up -d postgres`
+- 安装依赖：`npm install`
+- 执行数据库迁移：`npm run db:migrate`
+- 本机开发：`npm run dev`
+- Docker 全栈：`docker compose up -d --build`
+- 验证：`npm test`、`npm run typecheck`、`npm run lint`、`npm run build`
+
+Google / GitHub OAuth 回调地址分别为 `/api/auth/oauth/google` 和 `/api/auth/oauth/github`。邮件验证码通过 SMTP 发送。若只测试本地数据库，可暂时不配置 OAuth；邮箱注册则必须配置可用 SMTP。
 
 ## 数据说明
+
+**历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据；该历史文件不再作为当前运行时数据源，也不会导入其中的业务数据。
+
+**V2.6-dev 当前说明**：业务数据由本地 PostgreSQL 关系表承载，Drizzle schema 与 SQL migrations 为结构依据。旧 `json.db` / `data/db.json` / Supabase `app_state` 数据不导入，也不作为运行时数据源。历史图片上传仍保留 Supabase Storage 兼容代码；这不代表 Supabase 仍承担业务数据库职责，图片存储会在独立阶段迁移。
+
+PostgreSQL 官方镜像的 `/docker-entrypoint-initdb.d` 初始化脚本只会在空数据目录首次初始化时运行。已经初始化过的命名卷不会因为新增 SQL 文件而自动重跑；这种情况必须执行 `npm run db:migrate`。不要随意使用 `docker compose down -v`，该命令会删除数据库命名卷。
+
 
 **历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据，升级前需备份该文件及 `public/uploads`；V2.3 为用户字段和站点配置增加了可选字段，旧数据可继续读取。
 
