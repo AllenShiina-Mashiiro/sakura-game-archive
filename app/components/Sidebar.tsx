@@ -112,7 +112,7 @@ export function Sidebar({ user, logo }: { user: User; logo?: string }) {
           </span>
           <i>{open ? '⌄' : '⌃'}</i>
         </button>
-        <p>资料与交流 · Supabase 云端存储</p>
+        <p>本地 PostgreSQL · Docker 部署</p>
       </div>
     </aside>
   );
