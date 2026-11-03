@@ -9,7 +9,8 @@ export async function GET() {
   const items = (db.notifications || [])
     .filter((n) => n.userId === user.id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 100);
+    .slice(0, 100)
+    .map((item) => ({ ...item, actorUsername: db.users.find((candidate) => candidate.id === item.actorId)?.username }));
   return NextResponse.json({ items, unread: items.filter((n) => !n.readAt).length });
 }
 export async function PATCH(req: Request) {
