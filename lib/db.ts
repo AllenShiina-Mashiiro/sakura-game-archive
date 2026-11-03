@@ -245,7 +245,7 @@ async function loadSnapshot(client: Executor): Promise<Database> {
       userId: row.userId ?? undefined, avatar: row.avatar ?? undefined,
       exp: row.exp, badges: row.badges || [], createdAt: iso(row.createdAt) || "",
     })),
-    siteSettings: settings as Database["siteSettings"],
+    siteSettings: settings as unknown as Database["siteSettings"],
   });
 }
 
