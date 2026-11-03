@@ -90,7 +90,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             <label>
               邮箱验证码
               <div className="auth-code-row">
-                <input value={code} onChange={(event) => setCode(event.target.value.replace(/\\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={6} required placeholder="6 位验证码" />
+                <input value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={6} required placeholder="6 位验证码" />
                 <button type="button" className="secondary-btn" disabled={sendingCode || !email.trim()} onClick={sendCode}>
                   {sendingCode ? '发送中…' : '发送验证码'}
                 </button>
