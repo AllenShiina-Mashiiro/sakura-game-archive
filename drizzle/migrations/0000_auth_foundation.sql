@@ -35,9 +35,10 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS auth_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_hash text NOT NULL UNIQUE,
+  token_hash text NOT NULL,
   expires_at timestamptz NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT auth_sessions_token_hash_uq UNIQUE (token_hash)
 );
 CREATE INDEX IF NOT EXISTS auth_sessions_user_idx ON auth_sessions(user_id);
 CREATE TABLE IF NOT EXISTS email_verification_codes (
