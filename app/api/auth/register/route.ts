@@ -32,7 +32,6 @@ export async function POST(req: Request) {
   if (body.password.length < 8 || body.password.length > 128) return NextResponse.json({ error: "密码长度需为 8-128 位" }, { status: 400 });
   if (nickname.length < 1 || nickname.length > 24) return NextResponse.json({ error: "昵称长度需为 1-24 个字符" }, { status: 400 });
 
-  const passwordHash = await hashPassword(body.password);
   const now = new Date();
   try {
     const created = await db.transaction(async (tx) => {
@@ -61,6 +60,7 @@ export async function POST(req: Request) {
       const [existingEmail] = await tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
       if (existingEmail) return { error: "该邮箱已注册" as const };
 
+      const passwordHash = await hashPassword(body.password);
       const [user] = await tx.insert(users).values({
         username, email, emailVerifiedAt: now, passwordHash, nickname,
         avatar: "", role: "user", status: "active", exp: 0, badges: [], title: "见习档案员",
