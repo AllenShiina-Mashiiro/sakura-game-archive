@@ -77,7 +77,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pro
 
   const settings = config(provider);
   if (!settings.clientId || !settings.clientSecret) {
-    return NextResponse.json({ error: `${provider === "google" ? "Google" : "GitHub"} OAuth 尚未配置，请设置对应的 Client ID 和 Client Secret` }, { status: 503 });
+    return NextResponse.redirect(new URL("/login?error=oauth_not_configured", request.url));
   }
 
   const callback = callbackUrl(request, provider);
