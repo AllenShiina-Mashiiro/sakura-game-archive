@@ -56,3 +56,9 @@ CREATE TABLE IF NOT EXISTS app_state (
   version integer NOT NULL DEFAULT 1,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS login_failures (
+  key varchar(64) PRIMARY KEY,
+  count integer NOT NULL DEFAULT 0,
+  window_started_at timestamptz NOT NULL DEFAULT now()
+);
