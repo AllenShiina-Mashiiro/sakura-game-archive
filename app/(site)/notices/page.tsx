@@ -1,8 +1,12 @@
 import Link from 'next/link';
-import { readDb } from '@/lib/db';
+import { desc, eq } from 'drizzle-orm';
+import { db } from '@/lib/postgres';
+import { notices } from '@/drizzle/schema';
 export const dynamic = 'force-dynamic';
 export default async function Notices() {
-  const ns = (await readDb()).notices.filter((n) => n.published).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date));
+  const ns = await db.select().from(notices)
+    .where(eq(notices.published, true))
+    .orderBy(desc(notices.pinned), desc(notices.date));
   return (
     <div className="page-wrap">
       <header className="topbar">
