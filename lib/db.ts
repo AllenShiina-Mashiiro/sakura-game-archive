@@ -219,7 +219,7 @@ async function loadSnapshot(client: Executor): Promise<Database> {
       price: row.price,
     })),
     coinTransactions: transactionRows.map((row) => ({
-      id: row.id, userId: row.userId, type: row.type as Database["coinTransactions"] extends (infer T)[] | undefined ? T extends {type: infer K} ? K : never : never,
+      id: row.id, userId: row.userId, type: row.type as "conversion" | "purchase" | "admin-adjustment",
       amount: row.amount, balanceBefore: row.balanceBefore, balanceAfter: row.balanceAfter,
       description: row.description, createdAt: iso(row.createdAt) || "", relatedId: row.relatedId ?? undefined,
     })),
@@ -232,17 +232,17 @@ async function loadSnapshot(client: Executor): Promise<Database> {
     })),
     friendships: friendshipRows.map((row) => ({
       id: row.id, requesterId: row.requesterId, addresseeId: row.addresseeId,
-      status: row.status as Database["friendships"] extends (infer T)[] | undefined ? T extends {status: infer K} ? K : never : never,
+      status: row.status as "pending" | "accepted" | "rejected",
       createdAt: iso(row.createdAt) || "", updatedAt: iso(row.updatedAt) || "",
     })),
     notifications: notificationRows.map((row) => ({
-      id: row.id, userId: row.userId, type: row.type as Database["notifications"] extends (infer T)[] | undefined ? T extends {type: infer K} ? K : never : never,
+      id: row.id, userId: row.userId, type: row.type as "message" | "comment" | "feedback" | "badge" | "level" | "system",
       title: row.title, body: row.body, href: row.href, createdAt: iso(row.createdAt) || "",
       readAt: iso(row.readAt), actorId: row.actorId ?? undefined,
     })),
     contributors: contributorRows.map((row) => ({
       id: row.id, name: row.name, role: row.role, description: row.description,
-      kind: row.kind as Database["contributors"] extends (infer T)[] | undefined ? T extends {kind: infer K} ? K : never : never,
+      kind: row.kind as "volunteer" | "content" | "financial" | "technical",
       userId: row.userId ?? undefined, avatar: row.avatar ?? undefined,
       exp: row.exp, badges: row.badges || [], createdAt: iso(row.createdAt) || "",
     })),
@@ -351,8 +351,8 @@ async function persistSnapshot(client: Executor, source: Database) {
     })));
   }
 
-  const guides = [...allGuides.values()];
-  if (guides.length) await client.insert(guides).values(guides.map((guide) => ({
+  const guideRowsData = [...allGuides.values()];
+  if (guideRowsData.length) await client.insert(guides).values(guideRowsData.map((guide) => ({
     id: guide.id, userId: guide.userId || null, author: guide.author || null,
     gameId: guide.gameId || null, gameName: guide.gameName || null,
     title: guide.title, category: guide.category, tags: guide.tags || [], date: guide.date,
@@ -360,7 +360,7 @@ async function persistSnapshot(client: Executor, source: Database) {
     status: guide.status || "pending", updatedAt: guide.updatedAt ? date(guide.updatedAt) : null,
     views: guide.views || 0, favorites: guide.favorites || 0, rewardGranted: guide.rewardGranted || false,
   })));
-  for (const guide of guides) {
+  for (const guide of guideRowsData) {
     if (guide.bodyImages?.length) await client.insert(guideImages).values(guide.bodyImages.map((url, sortOrder) => ({ guideId: guide.id, url, sortOrder })));
     if (guide.statusHistory?.length) await client.insert(guideStatusHistory).values(guide.statusHistory.map((item) => ({
       guideId: guide.id, status: item.status, reply: item.reply || "", at: date(item.at, now), by: item.by,
