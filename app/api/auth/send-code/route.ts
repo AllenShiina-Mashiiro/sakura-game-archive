@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomInt, createHmac } from "node:crypto";
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/lib/postgres";
-import { emailVerificationCodes } from "@/drizzle/schema";
+import { emailVerificationCodes, users } from "@/drizzle/schema";
 import { sendVerificationCode } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -18,6 +18,8 @@ export async function POST(req: Request) {
   if (!body || typeof body.email !== "string") return NextResponse.json({ error: "请输入邮箱地址" }, { status: 400 });
   const email = normalizeEmail(body.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) return NextResponse.json({ error: "邮箱格式不正确" }, { status: 400 });
+  const [existingUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  if (existingUser) return NextResponse.json({ error: "该邮箱已注册，请直接登录或使用第三方账户" }, { status: 409 });
   const recent = await db.select({ id: emailVerificationCodes.id }).from(emailVerificationCodes)
     .where(and(eq(emailVerificationCodes.email, email), gt(emailVerificationCodes.createdAt, new Date(Date.now() - 60_000))))
     .limit(1);
