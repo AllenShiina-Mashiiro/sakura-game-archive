@@ -1,22 +1,44 @@
 services:
+  postgres:
+    image: postgres:18.6
+    container_name: sakura-game-archive-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sakura_admin}
+      POSTGRES_DB: ${POSTGRES_DB:-sakura_game_archive}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sakura_admin} -d ${POSTGRES_DB:-sakura_game_archive}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   sakura-game-archive:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sakura-game-archive:2.23.0
+    image: sakura-game-archive:2.6.0-dev
     container_name: sakura-game-archive
     restart: unless-stopped
     init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "${PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3000
-      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in the deployment environment}
-      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in the deployment environment}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY in the deployment environment}
-      DATABASE_V2_ENABLED: ${DATABASE_V2_ENABLED:-false}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sakura_admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sakura_game_archive}
+      # Temporary compatibility for media endpoints until local file storage migration is complete.
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     healthcheck:
       test:
         - CMD
@@ -27,3 +49,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME:-sakura-game-archive}
