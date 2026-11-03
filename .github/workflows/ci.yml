@@ -6,6 +6,9 @@ on:
     branches: [v2.6-dev]
 permissions:
   contents: read
+concurrency:
+  group: v2.6-postgres-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   validate:
     runs-on: ubuntu-latest
