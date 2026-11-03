@@ -60,9 +60,13 @@ function normalizeDb(raw: Partial<Database>): Database {
 }
 
 async function ensureRevision(client: Executor) {
-  await client.insert(appRevisions).values({ id: "main", revision: 0 }).onConflictDoNothing();
-  const [row] = await client.select({ revision: appRevisions.revision })
+  let [row] = await client.select({ revision: appRevisions.revision })
     .from(appRevisions).where(eq(appRevisions.id, "main")).limit(1);
+  if (!row) {
+    await client.insert(appRevisions).values({ id: "main", revision: 0 }).onConflictDoNothing();
+    [row] = await client.select({ revision: appRevisions.revision })
+      .from(appRevisions).where(eq(appRevisions.id, "main")).limit(1);
+  }
   if (!row) throw new Error("无法初始化 PostgreSQL 数据版本记录");
   return Number(row.revision);
 }
