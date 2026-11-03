@@ -80,6 +80,13 @@ CREATE TABLE IF NOT EXISTS guide_status_history (
   by varchar(120) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS guide_favorite_rewards (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  guide_id varchar(80) NOT NULL REFERENCES guides(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT guide_favorite_rewards_uq UNIQUE(guide_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS resources (
   id varchar(80) PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
