@@ -27,8 +27,8 @@ export async function POST(req: Request) {
   const nickname = body.nickname.trim();
 
   if (!/^[a-z0-9_]{3,24}$/.test(username)) return NextResponse.json({ error: "ID 需为 3-24 位小写字母、数字或下划线" }, { status: 400 });
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 320) return NextResponse.json({ error: "邮箱格式不正确" }, { status: 400 });
-  if (!/^\\d{6}$/.test(code)) return NextResponse.json({ error: "请输入 6 位邮箱验证码" }, { status: 400 });
+  if (!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email) || email.length > 320) return NextResponse.json({ error: "邮箱格式不正确" }, { status: 400 });
+  if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: "请输入 6 位邮箱验证码" }, { status: 400 });
   if (body.password.length < 8 || body.password.length > 128) return NextResponse.json({ error: "密码长度需为 8-128 位" }, { status: 400 });
   if (nickname.length < 1 || nickname.length > 24) return NextResponse.json({ error: "昵称长度需为 1-24 个字符" }, { status: 400 });
 
