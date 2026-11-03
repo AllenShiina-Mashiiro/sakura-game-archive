@@ -1,4 +1,5 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, uniqueIndex, index, boolean } from "drizzle-orm/pg-core";
+import type { Database } from "@/lib/types";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -50,3 +51,10 @@ export const oauthAccounts = pgTable("oauth_accounts", {
 
 export type UserRecord = typeof users.$inferSelect;
 export type NewUserRecord = typeof users.$inferInsert;
+
+export const appState = pgTable("app_state", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  data: jsonb("data").$type<Partial<Database>>().notNull(),
+  version: integer("version").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
