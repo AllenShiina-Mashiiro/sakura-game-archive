@@ -82,6 +82,14 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pro
 
   const callback = callbackUrl(request, provider);
   const stateCookie = `gra_oauth_state_${provider}`;
+  const clearCookie = (response: NextResponse) => {
+    response.cookies.delete(stateCookie);
+    return response;
+  };
+  const providerError = request.nextUrl.searchParams.get("error");
+  if (providerError) {
+    return clearCookie(NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(providerError)}`, request.url)));
+  }
   const code = request.nextUrl.searchParams.get("code");
 
   if (!code) {
@@ -100,10 +108,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pro
 
   const state = request.nextUrl.searchParams.get("state");
   const expectedState = request.cookies.get(stateCookie)?.value;
-  const clearCookie = (response: NextResponse) => {
-    response.cookies.delete(stateCookie);
-    return response;
-  };
   if (!state || !expectedState || state !== expectedState) {
     return clearCookie(NextResponse.redirect(new URL("/login?error=oauth_state", request.url)));
   }
