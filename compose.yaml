@@ -7,8 +7,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-sakura_admin}
       POSTGRES_DB: ${POSTGRES_DB:-sakura_game_archive}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./drizzle/migrations/0000_auth_foundation.sql:/docker-entrypoint-initdb.d/0000_auth_foundation.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sakura_admin} -d ${POSTGRES_DB:-sakura_game_archive}"]
       interval: 10s
