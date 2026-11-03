@@ -184,7 +184,7 @@ export async function POST(req: Request) {
         const oldLevel = levelOf(u.exp);
         u.exp += 10;
         u.lastCheckIn = now.slice(0, 10);
-        if (levelOf(u.exp) > oldLevel) pushNotification(fresh, u.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(u.exp)}。`, `/users/${u.id}`);
+        if (levelOf(u.exp) > oldLevel) pushNotification(fresh, u.id, 'level', '等级提升啦！', `恭喜升级至 Lv.${levelOf(u.exp)}。`, `/users/${u.username}`);
         return { exp: u.exp };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.error === '用户不存在' ? 404 : 409 });
@@ -785,7 +785,7 @@ export async function POST(req: Request) {
           guide.statusHistory = [...(guide.statusHistory || []), { status: guide.status, reply: String(b.reply || ''), at, by: user.nickname }];
           if (requested === 'accepted' && !guide.rewardGranted) {
             const owner = fresh.users.find((u) => u.id === guide.userId);
-            if (owner) { const oldLevel = levelOf(owner.exp); owner.exp += 30; guide.rewardGranted = true; pushNotification(fresh, owner.id, 'system', '教程审核奖励已发放', '教程《' + guide.title + '》通过审核，获得 30 EXP。', '/tutorials/' + guide.id, user.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
+            if (owner) { const oldLevel = levelOf(owner.exp); owner.exp += 30; guide.rewardGranted = true; pushNotification(fresh, owner.id, 'system', '教程审核奖励已发放', '教程《' + guide.title + '》通过审核，获得 30 EXP。', '/tutorials/' + guide.id, user.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.username); }
           }
           pushNotification(fresh, String(guide.userId || ''), 'system', requested === 'accepted' ? '教程审核通过' : '教程审核未通过', String(b.reply || (requested === 'accepted' ? '你的教程已通过审核。' : '你的教程未通过审核。')), '/tutorials/' + guide.id, user.id);
           return { ok: true };
@@ -806,14 +806,14 @@ export async function POST(req: Request) {
         if (!isBug && previousStatus === 'pending' && requested === 'accepted' && !feedback.rewardGranted) {
           const owner = fresh.users.find((u) => u.id === feedback.userId);
           const reward = feedbackRewardFor({ type: feedback.type, nextStatus: 'accepted', severity: feedback.bugSeverity });
-          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈采纳奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
+          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈采纳奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.username); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.username); }
         }
         feedback.reply = String(b.reply || '');
         feedback.statusHistory = [...(feedback.statusHistory || []), { status: feedback.status, reply: feedback.reply, at, by: user.nickname }];
         if (feedback.status === 'fixed' && !feedback.rewardGranted) {
           const owner = fresh.users.find((u) => u.id === feedback.userId);
           const reward = feedbackRewardFor({ type: feedback.type, nextStatus: 'fixed', severity: feedback.bugSeverity });
-          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈修复奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.id); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.id); }
+          if (owner && reward !== null) { const oldLevel = levelOf(owner.exp); owner.exp += reward; feedback.rewardGranted = true; pushNotification(fresh, owner.id, 'feedback', '反馈修复奖励已发放', '本次反馈获得 ' + reward + ' EXP。', '/users/' + owner.username); if (levelOf(owner.exp) > oldLevel) pushNotification(fresh, owner.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(owner.exp) + '。', '/users/' + owner.username); }
         }
         const title = feedback.status === 'approved' ? '问题已通过审核并公示' : feedback.status === 'processing' ? '问题已进入处理中' : feedback.status === 'fixed' ? '问题已修复' : feedback.status === 'failed' ? '问题处理结束' : feedback.status === 'rejected' ? '反馈未通过审核' : '反馈处理进度已更新';
         const href = isBug && feedback.status !== 'rejected' ? '/feedback/public#' + feedback.id : '/feedback/mine';
@@ -861,10 +861,10 @@ export async function POST(req: Request) {
         if (target.selectedBadge && !(target.badges || []).includes(target.selectedBadge)) target.selectedBadge = '';
         if (target.exp > oldExp) {
           const gainedExp = target.exp - oldExp;
-          pushNotification(fresh, target.id, 'system', '获得经验值', `管理员为你增加了 ${gainedExp} EXP，当前经验为 ${target.exp} EXP。`, `/users/${target.id}`, user.id);
+          pushNotification(fresh, target.id, 'system', '获得经验值', `管理员为你增加了 ${gainedExp} EXP，当前经验为 ${target.exp} EXP。`, `/users/${target.username}`, user.id);
         }
-        if (levelOf(target.exp) > levelOf(oldExp)) pushNotification(fresh, target.id, 'level', '等级提升啦！', `管理员调整经验后，你已达到 Lv.${levelOf(target.exp)}。`, `/users/${target.id}`);
-        for (const badge of target.badges || []) if (!oldBadges.includes(badge)) pushNotification(fresh, target.id, 'badge', '获得新徽章', `管理员授予你徽章：${badge}`, `/users/${target.id}`, user.id);
+        if (levelOf(target.exp) > levelOf(oldExp)) pushNotification(fresh, target.id, 'level', '等级提升啦！', `管理员调整经验后，你已达到 Lv.${levelOf(target.exp)}。`, `/users/${target.username}`);
+        for (const badge of target.badges || []) if (!oldBadges.includes(badge)) pushNotification(fresh, target.id, 'badge', '获得新徽章', `管理员授予你徽章：${badge}`, `/users/${target.username}`, user.id);
         return { ok: true as const };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
@@ -1050,9 +1050,9 @@ export async function POST(req: Request) {
         if (typeof b.title === 'string') u.title = b.title.slice(0, 40);
         if (Array.isArray(b.badges)) u.badges = b.badges.filter((x: unknown) => typeof x === 'string').slice(0, 20);
         if (typeof b.badges === 'string') u.badges = b.badges.split(',').map((x: string) => x.trim()).filter(Boolean).slice(0, 20);
-        if (levelOf(u.exp) > levelOf(oldExp)) pushNotification(fresh, u.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(u.exp) + '。', '/users/' + u.id);
+        if (levelOf(u.exp) > levelOf(oldExp)) pushNotification(fresh, u.id, 'level', '等级提升啦！', '恭喜升级至 Lv.' + levelOf(u.exp) + '。', '/users/' + u.username);
         if (oldStatus !== 'banned' && u.status === 'banned') pushNotification(fresh, u.id, 'system', '账号状态发生变化', '你的账号已被管理员封禁。请联系管理员了解详情。', '/profile');
-        for (const badge of u.badges || []) if (!oldBadges.includes(badge)) pushNotification(fresh, u.id, 'badge', '获得新徽章', '你获得了徽章：' + badge, '/users/' + u.id);
+        for (const badge of u.badges || []) if (!oldBadges.includes(badge)) pushNotification(fresh, u.id, 'badge', '获得新徽章', '你获得了徽章：' + badge, '/users/' + u.username);
         return { ok: true as const };
       });
       if ('error' in result) return NextResponse.json({ error: result.error }, { status: 404 });
