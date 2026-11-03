@@ -90,17 +90,17 @@ export function FriendsClient() {
   function card(friend: Friend, kind: 'friend' | 'incoming' | 'outgoing' | 'search') {
     return (
       <article className="content-card friend-list-card" key={friend.id}>
-        <Link className="friend-list-avatar" href={`/users/${encodeURIComponent(friend.id)}`} title={`查看${friend.nickname}的主页`}>
+        <Link className="friend-list-avatar" href={`/users/${encodeURIComponent(friend.username)}`} title={`查看${friend.nickname}的主页`}>
           <span className={`avatar avatar-large avatar-frame-${friend.avatarFrame || 'none'}`}>
             {friend.avatar ? <img src={mediaUrl(friend.avatar)} alt="" /> : friend.nickname.slice(0, 1)}
           </span>
         </Link>
         <div className="friend-list-info">
-          <h3><Link href={`/users/${encodeURIComponent(friend.id)}`}>{friend.nickname}</Link></h3>
+          <h3><Link href={`/users/${encodeURIComponent(friend.username)}`}>{friend.nickname}</Link></h3>
           <small>@{friend.username}</small>
           <div className="friend-list-actions">
-            <Link className="outline-btn" href={`/users/${encodeURIComponent(friend.id)}`}>查看主页</Link>
-            {kind === 'friend' && <Link className="primary-btn" href={`/messages?with=${encodeURIComponent(friend.id)}`}>发送私信</Link>}
+            <Link className="outline-btn" href={`/users/${encodeURIComponent(friend.username)}`}>查看主页</Link>
+            {kind === 'friend' && <Link className="primary-btn" href={`/messages?with=${encodeURIComponent(friend.username)}`}>发送私信</Link>}
             {kind === 'friend' && <button className="text-btn" disabled={busyId === friend.id} onClick={() => void act(friend, 'remove')}>解除好友</button>}
             {kind === 'incoming' && <>
               <button className="primary-btn" disabled={busyId === friend.id} onClick={() => void act(friend, 'accept')}>接受</button>
