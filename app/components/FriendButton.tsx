@@ -33,8 +33,8 @@ export function FriendButton({ userId, username }: { userId: string; username: s
   }
   if (state === 'loading') return <button className="outline-btn" disabled>加载好友状态…</button>;
   return <div className="friend-action">
-    {state === 'friend' ? <><button className="outline-btn" disabled>✓ 已是好友</button><Link className="primary-btn" href={`/messages?with=${encodeURIComponent(username)}`}>发送私信</Link><button className="text-btn" disabled={busy} onClick={() => act('remove')}>解除好友</button></>
-      : state === 'incoming' ? <><Link className="subtle-link" href={`/users/${encodeURIComponent(userId)}`}>查看对方主页</Link><button className="primary-btn" disabled={busy} onClick={() => act('accept')}>接受好友请求</button><button className="outline-btn" disabled={busy} onClick={() => act('reject')}>拒绝</button><button className="text-btn" disabled={busy} onClick={() => act('ignore')}>忽略</button></>
+    {state === 'friend' ? <><button className="outline-btn" disabled>✓ 已是好友</button><Link className="primary-btn" href={`/messages?with=${encodeURIComponent(userId)}`}>发送私信</Link><button className="text-btn" disabled={busy} onClick={() => act('remove')}>解除好友</button></>
+      : state === 'incoming' ? <><Link className="subtle-link" href={`/users/${encodeURIComponent(username)}`}>查看对方主页</Link><button className="primary-btn" disabled={busy} onClick={() => act('accept')}>接受好友请求</button><button className="outline-btn" disabled={busy} onClick={() => act('reject')}>拒绝</button><button className="text-btn" disabled={busy} onClick={() => act('ignore')}>忽略</button></>
       : state === 'outgoing' ? <button className="outline-btn" disabled>已发送好友请求</button>
       : <button className="primary-btn" disabled={busy} onClick={() => act('request')}>＋ 添加好友</button>}
     {notice && <small role="status">{notice}</small>}
