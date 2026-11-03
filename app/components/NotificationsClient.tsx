@@ -10,6 +10,7 @@ type Note = {
   createdAt: string;
   readAt?: string;
   actorId?: string;
+  actorUsername?: string;
 };
 export function NotificationsClient() {
   const [items, setItems] = useState<Note[]>([]);
@@ -80,7 +81,7 @@ export function NotificationsClient() {
           </div>
           <div className="notification-actions">
             {n.title === '收到好友请求' && n.actorId && <>
-              <Link className="subtle-link" href={`/users/${encodeURIComponent(n.actorId)}`}>查看对方主页</Link>
+              <Link className="subtle-link" href={`/users/${encodeURIComponent(n.actorUsername || n.actorId)}`}>查看对方主页</Link>
               {!n.readAt && <><button className="primary-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'accept', n.id)}>接受</button>
               <button className="outline-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'reject', n.id)}>拒绝</button>
               <button className="text-btn" disabled={busy} onClick={() => friendAction(n.actorId!, 'ignore', n.id)}>忽略</button></>}
