@@ -1,186 +1,35 @@
-# Sakura Game Archive · V2.25.0
+# ~~Sakura Game Archive~~
 
-本项目沿用 V2.3 以来的 Next.js App Router 与 TypeScript 架构持续迭代。下方各版本记录描述对应版本发布时的功能与存储状态；其中早期版本提到的本地 JSON 文件存储属于历史说明，不代表当前分支的数据后端。当前数据架构以「数据说明」章节为准。
+> [!WARNING]
+> ## ~~ACTIVE PROJECT~~ — **DEPRECATED**
+>
+> **This project has been discontinued and is no longer maintained.**
+>
+> 本项目已正式废弃，停止开发与维护。后续不会再提供功能更新、问题修复或技术支持。
 
-## V2.6-dev：本地 PostgreSQL 改造
+---
 
-本分支以 Docker Compose + PostgreSQL 为本地开发和验收基准。现有页面与主要业务操作继续沿用，数据读写改为 PostgreSQL 关系表；不导入旧 JSON 数据，也不再使用 Supabase 的 app_state 快照表。
+## Project Status
 
-### 当前已提交的改造
+- ~~Development: Active~~ **Development: Discontinued**
+- ~~Maintenance: Ongoing~~ **Maintenance: Stopped**
+- ~~New Features: Planned~~ **New Features: None**
+- ~~Bug Fixes: Ongoing~~ **Bug Fixes: None**
+- **Repository Status: Archived for reference**
 
-- Docker Compose 同时定义 PostgreSQL 与 Next.js 应用容器；PostgreSQL 使用命名卷持久化，数据库端口默认仅绑定本机回环地址。
-- Drizzle 关系表迁移覆盖账号、会话、验证码、OAuth 绑定、游戏档案、更新记录、文件、教程、资源、反馈、公告、收藏、评论、照片、商城、私信、好友、通知及站点设置。
-- 原有业务操作入口保留，通过 PostgreSQL 关系表兼容层读写，不再依赖 app_state JSONB；该兼容层目前以事务方式重写业务表集合，适合当前小规模本地迁移阶段，后续正式部署前仍需将高频业务改为按记录增量写入并完成并发/性能验收。
-- 注册流程接入六位邮箱验证码；公开用户标识使用 `@username`，注册时只填写用户名本体（3-24 位小写字母、数字、下划线），数据库内部 UUID 继续用于关系外键。
-- 增加 Google 与 GitHub OAuth 授权回调；第三方邮箱必须由平台标记为已验证。
-- Compose 将 SMTP 与 OAuth 配置传入应用容器；樱花粒子组件沿用现有主题效果入口。
+## Notice
 
-### 本地运行与迁移
+This repository is preserved for historical and reference purposes only. The source code and existing releases are provided **as-is**. They may contain outdated dependencies, known issues, or security vulnerabilities.
 
-1. 复制 `.env.example` 为 `.env`，填写 PostgreSQL 密码（建议使用随机十六进制字符串）、至少 32 位 `SESSION_SECRET`、初始管理员密码及 SMTP 配置。
-2. 如果使用 Google / GitHub 登录，在对应开发者控制台登记回调地址；本机使用 localhost，远程测试时将 `AUTH_BASE_URL` 设置为虚拟机可访问的地址或 HTTPS 域名：
-   - `http://localhost:3000/api/auth/oauth/google`
-   - `http://localhost:3000/api/auth/oauth/github`
-3. 启动数据库：`docker compose up -d postgres`。
-4. 在本机安装依赖后执行迁移：`npm install`、`npm run db:migrate`。本机运行 Next.js 时，`DATABASE_URL` 应连接 `127.0.0.1:5432`。
-5. 本机开发：`npm run dev`；Docker 全栈启动：`docker compose up -d --build`。
-6. 查看服务：`docker compose ps`；查看数据库日志：`docker compose logs -f postgres`；查看应用日志：`docker compose logs -f sakura-game-archive`。
+本仓库仅作为历史项目存档，代码及已有版本仅供学习和参考。项目不再维护，请勿将其视为仍在持续开发或受到支持的软件。
 
-注意：PostgreSQL 官方镜像的 `/docker-entrypoint-initdb.d` 初始化脚本只会在空数据目录首次初始化时运行。已经初始化过的命名卷不会因为新增 SQL 文件而自动重跑；这种情况必须执行 `npm run db:migrate`。不要随意使用 `docker compose down -v`，该命令会删除数据库命名卷。
+## Acknowledgements
 
-### 尚需验收的边界
+Thank you to everyone who used, tested, or supported Sakura Game Archive.
 
-- 需要在真实本机 Docker 环境执行迁移、类型检查、Lint、单元测试、生产构建和完整业务回归；当前 GitHub 分支尚未返回新的 CI 运行结果。
-- 图片上传与历史图片 URL 仍有 Supabase Storage 兼容代码；这不再承担业务数据库职责，但图片存储尚未完全自托管。
-- Ubuntu 虚拟机部署、反向代理/TLS、备份恢复、OAuth 线上回调及真实 SMTP 收发将在本地验收通过后进行。
+感谢曾经使用、体验或支持过本项目的朋友。  
+**This is the end of Sakura Game Archive. Thank you.** 🌸
 
-## V2.25.0 更新记录
+---
 
-<badge>代码完成</badge> <badge>CI 全部通过</badge> <badge>待生产部署</badge>
-
-本版本五项需求均已完成代码实现，并通过 GitHub Actions 自动化检查。当前代码已具备合并主分支及部署条件；生产环境的真实浏览器验收、网络性能实测需在部署后进行。
-
-### 五项需求完成情况
-
-| 序号 | 需求 | 完成内容 | 状态 |
-|---|---|---|---|
-| 1 | 性能优化 | 请求级数据库快照复用；统一公开图片代理及 CDN/浏览器缓存策略；减少粒子动画与高成本模糊渲染 | 已完成 |
-| 2 | Bug 公示 | 新增公开 Bug 公示页；仅公示审核通过的问题；展示严重程度、处理状态、时间线、管理员回复及附件 | 已完成 |
-| 3 | Bug / 教程审核状态机 | 服务端强制校验状态流转；限制越级、重复审核；拒绝记录按规则删除；终态锁定；处理结果通知及奖励逻辑 | 已完成 |
-| 4 | 好友搜索与资料隐私 | 支持按昵称搜索好友；用户可关闭昵称可发现性；关闭后从搜索结果排除 | 已完成 |
-| 5 | 管理后台审核与通知跳转 | 审核队列分区、关键词搜索及分页；Bug 处理队列与终态只读；通知链接直达对应审核区域并兼容旧链接 | 已完成 |
-
-### 质量验证
-
-- `npm ci`：通过
-- `npm test`：通过
-- `npm run typecheck`：通过
-- `npm run lint`：通过
-- `npm run build`：通过
-- GitHub Actions：全部检查成功（Run [41464865375](https://github.com/AllenShiina-Mashiiro/sakura-game-archive/actions/runs/41464865375)）
-
-### 部署说明
-
-本版本已完成代码开发与 CI 验证，合并至 `master` 后可由项目配置的部署平台触发部署。性能优化已落实到应用代码和缓存策略；实际访问延迟仍受部署区域、Supabase 区域、CDN 命中率及用户网络影响，应在生产环境进行测速。部署后建议重点验收登录、Bug 提交与公示、管理员审核状态流转、好友搜索隐私设置、通知跳转及图片加载。
-
-- 问题反馈新增公示问题页：仅展示通过审核的 Bug，按提交时间倒序排列，显示警告/严重/高危标签和处理进度。
-- Bug 审核采用严格状态机：待审核只能通过或拒绝；拒绝后删除该 Bug；通过后公开公示，进入待处理；管理员开始处理后才可选择修复成功或修复失败，结束状态不可再次操作。教程同样只能审核一次。
-- 内容审核按教程待审、反馈待审、Bug 处理中和已结束问题分区，每个列表支持关键词搜索和分页。
-- 好友列表增加昵称搜索；个人资料可关闭被昵称搜索，关闭后不会出现在搜索结果中。
-- 新反馈和教程投稿通知直接进入管理后台的内容审核分区；旧通知链接也会自动修正。
-- 性能优化：同一次页面请求复用数据库快照读取，减少根布局和站点布局的重复 Supabase 往返；公共图片代理覆盖新旧公开桶并延长 CDN/浏览器缓存；减少粒子动画和低端设备上的昂贵模糊渲染。实际网络延迟仍取决于托管区、Supabase 区域与访问者网络。
-
-## V2.24-dev（历史版本记录）
-
-该版本的历史变更记录如下。
-
-- 好友系统：新增独立好友列表页，集中查看好友、收到的请求和已发送请求；好友请求通知可直接查看发起者主页并接受、拒绝或忽略。好友卡片、私信联系人和好友主页均提供公开主页入口。私信支持常用 Emoji 快捷插入。
-- 反馈系统：提交者可修改待处理反馈，管理员可修改反馈；支持处理中、已修复、修复失败状态、处理历史时间线、仅对 Bug 反馈提供警告/错误/严重评级和对应 EXP 奖励；支持多张截图。
-- 奖励规则：Bug 修复完成后，警告/错误/严重分别奖励 50/150/300 EXP；普通反馈采纳沿用原有 100 EXP 规则。奖励标记保存在反馈记录中，并通过快照版本写入保护避免并发覆盖；最终仍需进行真实业务验收。
-- 用户主页：评论作者、教程作者、反馈提交者、资源贡献者及游戏版本记录贡献者可进入公开主页；主页展示公开教程、资源贡献及本人参与的游戏版本记录。
-- 个人资料图片：头像与名片背景支持 1:1、16:5 裁剪预览，可调整缩放和位置，保存时上传裁剪结果。
-- 后台审核：教程、资源与反馈使用帖子式内容卡片；教程封面/正文图集、资源封面/配图和反馈多图以缩略图网格显示，点击可查看原图。资源列表和详情页同步展示配图，资源最多支持 20 张。
-- 游戏档案：在「运行配置」下方增加「更多图片」模块；后台支持最多 20 张图片上传、缩略图网格排列和原图查看，沿用统一缩略图容器，避免图片挤压或错位。上传中的图片尚未完成时，相关表单会阻止提前提交。
-- 图片上传：浏览器向同源接口申请短时签名后，直接上传 Supabase Storage；文件内容不经过 Next.js / Netlify Functions。小于等于 6 MiB 的图片使用签名直传，大于 6 MiB 的图片使用 TUS 断点续传，按 6 MiB 分片并显示上传进度，遇到短暂网络中断会尝试读取服务端偏移量后继续。`content`、`avatars`、`photos` 三个公开桶分别限制 12 MB、4 MB、50 MB，并限制为 JPG / PNG / WEBP / GIF；原有 `uploads` 桶及历史图片 URL 保持不变。
-- CI：推送本分支自动执行 npm ci、Node.js 单元测试（npm test）、TypeScript、Lint 与生产 Build。该版本的历史 CI 与目标环境验收记录以对应版本发布记录为准。
-
-## V2.23.0
-
-- 侧边导航默认展开并锁定；账户抽屉限制最大高度并允许内部滚动，避免菜单内容溢出。
-- 统一详情区圆角、边框、背景和内边距，改善浅色主题下的白色割裂区域。
-- 移除外部 Google Fonts 阻塞式导入，改用系统字体栈，减少首屏第三方请求。
-- 增加好友请求、接受/拒绝和解除好友逻辑；私信接口仅允许已互为好友的用户读取和发送消息，不再向私信页返回全站用户列表。
-- 个人主页增加好友操作；私信输入区增加常用 Emoji 快捷插入。
-- 用户可查看反馈处理状态与管理员回复；待处理反馈支持修改，用户可删除自己的反馈。管理员审核列表保留已处理反馈详情。
-- 为 Supabase public uploads 增加同源图片代理，并接入个人头像、游戏封面、教程、照片墙、评论及上传预览等主要展示区域。
-- 增加 Database 2.0 Beta 迁移脚本、快照兼容 RPC、迁移前备份和数据核对脚本。当前应用仍使用快照兼容读写接口，尚未完成所有业务实体的独立 SQL 读写改造。
-- 增加 Dockerfile、Docker Compose 和通用部署文档，可用于 Dockhosting、VPS 及支持 Docker 的国内平台；Netlify 继续使用 Next.js adapter。
-- 流媒体/CDN 专项优化、真实平台部署和多实例压力测试仍需在目标托管环境验证。
-
-## V2.3 更新
-
-- 评论撤回改为彻底删除评论及其子回复；旧版软删除记录不再展示。
-- 点赞、取消点赞、评论发布、评论修改、评论删除显示具体反馈。
-- 教程作者和管理员可修改已发布教程，记录最后修改时间。
-- 公告支持管理员编辑，保留历史版本并显示最后修改时间和修改者。
-- 个人资料增加等级经验进度条、徽章佩戴、头像框选择和名片背景 URL。
-- 管理后台增加 Logo、站点背景和首页宣传模块背景图片配置。
-
-## 历史版本记录（V2.3—V2.10）
-
-以下条目根据仓库中保留的 README 与历史 CHANGELOG 整理。没有找到独立记录的版本会明确注明，不补写未经证实的功能。
-
-### V2.4 樱花币与商城
-- EXP 兑换比例为 10 EXP = 1 樱花币；EXP 不扣除，等级不受影响。
-- 用户可在商城浏览商品、兑换樱花币、购买商品、查看背包和交易记录。
-- 管理员可添加、编辑商品，设置价格、库存、图片并上架或下架。
-- 新增商品、背包和交易记录数据字段；用户增加樱花币余额及已兑换经验记录，避免重复兑换同一份经验。
-- 当时的说明建议多实例部署前迁移到事务型数据库。
-
-### V2.5 新增功能
-- 增加私信与通知中心；私信联系人头像可进入用户主页。
-- 增加贡献者中心，管理员可维护开发者资料、捐赠二维码和贡献榜。
-- 增加个人昼夜模式、主题色和樱花粒子开关，管理员可设置站点默认外观。
-- 增加照片墙；当时照片墙原图上限为 50 MB，其他图片上传上限为 8 MB。
-- 商城阶段性隐藏，商品与钱包历史数据保留。
-
-### V2.6
-- 当前仓库保留的历史 README 与 CHANGELOG 中没有找到独立的 V2.6 更新记录，因此不推测该版本的具体变更。
-
-### V2.7 教程图集
-- 教程投稿与编辑共用多图上传控件，支持一次选择多张图片，最多 20 张。
-- 单张图片上限为 8 MB；上传后可在缩略图网格中逐张移除。
-- 教程正文图集在宽屏下双列展示，窄屏下自动切换为单列。
-
-### V2.8.x（可核对记录：V2.8.1）
-- 修复侧边栏展开时遮挡首页和后台内容的问题，桌面端主内容区会随抽屉展开让位。
-- 修复后台标签、按钮和表格操作区在窄屏或长文本下溢出、重叠的问题。
-- 为按钮增加自适应宽度、换行和最小宽度约束。
-- 站点外观新增背景图强度、主内容面板、普通卡片、导航栏、弹窗/浮层等独立透明度设置。
-- 首页移除没有点击事件的装饰标签，保留品牌标识与装饰轨道。
-
-### V2.9.0
-- 管理员可调整用户 EXP、授予或撤销自定义徽章；新增徽章会发送站内通知。
-- 登录日志记录优先读取 Netlify 转发的客户端 IP，并在后台展示。
-- 贡献者卡片支持头像、EXP、等级和自定义徽章。
-- 重新开放樱花商店，保留 10 EXP = 1 樱花币且不扣除经验的兑换规则。
-- 增加已兑换经验累计值，避免重复兑换；默认提供三款头像框商品。
-- 移除阻塞首屏的 Google Fonts CSS 导入，改用系统字体栈，并补充浅色模式对比度样式。
-- 数据仍保存在 Supabase app_state JSON 记录中，本版本没有迁移数据库结构。
-
-### V2.10.0
-- 教程中心、照片墙和个人收藏增加关键词搜索。
-- 管理员为用户增加经验时发送奖励通知；升级时另行发送等级提升通知。
-- 普通站点页面统一使用站点外观中配置的全站背景。
-- 贡献者中心卡片支持独立背景图。
-- 管理后台改为模块卡片入口，账户、审核、教程、游戏、资源、公告、照片墙、外观和贡献者管理分别进入独立分区。
-- 增加 TypeScript / TSX 代码格式约定，强调多行结构、清晰缩进和较短行宽。
-
-
-## 运行
-
-本分支以根目录 `.env` 提供 Docker Compose 配置，以 `.env.local` 提供 Next.js 本机开发配置。复制 `.env.example` 后，确保本机开发的 `DATABASE_URL` 指向 `127.0.0.1:5432`，并填写 SMTP / OAuth 变量。
-
-- 启动 PostgreSQL：`docker compose up -d postgres`
-- 安装依赖：`npm install`
-- 执行数据库迁移：`npm run db:migrate`
-- 本机开发：`npm run dev`
-- Docker 全栈：`docker compose up -d --build`
-- 验证：`npm test`、`npm run typecheck`、`npm run lint`、`npm run build`
-
-Google / GitHub OAuth 回调地址分别为 `/api/auth/oauth/google` 和 `/api/auth/oauth/github`。邮件验证码通过 SMTP 发送。若只测试本地数据库，可暂时不配置 OAuth；邮箱注册则必须配置可用 SMTP。
-
-## 数据说明
-
-**历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据；该历史文件不再作为当前运行时数据源，也不会导入其中的业务数据。
-
-**V2.6-dev 当前说明**：业务数据由本地 PostgreSQL 关系表承载，Drizzle schema 与 SQL migrations 为结构依据。旧 `json.db` / `data/db.json` / Supabase `app_state` 数据不导入，也不作为运行时数据源。历史图片上传仍保留 Supabase Storage 兼容代码；这不代表 Supabase 仍承担业务数据库职责，图片存储会在独立阶段迁移。
-
-PostgreSQL 官方镜像的 `/docker-entrypoint-initdb.d` 初始化脚本只会在空数据目录首次初始化时运行。已经初始化过的命名卷不会因为新增 SQL 文件而自动重跑；这种情况必须执行 `npm run db:migrate`。不要随意使用 `docker compose down -v`，该命令会删除数据库命名卷。
-
-
-**历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据，升级前需备份该文件及 `public/uploads`；V2.3 为用户字段和站点配置增加了可选字段，旧数据可继续读取。
-
-**V2.6-dev 当前说明**：业务数据由本地 PostgreSQL 关系表承载，Drizzle schema 与 SQL migration 为结构依据。旧 `json.db` / `data/db.json` / Supabase `app_state` 中的业务数据不导入，也不作为运行时数据源。历史 Supabase Storage 图片仍由兼容接口提供，图片存储迁移与业务数据库迁移是两项独立工作。
-
-**新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量，以及该 Supabase 项目自己的 `SUPABASE_PUBLISHABLE_KEY`。不要沿用其他 Supabase 项目的公开 Key。
+<sub>~~Sakura Game Archive — Under Active Development~~ · **Discontinued / No Longer Maintained**</sub>
