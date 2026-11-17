@@ -1,117 +1,35 @@
-# Sakura Game Archive · V2.23.0
+# ~~Sakura Game Archive~~
 
-V2.3 是基于原 V2.2 项目的渐进式升级版本。保留原有 Next.js App Router、TypeScript 和 JSON 数据文件结构。
+> [!WARNING]
+> ## ~~ACTIVE PROJECT~~ — **DEPRECATED**
+>
+> **This project has been discontinued and is no longer maintained.**
+>
+> 本项目已正式废弃，停止开发与维护。后续不会再提供功能更新、问题修复或技术支持。
 
-## V2.23.0（开发分支）
+---
 
-- 侧边导航默认展开并锁定；账户抽屉限制最大高度并允许内部滚动，避免菜单内容溢出。
-- 统一详情区圆角、边框、背景和内边距，改善浅色主题下的白色割裂区域。
-- 移除外部 Google Fonts 阻塞式导入，改用系统字体栈，减少首屏第三方请求。
-- 增加好友请求、接受/拒绝和解除好友逻辑；私信接口仅允许已互为好友的用户读取和发送消息，不再向私信页返回全站用户列表。
-- 个人主页增加好友操作；私信输入区增加常用 Emoji 快捷插入。
-- 用户可查看反馈处理状态与管理员回复；待处理反馈支持修改，用户可删除自己的反馈。管理员审核列表保留已处理反馈详情。
-- 为 Supabase public uploads 增加同源图片代理，并接入个人头像、游戏封面、教程、照片墙、评论及上传预览等主要展示区域。
-- 增加 Database 2.0 Beta 迁移脚本、快照兼容 RPC、迁移前备份和数据核对脚本。当前应用仍使用快照兼容读写接口，尚未完成所有业务实体的独立 SQL 读写改造。
-- 增加 Dockerfile、Docker Compose 和通用部署文档，可用于 Dockhosting、VPS 及支持 Docker 的国内平台；Netlify 继续使用 Next.js adapter。
-- 流媒体/CDN 专项优化、真实平台部署和多实例压力测试仍需在目标托管环境验证。
+## Project Status
 
-## V2.3 更新
+- ~~Development: Active~~ **Development: Discontinued**
+- ~~Maintenance: Ongoing~~ **Maintenance: Stopped**
+- ~~New Features: Planned~~ **New Features: None**
+- ~~Bug Fixes: Ongoing~~ **Bug Fixes: None**
+- **Repository Status: Archived for reference**
 
-- 评论撤回改为彻底删除评论及其子回复；旧版软删除记录不再展示。
-- 点赞、取消点赞、评论发布、评论修改、评论删除显示具体反馈。
-- 教程作者和管理员可修改已发布教程，记录最后修改时间。
-- 公告支持管理员编辑，保留历史版本并显示最后修改时间和修改者。
-- 个人资料增加等级经验进度条、徽章佩戴、头像框选择和名片背景 URL。
-- 管理后台增加 Logo、站点背景和首页宣传模块背景图片配置。
+## Notice
 
-## 运行
+This repository is preserved for historical and reference purposes only. The source code and existing releases are provided **as-is**. They may contain outdated dependencies, known issues, or security vulnerabilities.
 
-1. 复制 `.env.example` 为 `.env.local` 并设置 `SESSION_SECRET`（至少 32 位随机字符串）及管理员初始密码。
-2. 安装依赖：`npm install`
-3. 开发：`npm run dev`
-4. 类型检查：`npm run typecheck`；生产构建：`npm run build`
+本仓库仅作为历史项目存档，代码及已有版本仅供学习和参考。项目不再维护，请勿将其视为仍在持续开发或受到支持的软件。
 
-## 数据说明
+## Acknowledgements
 
-数据仍保存在 `data/db.json`。升级前请备份该文件及 `public/uploads`。V2.3 为用户字段和站点配置添加了可选字段，旧数据可继续读取。此 JSON 文件存储方案适合单实例轻量部署；高并发部署前建议迁移到关系型数据库。
+Thank you to everyone who used, tested, or supported Sakura Game Archive.
 
-## V2.4 樱花币与商城
+感谢曾经使用、体验或支持过本项目的朋友。  
+**This is the end of Sakura Game Archive. Thank you.** 🌸
 
-- EXP 兑换比例：10 EXP = 1 樱花币。EXP 不扣除，用户等级不受影响；通过 `expConverted` 记录已兑换额度，防止重复兑换同一份经验。
-- 用户访问 `/shop` 浏览商品、兑换樱花币、购买商品、查看背包和交易记录。
-- 管理员在 `/admin` 的「商城管理」分区添加/编辑商品、上传图片、设置价格/库存并上架或下架。
-- 新增 JSON 数据字段：`shopProducts`、`inventory`、`coinTransactions`；用户新增 `sakuraCoins`、`expConverted`。
-- 本地 JSON 存储适用于单实例；生产多实例部署前请迁移到事务型数据库。
+---
 
-## V2.5 新增功能
-
-- 私信：`/messages`，仅支持纯文字；聊天双方头像可点击进入 `/users/[id]`。
-- 通知中心：`/notifications`，包含未读计数与全部标记已读。
-- 贡献者中心：`/contributors`；管理员在后台「贡献者中心管理」配置开发者资料、捐赠二维码和贡献榜。
-- 个人外观：右下角悬浮按钮可切换昼夜模式、主题色和樱花粒子；管理员可在「站点外观」设置默认值。
-- 照片墙：管理员上传原图最大 50 MB；其他图片上传仍最大 8 MB。上传文件保留原始像素，不进行压缩。
-- 商城暂时隐藏，商品与钱包历史数据保留。
-
-### 4K 图片部署说明
-
-应用照片墙上传接口允许最大 50 MB，Next.js `proxyClientMaxBodySize` 已设置为 55 MB 以容纳 multipart 表单额外开销。若部署在 Nginx、CDN 或其他反向代理之后，请同步将请求体大小限制调整到至少 55 MB（例如 Nginx `client_max_body_size 55m;`），否则代理层可能先于 Next.js 拒绝大图。请同时确认服务器磁盘空间和备份策略。
-
-### V2.7 教程图集说明
-
-教程投稿与教程编辑使用同一个多图上传控件：可在文件选择窗口按住 Ctrl / Shift 一次选择多张，最多 20 张；单张图片最大 8 MB。上传后可在缩略图网格中逐张移除。教程正文图集在宽屏下双列展示，在窄屏下自动切换为单列。若部署在反向代理后，图片逐张独立上传，无需将代理请求体限制提高到 160 MB；仍建议保留照片墙所需的 55 MB 上传限制。
-
-## 版本更新记录
-
-以下内容整合自原独立 CHANGELOG 文件，按版本从新到旧排列。
-
-### v2.10.0 更新记录
-
-#### 本次更新
-
-- 教程中心、照片墙、个人收藏新增关键词搜索，搜索方式沿用游戏档案的查询参数与搜索栏样式。
-- 管理员为用户增加经验时，用户通知中心会收到经验奖励通知；升级时仍会额外收到等级提升通知。
-- 普通站点页面统一使用站点外观中配置的全站背景。
-- 贡献者中心开发者展示卡片支持单独背景，可在管理后台上传和更新。
-- 管理后台改为模块卡片入口，账户、内容审核、教程管理、游戏档案、拓展资源、公告牌、照片墙、站点外观和贡献者中心分别进入独立管理页面。
-- 新增代码格式约定：TypeScript/TSX 使用多行结构、清晰缩进和较短行宽，便于阅读维护。该约定仅写入项目格式配置，不写入 README。
-
-#### 备注
-
-本版本尚未在真实 Supabase/Netlify 环境部署验证。请先在本地安装依赖并执行 `npm run typecheck`、`npm run lint` 和 `npm run build`，确认通过后再部署。
-
-### v2.9.0 更新记录
-
-#### 本次改进
-
-- 管理后台用户列表支持调整用户 EXP、授予/撤销自定义徽章；新增徽章会发送站内通知。
-- 登录时优先读取 Netlify 的 `x-nf-client-connection-ip`，并在管理后台展示最近登录日志。
-- 贡献者支持头像、EXP、等级和自定义徽章展示。
-- 重新开放樱花商店；经验兑换比例为 10 EXP = 1 樱花币，不扣除经验。
-- 通过 `expConverted` 累计记录已兑换经验，只允许兑换新增经验，避免重复兑换。
-- 默认提供三款头像框商品；已有自定义商品仍会保留。
-- 移除阻塞首屏的 Google Fonts CSS @import，改用系统字体栈；增加长列表内容可见性优化。
-- 补充浅色模式的表单、卡片、弹层和文字对比度样式。
-
-#### 重要说明
-
-- 数据仍保存在 Supabase `app_state` JSON 记录中。本版本不擅自迁移数据库结构。
-- IP 记录依赖 Netlify 转发的客户端 IP 请求头；本地、代理或隐私网络下可能显示 unknown 或代理出口 IP。
-- 本次代码修改尚未在真实 Netlify/Supabase 项目上部署验证。请先在 Netlify Deploy Preview 测试，再合并到生产分支。
-
-### v2.8.1 修复说明
-
-#### 界面布局
-
-- 修复侧边栏展开时遮挡首页和后台内容的问题：桌面端主内容区随抽屉展开让位，侧边栏层级高于后台粘性标签栏。
-- 修复后台标签、操作按钮和表格操作区在窄屏/长文本下溢出或相互覆盖的问题。
-- 为按钮增加自适应宽度、换行和最小宽度约束，不再依赖固定模板宽度。
-
-#### 透明度设置
-
-- 后台「站点外观」新增背景图片显示强度、主内容面板、普通卡片、导航栏、弹窗/浮层五组独立透明度设置。
-- 设置保存至站点配置并应用于首页、登录页及对应 UI 表面；文字保持独立不透明度，避免文字随背景一起变淡。
-
-#### 首页品牌区
-
-- 删除 `GAME DATABASE` 与 `COMMUNITY LOG` 两个无点击事件的纯装饰标签。
-- 保留 G/G+ 品牌标识和装饰轨道。
+<sub>~~Sakura Game Archive — Under Active Development~~ · **Discontinued / No Longer Maintained**</sub>
