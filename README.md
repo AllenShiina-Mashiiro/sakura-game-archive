@@ -1,106 +1,35 @@
-# Sakura Game Archive · V2.24-dev
+# ~~Sakura Game Archive~~
 
-本项目沿用 V2.3 以来的 Next.js App Router 与 TypeScript 架构持续迭代。下方各版本记录描述对应版本发布时的功能与存储状态；其中早期版本提到的本地 JSON 文件存储属于历史说明，不代表当前分支的数据后端。当前数据架构以「数据说明」章节为准。
+> [!WARNING]
+> ## ~~ACTIVE PROJECT~~ — **DEPRECATED**
+>
+> **This project has been discontinued and is no longer maintained.**
+>
+> 本项目已正式废弃，停止开发与维护。后续不会再提供功能更新、问题修复或技术支持。
 
-## V2.24-dev（开发中）
+---
 
-本分支集中完善社区互动、反馈处理、用户贡献展示、内容审核与游戏档案图片管理。开发分支未通过最终验收前，不代表生产版本已发布。
+## Project Status
 
-- 好友系统：新增独立好友列表页，集中查看好友、收到的请求和已发送请求；好友请求通知可直接查看发起者主页并接受、拒绝或忽略。好友卡片、私信联系人和好友主页均提供公开主页入口。私信支持常用 Emoji 快捷插入。
-- 反馈系统：提交者可修改待处理反馈，管理员可修改反馈；支持处理中、已修复、修复失败状态、处理历史时间线、仅对 Bug 反馈提供警告/错误/严重评级和对应 EXP 奖励；支持多张截图。
-- 奖励规则：Bug 修复完成后，警告/错误/严重分别奖励 50/150/300 EXP；普通反馈采纳沿用原有 100 EXP 规则。奖励标记保存在反馈记录中，并通过快照版本写入保护避免并发覆盖；最终仍需进行真实业务验收。
-- 用户主页：评论作者、教程作者、反馈提交者、资源贡献者及游戏版本记录贡献者可进入公开主页；主页展示公开教程、资源贡献及本人参与的游戏版本记录。
-- 个人资料图片：头像与名片背景支持 1:1、16:5 裁剪预览，可调整缩放和位置，保存时上传裁剪结果。
-- 后台审核：教程、资源与反馈使用帖子式内容卡片；教程封面/正文图集、资源封面/配图和反馈多图以缩略图网格显示，点击可查看原图。资源列表和详情页同步展示配图，资源最多支持 20 张。
-- 游戏档案：在「运行配置」下方增加「更多图片」模块；后台支持最多 20 张图片上传、缩略图网格排列和原图查看，沿用统一缩略图容器，避免图片挤压或错位。上传中的图片尚未完成时，相关表单会阻止提前提交。
-- 图片上传：浏览器向同源接口申请短时签名后，直接上传 Supabase Storage；文件内容不经过 Next.js / Netlify Functions。小于等于 6 MiB 的图片使用签名直传，大于 6 MiB 的图片使用 TUS 断点续传，按 6 MiB 分片并显示上传进度，遇到短暂网络中断会尝试读取服务端偏移量后继续。`content`、`avatars`、`photos` 三个公开桶分别限制 12 MB、4 MB、50 MB，并限制为 JPG / PNG / WEBP / GIF；原有 `uploads` 桶及历史图片 URL 保持不变。
-- CI：推送本分支自动执行 npm ci、Node.js 单元测试（npm test）、TypeScript、Lint 与生产 Build。真实部署、Emoji 往返测试、奖励并发验收和完整 UI 验收仍须在目标环境完成。
+- ~~Development: Active~~ **Development: Discontinued**
+- ~~Maintenance: Ongoing~~ **Maintenance: Stopped**
+- ~~New Features: Planned~~ **New Features: None**
+- ~~Bug Fixes: Ongoing~~ **Bug Fixes: None**
+- **Repository Status: Archived for reference**
 
-## V2.23.0
+## Notice
 
-- 侧边导航默认展开并锁定；账户抽屉限制最大高度并允许内部滚动，避免菜单内容溢出。
-- 统一详情区圆角、边框、背景和内边距，改善浅色主题下的白色割裂区域。
-- 移除外部 Google Fonts 阻塞式导入，改用系统字体栈，减少首屏第三方请求。
-- 增加好友请求、接受/拒绝和解除好友逻辑；私信接口仅允许已互为好友的用户读取和发送消息，不再向私信页返回全站用户列表。
-- 个人主页增加好友操作；私信输入区增加常用 Emoji 快捷插入。
-- 用户可查看反馈处理状态与管理员回复；待处理反馈支持修改，用户可删除自己的反馈。管理员审核列表保留已处理反馈详情。
-- 为 Supabase public uploads 增加同源图片代理，并接入个人头像、游戏封面、教程、照片墙、评论及上传预览等主要展示区域。
-- 增加 Database 2.0 Beta 迁移脚本、快照兼容 RPC、迁移前备份和数据核对脚本。当前应用仍使用快照兼容读写接口，尚未完成所有业务实体的独立 SQL 读写改造。
-- 增加 Dockerfile、Docker Compose 和通用部署文档，可用于 Dockhosting、VPS 及支持 Docker 的国内平台；Netlify 继续使用 Next.js adapter。
-- 流媒体/CDN 专项优化、真实平台部署和多实例压力测试仍需在目标托管环境验证。
+This repository is preserved for historical and reference purposes only. The source code and existing releases are provided **as-is**. They may contain outdated dependencies, known issues, or security vulnerabilities.
 
-## V2.3 更新
+本仓库仅作为历史项目存档，代码及已有版本仅供学习和参考。项目不再维护，请勿将其视为仍在持续开发或受到支持的软件。
 
-- 评论撤回改为彻底删除评论及其子回复；旧版软删除记录不再展示。
-- 点赞、取消点赞、评论发布、评论修改、评论删除显示具体反馈。
-- 教程作者和管理员可修改已发布教程，记录最后修改时间。
-- 公告支持管理员编辑，保留历史版本并显示最后修改时间和修改者。
-- 个人资料增加等级经验进度条、徽章佩戴、头像框选择和名片背景 URL。
-- 管理后台增加 Logo、站点背景和首页宣传模块背景图片配置。
+## Acknowledgements
 
-## 历史版本记录（V2.3—V2.10）
+Thank you to everyone who used, tested, or supported Sakura Game Archive.
 
-以下条目根据仓库中保留的 README 与历史 CHANGELOG 整理。没有找到独立记录的版本会明确注明，不补写未经证实的功能。
+感谢曾经使用、体验或支持过本项目的朋友。  
+**This is the end of Sakura Game Archive. Thank you.** 🌸
 
-### V2.4 樱花币与商城
-- EXP 兑换比例为 10 EXP = 1 樱花币；EXP 不扣除，等级不受影响。
-- 用户可在商城浏览商品、兑换樱花币、购买商品、查看背包和交易记录。
-- 管理员可添加、编辑商品，设置价格、库存、图片并上架或下架。
-- 新增商品、背包和交易记录数据字段；用户增加樱花币余额及已兑换经验记录，避免重复兑换同一份经验。
-- 当时的说明建议多实例部署前迁移到事务型数据库。
+---
 
-### V2.5 新增功能
-- 增加私信与通知中心；私信联系人头像可进入用户主页。
-- 增加贡献者中心，管理员可维护开发者资料、捐赠二维码和贡献榜。
-- 增加个人昼夜模式、主题色和樱花粒子开关，管理员可设置站点默认外观。
-- 增加照片墙；当时照片墙原图上限为 50 MB，其他图片上传上限为 8 MB。
-- 商城阶段性隐藏，商品与钱包历史数据保留。
-
-### V2.6
-- 当前仓库保留的历史 README 与 CHANGELOG 中没有找到独立的 V2.6 更新记录，因此不推测该版本的具体变更。
-
-### V2.7 教程图集
-- 教程投稿与编辑共用多图上传控件，支持一次选择多张图片，最多 20 张。
-- 单张图片上限为 8 MB；上传后可在缩略图网格中逐张移除。
-- 教程正文图集在宽屏下双列展示，窄屏下自动切换为单列。
-
-### V2.8.x（可核对记录：V2.8.1）
-- 修复侧边栏展开时遮挡首页和后台内容的问题，桌面端主内容区会随抽屉展开让位。
-- 修复后台标签、按钮和表格操作区在窄屏或长文本下溢出、重叠的问题。
-- 为按钮增加自适应宽度、换行和最小宽度约束。
-- 站点外观新增背景图强度、主内容面板、普通卡片、导航栏、弹窗/浮层等独立透明度设置。
-- 首页移除没有点击事件的装饰标签，保留品牌标识与装饰轨道。
-
-### V2.9.0
-- 管理员可调整用户 EXP、授予或撤销自定义徽章；新增徽章会发送站内通知。
-- 登录日志记录优先读取 Netlify 转发的客户端 IP，并在后台展示。
-- 贡献者卡片支持头像、EXP、等级和自定义徽章。
-- 重新开放樱花商店，保留 10 EXP = 1 樱花币且不扣除经验的兑换规则。
-- 增加已兑换经验累计值，避免重复兑换；默认提供三款头像框商品。
-- 移除阻塞首屏的 Google Fonts CSS 导入，改用系统字体栈，并补充浅色模式对比度样式。
-- 数据仍保存在 Supabase app_state JSON 记录中，本版本没有迁移数据库结构。
-
-### V2.10.0
-- 教程中心、照片墙和个人收藏增加关键词搜索。
-- 管理员为用户增加经验时发送奖励通知；升级时另行发送等级提升通知。
-- 普通站点页面统一使用站点外观中配置的全站背景。
-- 贡献者中心卡片支持独立背景图。
-- 管理后台改为模块卡片入口，账户、审核、教程、游戏、资源、公告、照片墙、外观和贡献者管理分别进入独立分区。
-- 增加 TypeScript / TSX 代码格式约定，强调多行结构、清晰缩进和较短行宽。
-
-
-## 运行
-
-1. 复制 `.env.example` 为 `.env.local` 并设置 `SESSION_SECRET`（至少 32 位随机字符串）、Supabase 服务端变量及管理员初始密码。
-2. 必须配置当前 Supabase 项目对应的 `SUPABASE_PUBLISHABLE_KEY`，供浏览器直传使用；它是公开密钥，可以下发给浏览器。严禁将 `SUPABASE_SERVICE_ROLE_KEY` 暴露给浏览器。
-3. 安装依赖：`npm install`
-4. 开发：`npm run dev`
-5. 自动化单元测试：`npm test`；类型检查：`npm run typecheck`；Lint：`npm run lint`；生产构建：`npm run build`
-
-## 数据说明
-
-**历史说明（V2.3 时期）**：当时项目使用 `data/db.json` 保存数据，升级前需备份该文件及 `public/uploads`；V2.3 为用户字段和站点配置增加了可选字段，旧数据可继续读取。
-
-**当前说明（V2.23 / V2.24-dev）**：应用数据通过 Supabase `public.app_state` 中的 JSONB 快照读写，图片文件存放于 Supabase Storage。V2.23 增加了 Database 2.0 Beta 的实体表、迁移记录、快照兼容 RPC 和备份机制，但当前应用仍走快照兼容接口，尚未切换为各业务实体的独立 SQL 读写。不要仅凭迁移脚本存在就启用 `DATABASE_V2_ENABLED`；启用前必须完成迁移核对及应用读写验收。部署或升级前请备份 Supabase 数据与 Storage 文件。
-
-**新 Supabase 项目准备**：先在 SQL Editor 执行 `supabase/configure_storage_upload_buckets.sql`，创建并配置 `content`、`avatars`、`photos` 三个公开图片桶；脚本会保留旧 `uploads` 桶不变。随后在部署平台设置 `.env.example` 中的服务端变量，以及该 Supabase 项目自己的 `SUPABASE_PUBLISHABLE_KEY`。不要沿用其他 Supabase 项目的公开 Key。
+<sub>~~Sakura Game Archive — Under Active Development~~ · **Discontinued / No Longer Maintained**</sub>
